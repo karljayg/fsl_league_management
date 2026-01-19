@@ -1,0 +1,267 @@
+/* Leaderboard Styles */
+
+/* Page layout */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Page header */
+h1.text-center {
+    color: var(--text-primary);
+    margin-bottom: 3rem;
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    position: relative;
+}
+
+h1.text-center:after {
+    content: '';
+    display: block;
+    width: 100px;
+    height: 3px;
+    background: var(--primary-color);
+    margin: 15px auto 0;
+}
+
+/* Section headers */
+section {
+    margin-bottom: 4rem;
+}
+
+section h2 {
+    color: var(--text-primary);
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+/* Player rankings table */
+.table-responsive {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+    background-color: var(--card-bg);
+}
+
+.table thead {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(108, 92, 231, 0.1);
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: rgba(26, 26, 46, 0.7);
+}
+
+/* Match result cards */
+.match-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.match-card {
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.match-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-hover-shadow);
+}
+
+.match-card-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 15px;
+}
+
+.match-card-header h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.3rem;
+}
+
+.match-info {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.match-card-body {
+    padding: 20px;
+    color: var(--text-primary);
+}
+
+.match-teams {
+    margin-bottom: 15px;
+}
+
+.team {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.team:last-child {
+    border-bottom: none;
+}
+
+.team.winner {
+    font-weight: bold;
+    color: var(--accent-green);
+}
+
+.team-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-right: 5px;
+}
+
+.winner .team-name {
+    color: var(--accent-green);
+}
+
+.match-result {
+    margin: 15px 0;
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+.match-host {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 0;
+}
+
+/* Enhanced responsive designs */
+@media (max-width: 768px) {
+    .match-results {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .table th, .table td {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    
+    h1.text-center {
+        font-size: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    h1.text-center:after {
+        width: 80px;
+        margin: 10px auto 0;
+    }
+    
+    section h2 {
+        font-size: 1.5rem;
+    }
+    
+    .match-card-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    section {
+        margin-bottom: 2.5rem;
+    }
+    
+    .table-responsive {
+        margin-bottom: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 1rem 0.5rem;
+    }
+    
+    .table th, .table td {
+        padding: 8px;
+        font-size: 0.8rem;
+    }
+    
+    .match-card {
+        border-radius: 6px;
+    }
+    
+    .match-card-header, .match-card-body {
+        padding: 12px;
+    }
+    
+    .table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+}
+
+/* Special handling for table on small screens */
+@media (max-width: 640px) {
+    /* Change the table to a more readable format on very small screens */
+    .table.ranking-table {
+        border: 0;
+    }
+    
+    .table.ranking-table thead {
+        display: none; /* Hide the header row */
+    }
+    
+    .table.ranking-table tr {
+        margin-bottom: 15px;
+        display: block;
+        border: 1px solid var(--primary-color);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .table.ranking-table td {
+        display: block;
+        text-align: right;
+        position: relative;
+        padding-left: 50%;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .table.ranking-table td:last-child {
+        border-bottom: 0;
+    }
+    
+    .table.ranking-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        text-align: left;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+} 

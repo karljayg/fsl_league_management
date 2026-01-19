@@ -1,0 +1,88 @@
+# Configuration files with sensitive data
+config.php
+config.local.php
+.env
+*.env
+
+# Debug and test files
+test_*.php
+debug_*.php
+*_test.php
+test*.php
+testfile.php
+testeps.php
+test.php
+run_tests.php
+upload_test*.php
+check_*.php
+file_write_test.php
+create_test_user.php
+profile_pic_test.php
+minimal_upload_test.php
+phpinfo.php
+
+# Error logs
+*.log
+error_log
+*.error.log
+
+# Database backups and SQL dumps (keep schema.sql and migration files, but not full backups)
+psistorm_full_*.sql
+*_backup.sql
+psistorm_backup.sql
+psistorm_fsl_structure.sql
+*_data.sql
+*_test_data.sql
+test_data.sql
+upcoming_matches.sql
+leaderboard_data*.sql
+leaderboard_test_data.sql
+
+# Archive files
+*.tar
+*.tar.gz
+*.zip
+
+# Backup directories
+BACKUP/
+draft/OLD/
+draft_OLD/
+draft_buggy.tar
+
+# Temporary files
+TEMP/
+test_write_dir/
+*.tmp
+*.bak
+*.orig
+
+# Draft data (regenerated on each draft)
+draft/data/*.json
+
+# User uploads (if any)
+uploads/*
+!uploads/.gitkeep
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Chat data
+chat_data.json
+
+# Test data files
+unique.txt
+unique2.txt
+intro_files_list.txt
+reviewers.csv
+
+# Windows deployment scripts (if not needed on other platforms)
+deploy.ps1
+deploy_tests.ps1

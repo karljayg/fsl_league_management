@@ -1,0 +1,151 @@
+/* FSL Roster Page Styles */
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  color: #e0e0e0;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #00d4ff;
+  text-shadow: 0 0 15px #00d4ff;
+  font-size: 2.8em;
+  margin-bottom: 40px;
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.8em;
+  color: #00d4ff;
+  margin: 10px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+th, td {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: left;
+}
+
+th {
+  background-color: rgba(0,0,0,0.3);
+  color: #00d4ff;
+}
+
+tr:nth-child(even) {
+  background-color: rgba(255,255,255,0.05);
+}
+
+tr:hover {
+  background-color: rgba(255,255,255,0.1);
+}
+
+.division-S {
+  color: #ff6f61;
+  font-weight: bold;
+}
+
+.division-A {
+  color: #ffcc00;
+  font-weight: bold;
+}
+
+.division-B {
+  color: #00d4ff;
+  font-weight: bold;
+}
+
+.race-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.player-link {
+  color: #e0e0e0;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.player-link:hover {
+  color: #00d4ff;
+  text-shadow: 0 0 5px #00d4ff;
+}
+
+.team-link {
+  color: #ff6f61;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.team-link:hover {
+  color: #ff8577;
+  text-shadow: 0 0 5px #ff6f61;
+}
+
+.win-rate {
+  color: #98ff98;
+}
+
+footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 0.9em;
+  color: #b0b0b0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 40px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-container {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  table {
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+  
+  th, td {
+    padding: 8px;
+  }
+  
+  .container {
+    padding: 10px;
+  }
+} 

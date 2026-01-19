@@ -1,0 +1,346 @@
+/* Matches Page Styles */
+
+/* Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Page Title */
+h1.text-center {
+    color: var(--text-primary);
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    text-align: center;
+    font-weight: 700;
+}
+
+/* Section Headings */
+section h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
+
+/* Alert Messages */
+.alert {
+    padding: 1rem;
+    border-radius: 5px;
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: rgba(39, 174, 96, 0.2);
+    color: var(--accent-green);
+    border: 1px solid rgba(39, 174, 96, 0.3);
+}
+
+.alert-error {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: var(--accent-red);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+/* Match Grid */
+.match-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Match Cards */
+.match-card {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.match-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-hover-shadow);
+}
+
+.match-card-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem;
+}
+
+.match-card-header h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.match-info {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.match-card-body {
+    padding: 1.5rem;
+    color: var(--text-primary);
+}
+
+.match-description {
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Team Display */
+.match-teams {
+    margin-bottom: 1.5rem;
+}
+
+.team {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background-color: rgba(26, 26, 46, 0.7);
+    border-radius: 4px;
+}
+
+.team.winner {
+    background-color: rgba(39, 174, 96, 0.2);
+    border-left: 4px solid var(--accent-green);
+}
+
+.team-name {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* Match Host */
+.match-host {
+    font-style: italic;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* Bid Information */
+.match-bid-info {
+    background-color: rgba(26, 26, 46, 0.7);
+    padding: 1rem;
+    border-radius: 5px;
+    margin-top: 1rem;
+}
+
+.bid-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.bid-stats span {
+    background-color: rgba(108, 92, 231, 0.1);
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* User's Current Bid */
+.user-bid {
+    background-color: rgba(108, 92, 231, 0.1);
+    padding: 0.8rem;
+    border-radius: 5px;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--primary-color);
+}
+
+.user-bid p {
+    margin: 0.3rem 0;
+    color: var(--text-primary);
+}
+
+/* Bid Form */
+.bid-form {
+    margin-top: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.7rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: #5649c0; /* Slightly darker primary color */
+}
+
+/* Login Prompt */
+.login-prompt {
+    text-align: center;
+    padding: 0.8rem;
+    background-color: rgba(26, 26, 46, 0.7);
+    border-radius: 4px;
+    color: var(--text-secondary);
+}
+
+.login-prompt a {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-prompt a:hover {
+    text-decoration: underline;
+}
+
+/* Top Bids Display */
+.top-bids {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: rgba(26, 26, 46, 0.7);
+    border-radius: 5px;
+}
+
+.top-bids h4 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.top-bids ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: var(--text-secondary);
+}
+
+.top-bids li {
+    margin-bottom: 0.3rem;
+}
+
+/* No Matches Message */
+.no-matches {
+    text-align: center;
+    padding: 2rem;
+    background-color: rgba(26, 26, 46, 0.7);
+    border-radius: 8px;
+    color: var(--text-secondary);
+}
+
+/* Match Results Section */
+.match-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.match-result {
+    font-style: italic;
+    color: var(--text-secondary);
+    margin: 1rem 0;
+    line-height: 1.5;
+}
+
+/* Enhanced responsive designs */
+@media (max-width: 768px) {
+    .match-grid, .match-results {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .bid-stats {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    h1.text-center {
+        font-size: 2rem;
+    }
+    
+    section h2 {
+        font-size: 1.5rem;
+    }
+    
+    .match-card-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .match-card-body {
+        padding: 1rem;
+    }
+    
+    .match-description {
+        font-size: 0.9rem;
+    }
+    
+    .match-teams {
+        flex-direction: column;
+    }
+    
+    .match-bid-info {
+        flex-direction: column;
+    }
+    
+    .form-group input, .btn-primary {
+        width: 100%;
+    }
+    
+    .bid-form {
+        margin-top: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 1rem 0.5rem;
+    }
+    
+    .bid-form {
+        padding: 1rem;
+    }
+    
+    .alert {
+        padding: 0.75rem;
+    }
+    
+    .match-card {
+        border-radius: 6px;
+    }
+    
+    .match-card-header {
+        padding: 0.75rem;
+    }
+}
+
+/* Section Spacing */
+.mb-5 {
+    margin-bottom: 3rem;
+} 

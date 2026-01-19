@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .vs-text { font: bold 48px sans-serif; fill: #6c5ce7; }
+    </style>
+    <text x="20" y="65" class="vs-text">VS</text>
+</svg> 

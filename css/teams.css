@@ -1,0 +1,179 @@
+/* FSL Teams Page Styles */
+
+body {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  color: #e0e0e0;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #00d4ff;
+  text-shadow: 0 0 15px #00d4ff;
+  font-size: 2.8em;
+  margin-bottom: 40px;
+}
+
+.teams-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: center;
+}
+
+.team-card {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.team-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.team-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+}
+
+.team-name {
+  font-size: 1.8em;
+  color: #ff6f61;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.team-name a {
+  color: #ff6f61;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.team-name a:hover {
+  color: #ff8577;
+  text-shadow: 0 0 5px #ff6f61;
+}
+
+.team-players {
+  list-style-type: none;
+  padding: 0;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.player-item:last-child {
+  border-bottom: none;
+}
+
+.player-role {
+  margin-right: 10px;
+  font-size: 0.8em;
+  padding: 3px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.captain {
+  background-color: #ff6f61;
+  color: #0a0a1a;
+}
+
+.co-captain {
+  background-color: #ffcc00;
+  color: #0a0a1a;
+}
+
+.player-name {
+  flex-grow: 1;
+}
+
+.player-name a {
+  color: #e0e0e0;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.player-name a:hover {
+  color: #00d4ff;
+  text-shadow: 0 0 5px #00d4ff;
+}
+
+.player-info {
+  display: flex;
+  align-items: center;
+}
+
+.race-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+}
+
+.division-badge {
+  margin-left: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: bold;
+  font-size: 0.8em;
+}
+
+.division-S {
+  color: #ff6f61;
+}
+
+.division-A {
+  color: #ffcc00;
+}
+
+.division-B {
+  color: #00d4ff;
+}
+
+@media (max-width: 768px) {
+  .team-card {
+    max-width: 100%;
+  }
+  
+  .team-name {
+    font-size: 1.5em;
+  }
+  
+  .container {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .player-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .player-role {
+    margin-bottom: 5px;
+  }
+  
+  .player-info {
+    margin-top: 5px;
+  }
+} 

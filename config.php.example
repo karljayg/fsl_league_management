@@ -1,0 +1,42 @@
+<?php
+/**
+ * Database configuration file
+ * 
+ * Copy this file to config.php and fill in your actual values.
+ * DO NOT commit config.php to version control!
+ */
+
+$config = [
+    'db_host' => 'localhost',
+    'db_name' => 'psistorm',
+    'db_user' => 'psistorm',
+    'db_pass' => 'YOUR_DATABASE_PASSWORD_HERE',  // Replace with actual password
+    
+    // Password reset settings
+    'reset_token_expiry_hours' => 24,  // Token expiration time in hours
+    'reset_from_email' => 'noreply@psistorm.com',
+    'reset_from_name' => 'PSISTORM FSL',
+    'reset_admin_contact' => 'KJ (kj@psistorm.com or Discord: @karljayg)',
+    
+    // Timezone settings
+    'timezone' => 'America/New_York',  // Eastern Time (handles EST/EDT automatically)
+    
+    // Spider Chart settings
+    'spider_chart' => [
+        'attribute_offset' => 5,   // Minimum value for any attribute (prevents 0 scores)
+        'max_score' => 10,         // Maximum score per attribute (data range is 5-10)
+        'chart_min' => 2,          // Minimum value displayed on spider chart
+        'chart_max' => 10,         // Maximum value displayed on spider chart
+    ],
+]; 
+
+// Service API Configuration
+$config['service_api'] = [
+    'enabled' => true,
+    'token' => 'YOUR_API_TOKEN_HERE', // Replace with a secure random token
+    'allowed_ips' => [], // Optional IP whitelist - leave empty for no restrictions
+    'rate_limit' => 100, // Requests per hour per IP
+    'log_requests' => true,
+    'reviewer_default_weight' => 0.50,
+    'base_url' => 'http://localhost/psistorm.com/fsl' // Update for production
+]; 

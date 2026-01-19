@@ -1,0 +1,546 @@
+/**
+ * Draft-specific styles
+ * Extends main styles.css
+ */
+
+/* Draft Layout */
+.draft-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.draft-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.draft-header h1 {
+    font-size: 2rem;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+}
+
+.draft-status {
+    display: inline-block;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.draft-status.setup { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+.draft-status.live { background: rgba(40, 167, 69, 0.2); color: #28a745; }
+.draft-status.paused { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+.draft-status.completed { background: rgba(108, 92, 231, 0.2); color: var(--primary-color); }
+
+/* Timer */
+.draft-timer {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+
+.timer-display {
+    font-size: 4rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    color: var(--secondary-color);
+    text-shadow: 0 0 20px rgba(0, 184, 148, 0.5);
+}
+
+.timer-display.urgent {
+    color: var(--accent-red);
+    text-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.on-the-clock {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.on-the-clock .team-name {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Grid Layout */
+.draft-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1200px) {
+    .draft-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .draft-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Panels */
+.draft-panel {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.draft-panel h2 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Teams Panel */
+.team-card {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.team-card.on-clock {
+    border: 2px solid var(--secondary-color);
+    box-shadow: 0 0 15px rgba(0, 184, 148, 0.3);
+}
+
+.team-card.your-team {
+    border: 2px solid var(--primary-color);
+}
+
+.team-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.team-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.team-pick-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.team-roster {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.team-roster .player-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.team-roster .player-entry:last-child {
+    border-bottom: none;
+}
+
+/* Players Panel */
+.player-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.player-card {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.player-card.selectable {
+    cursor: pointer;
+}
+
+.player-card.selectable:hover {
+    background: rgba(108, 92, 231, 0.2);
+    transform: translateX(5px);
+}
+
+.player-card.ineligible {
+    opacity: 0.5;
+}
+
+.player-card.drafted {
+    opacity: 0.3;
+    text-decoration: line-through;
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.player-rank {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gradient);
+    border-radius: 50%;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.player-name {
+    font-weight: 500;
+}
+
+.player-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.player-race {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+}
+
+.player-bucket {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+}
+
+.player-notes {
+    width: 100%;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 0.25rem;
+    padding-left: 2.5rem;
+    opacity: 0.8;
+}
+
+/* Pick Button */
+.pick-btn {
+    background: var(--gradient);
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.pick-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.pick-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* History Panel */
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.history-entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+.history-entry .pick-num {
+    color: var(--text-secondary);
+    min-width: 30px;
+}
+
+.history-entry .team {
+    color: var(--primary-color);
+}
+
+.history-entry .player {
+    flex: 1;
+    text-align: right;
+}
+
+.history-entry.skip .player {
+    color: var(--accent-red);
+    font-style: italic;
+}
+
+/* Admin Controls */
+.admin-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-btn.primary {
+    background: var(--gradient);
+    color: white;
+}
+
+.admin-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+}
+
+.admin-btn.danger {
+    background: rgba(231, 76, 60, 0.2);
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+}
+
+.admin-btn:hover {
+    transform: translateY(-2px);
+}
+
+.admin-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Setup Forms */
+.setup-section {
+    margin-bottom: 2rem;
+}
+
+.setup-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* Player Import */
+.import-area {
+    margin-top: 1rem;
+}
+
+.import-area textarea {
+    min-height: 150px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+}
+
+.import-help {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+
+/* Rosters grid */
+.rosters-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .rosters-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .rosters-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .draft-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .timer-display {
+        font-size: 3rem;
+    }
+    
+    .admin-controls {
+        flex-direction: column;
+    }
+    
+    .admin-btn {
+        width: 100%;
+    }
+}
+
+/* Race icons */
+.race-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+/* Links */
+.team-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.team-link:hover {
+    color: var(--secondary-color);
+    text-shadow: 0 0 5px var(--secondary-color);
+}
+
+.player-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.player-link:hover {
+    color: var(--primary-color);
+    text-shadow: 0 0 5px var(--primary-color);
+}
+
+/* Role markers */
+.role-marker {
+    font-weight: 700;
+    font-size: 0.85em;
+}
+
+.role-marker.captain {
+    color: #ffd700;
+}
+
+.role-marker.protected {
+    color: #00d4ff;
+}
+
+/* Scrollbar styling */
+.player-list::-webkit-scrollbar,
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.player-list::-webkit-scrollbar-track,
+.history-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.player-list::-webkit-scrollbar-thumb,
+.history-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+/* Toast notifications */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    animation: slideIn 0.3s ease;
+}
+
+.toast.success { border-color: var(--secondary-color); }
+.toast.error { border-color: var(--accent-red); }
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
