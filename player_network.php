@@ -1121,8 +1121,8 @@ include 'includes/header.php';
             .linkWidth(link => Math.sqrt(link.value) * 0.5)
             .linkColor(() => 'rgba(0, 212, 255, 0.4)')
             .linkOpacity(0.8)
-            .linkDirectionalParticles(link => link.value > 5 ? 2 : 0)
-            .linkDirectionalParticleSpeed(0.005)
+            .linkDirectionalParticles(link => link.value > 10 ? 1 : 0) // Fewer particles, higher threshold
+            .linkDirectionalParticleSpeed(0.003) // Slower = less CPU
             .linkDirectionalParticleWidth(2)
             .linkDirectionalParticleColor(() => '#00d4ff')
             .onNodeClick(node => {
@@ -1146,22 +1146,131 @@ include 'includes/header.php';
         }, 500);
         
         // Auto-rotation animation (preserves current zoom distance)
+        // Only runs when rotating - stops requestAnimationFrame when paused to save CPU
+        let animationId = null;
+        
         function animate() {
-            if (isRotating && Graph) {
+            if (!isRotating) {
+                animationId = null;
+                return; // Stop the loop when not rotating
+            }
+            
+            if (Graph) {
                 angle += 0.0005; // Slow rotation
-                // Get current camera position to preserve zoom level
                 const currentPos = Graph.cameraPosition();
                 const currentDistance = Math.sqrt(currentPos.x * currentPos.x + currentPos.z * currentPos.z);
                 const distance = currentDistance || 400;
                 Graph.cameraPosition({
                     x: distance * Math.sin(angle),
-                    y: currentPos.y, // preserve Y
+                    y: currentPos.y,
                     z: distance * Math.cos(angle)
                 });
             }
-            requestAnimationFrame(animate);
+            animationId = requestAnimationFrame(animate);
         }
-        animate();
+        
+        function startAnimation() {
+            if (!animationId && isRotating) {
+                animate();
+            }
+        }
+        
+        // Start initial rotation
+        startAnimation();
+        
+        // Cool down physics simulation after initial layout (saves CPU)
+        setTimeout(() => {
+            if (Graph) {
+                Graph.d3AlphaDecay(0.05); // Faster decay = quicker cooldown
+                Graph.d3VelocityDecay(0.6); // More friction
+            }
+        }, 5000);
+        
+        // Fully stop simulation after 15 seconds
+        setTimeout(() => {
+            if (Graph) {
+                Graph.cooldownTicks(0);
+                Graph.d3Force('charge').strength(-30); // Weaker forces
+            }
+        }, 15000);
+        
+        // === FREEZE MODE: Stop renderer when idle to save CPU ===
+        let isFrozen = false;
+        let idleTimeout = null;
+        const IDLE_FREEZE_DELAY = 8000; // Freeze after 8 seconds of no interaction
+        
+        // Create freeze overlay indicator
+        const freezeIndicator = document.createElement('div');
+        freezeIndicator.id = 'freezeIndicator';
+        freezeIndicator.innerHTML = '❄️ Paused - move mouse to resume';
+        freezeIndicator.style.cssText = `
+            position: fixed;
+            bottom: 60px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00d4ff;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            z-index: 300;
+            display: none;
+            border: 1px solid rgba(0, 212, 255, 0.4);
+        `;
+        document.body.appendChild(freezeIndicator);
+        
+        function freezeRenderer() {
+            if (isFrozen || !Graph) return;
+            isFrozen = true;
+            isRotating = false;
+            document.getElementById('rotateBtn').textContent = '▶️ Rotate';
+            
+            // Pause the internal animation loop of 3d-force-graph
+            Graph.pauseAnimation();
+            freezeIndicator.style.display = 'block';
+            console.log('Graph frozen to save CPU');
+        }
+        
+        function unfreezeRenderer() {
+            if (!isFrozen || !Graph) return;
+            isFrozen = false;
+            Graph.resumeAnimation();
+            freezeIndicator.style.display = 'none';
+            resetIdleTimer();
+            console.log('Graph resumed');
+        }
+        
+        function resetIdleTimer() {
+            if (idleTimeout) clearTimeout(idleTimeout);
+            idleTimeout = setTimeout(freezeRenderer, IDLE_FREEZE_DELAY);
+        }
+        
+        // Track user interaction to reset idle timer / unfreeze
+        ['mousemove', 'mousedown', 'wheel', 'touchstart', 'keydown'].forEach(event => {
+            graphContainer.addEventListener(event, () => {
+                if (isFrozen) {
+                    unfreezeRenderer();
+                } else {
+                    resetIdleTimer();
+                }
+            });
+        });
+        
+        // Also listen on document for mouse moves near the graph
+        document.addEventListener('mousemove', (e) => {
+            const rect = graphContainer.getBoundingClientRect();
+            const isNearGraph = e.clientX >= rect.left - 50 && e.clientX <= rect.right + 50 &&
+                               e.clientY >= rect.top - 50 && e.clientY <= rect.bottom + 50;
+            if (isNearGraph) {
+                if (isFrozen) {
+                    unfreezeRenderer();
+                } else {
+                    resetIdleTimer();
+                }
+            }
+        });
+        
+        // Start idle timer
+        resetIdleTimer();
         
         // Stop rotation on scroll (zoom)
         graphContainer.addEventListener('wheel', () => {
@@ -1180,6 +1289,7 @@ include 'includes/header.php';
         document.getElementById('rotateBtn').addEventListener('click', function() {
             isRotating = !isRotating;
             this.textContent = isRotating ? '⏸️ Pause' : '▶️ Rotate';
+            if (isRotating) startAnimation(); // Restart animation loop
         });
         
         // Color mode switching - refresh nodes with new colors
@@ -1277,6 +1387,25 @@ include 'includes/header.php';
                 this.blur(); // Remove focus from input
             }
         });
+        
+        // Check URL parameter for player search (e.g., ?player=DarkMenace)
+        const urlParams = new URLSearchParams(window.location.search);
+        const playerParam = urlParams.get('player');
+        if (playerParam) {
+            // Wait for graph to initialize, then search
+            setTimeout(() => {
+                const searchTerm = playerParam.toLowerCase().trim();
+                const matchedNode = nodesData.find(n => 
+                    n.name.toLowerCase() === searchTerm ||
+                    n.name.toLowerCase().startsWith(searchTerm)
+                );
+                
+                if (matchedNode && Graph) {
+                    playerSearchInput.value = matchedNode.name;
+                    focusOnNode(matchedNode);
+                }
+            }, 1500); // Allow graph to settle before focusing
+        }
         
         // Track the currently highlighted node for cleanup
         let highlightedNode = null;
