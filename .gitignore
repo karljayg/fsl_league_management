@@ -4,6 +4,10 @@ config.local.php
 .env
 *.env
 
+# Cache files
+cache/
+*.cache
+
 # Debug and test files
 test_*.php
 debug_*.php
@@ -86,3 +90,9 @@ reviewers.csv
 # Windows deployment scripts (if not needed on other platforms)
 deploy.ps1
 deploy_tests.ps1
+
+# Generated player thumbnails
+images/player_thumbnails/
+
+# Backup files
+*.BACKUP

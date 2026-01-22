@@ -2,23 +2,96 @@
 /**
  * Player Statistics Page
  * Displays comprehensive player statistics including aliases, race, division, and team information
+ * Uses file-based caching (15 min TTL) to reduce database load
  */
 
 // Start session
 session_start();
 
-// Include database connection
-require_once 'includes/db.php';
-
 // Include the new JSON processing file
 require_once 'includes/championship_json_processor.php';
 
-// Connect to database
-try {
-    $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Cache configuration
+define('CACHE_FILE', __DIR__ . '/cache/player_statistics.json');
+define('CACHE_TTL', 900); // 15 minutes
+
+// Check for valid cached data
+$playerStats = null;
+$cacheStatus = '';
+$cacheTime = '';
+
+if (file_exists(CACHE_FILE)) {
+    $cacheTime = date('Y-m-d H:i:s', filemtime(CACHE_FILE));
+    $cacheAge = time() - filemtime(CACHE_FILE);
+    
+    if ($cacheAge < CACHE_TTL) {
+        $playerStats = json_decode(file_get_contents(CACHE_FILE), true);
+        $cacheStatus = "CACHE_FRESH (age: {$cacheAge}s, created: {$cacheTime})";
+    }
+}
+
+if ($playerStats === null) {
+    // Include database connection
+    require_once 'includes/db.php';
+
+    try {
+        // Connect to database
+        $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Get player statistics with the specified query
+        $playerStatsQuery = "
+            SELECT 
+                p.Player_ID,
+                p.Real_Name AS Player_Name,
+                a.Alias_ID,
+                a.Alias_Name,
+                s.Division,
+                s.Race,
+                s.MapsW,
+                s.MapsL,
+                s.SetsW,
+                s.SetsL,
+                t.Team_ID AS Current_Team_ID,
+                t.Team_Name AS Current_Team_Name,
+                p.Championship_Record,
+                p.TeamLeague_Championship_Record,
+                p.Teams_History AS Past_Team_History
+            FROM Players p
+            LEFT JOIN Player_Aliases a ON p.Player_ID = a.Player_ID
+            LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID AND a.Alias_ID = s.Alias_ID
+            LEFT JOIN Teams t ON p.Team_ID = t.Team_ID
+            ORDER BY s.MapsW DESC, p.Real_Name, t.Team_Name, s.Division, s.Race
+        ";
+
+        $playerStats = $db->query($playerStatsQuery)->fetchAll(PDO::FETCH_ASSOC);
+
+        // Calculate additional statistics
+        foreach ($playerStats as &$player) {
+            $totalMaps = ($player['MapsW'] ?? 0) + ($player['MapsL'] ?? 0);
+            $player['MapWinRate'] = $totalMaps > 0 ? round(($player['MapsW'] / $totalMaps) * 100, 1) : 0;
+            
+            $totalSets = ($player['SetsW'] ?? 0) + ($player['SetsL'] ?? 0);
+            $player['SetWinRate'] = $totalSets > 0 ? round(($player['SetsW'] / $totalSets) * 100, 1) : 0;
+        }
+        unset($player);
+
+        // Save to cache
+        if (!is_dir(dirname(CACHE_FILE))) {
+            mkdir(dirname(CACHE_FILE), 0755, true);
+        }
+        file_put_contents(CACHE_FILE, json_encode($playerStats));
+        $cacheStatus = "DB_LIVE (cache refreshed: " . date('Y-m-d H:i:s') . ")";
+        
+    } catch (PDOException $e) {
+        // DB failed - try stale cache as fallback
+        if (file_exists(CACHE_FILE)) {
+            $playerStats = json_decode(file_get_contents(CACHE_FILE), true);
+            $cacheStatus = "CACHE_STALE_FALLBACK (DB unreachable, using cache from: {$cacheTime})";
+        } else {
+            die("Database unavailable and no cache exists: " . $e->getMessage());
+        }
+    }
 }
 
 // Get URL parameters for filtering
@@ -31,48 +104,19 @@ $teamFilter = isset($_GET['team']) ? htmlspecialchars($_GET['team']) : 'all';
 $sortField = isset($_GET['sort']) ? htmlspecialchars($_GET['sort']) : 'MapsW';
 $sortDirection = isset($_GET['dir']) ? htmlspecialchars($_GET['dir']) : 'desc';
 
-// Adjust sortField for SQL query if necessary
-$validSortFields = ['Player_Name', 'Alias_Name', 'Division', 'Race', 'MapsW', 'SetsW', 'Current_Team_Name'];
+// Validate sort field
+$validSortFields = ['Player_Name', 'Alias_Name', 'Division', 'Race', 'MapsW', 'SetsW', 'Current_Team_Name', 'MapWinRate', 'SetWinRate'];
 if (!in_array($sortField, $validSortFields)) {
-    $sortField = 'MapsW'; // Default to MapsW if invalid
+    $sortField = 'MapsW';
 }
 
-// Get player statistics with the specified query
-$playerStatsQuery = "
-    SELECT 
-        p.Player_ID,
-        p.Real_Name AS Player_Name,
-        a.Alias_ID,
-        a.Alias_Name,
-        s.Division,
-        s.Race,
-        s.MapsW,
-        s.MapsL,
-        s.SetsW,
-        s.SetsL,
-        t.Team_ID AS Current_Team_ID,
-        t.Team_Name AS Current_Team_Name,
-        p.Championship_Record,
-        p.TeamLeague_Championship_Record,
-        p.Teams_History AS Past_Team_History
-    FROM Players p
-    LEFT JOIN Player_Aliases a ON p.Player_ID = a.Player_ID
-    LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID AND a.Alias_ID = s.Alias_ID
-    LEFT JOIN Teams t ON p.Team_ID = t.Team_ID
-    ORDER BY $sortField $sortDirection, p.Real_Name, t.Team_Name, s.Division, s.Race
-";
-
-$playerStats = $db->query($playerStatsQuery)->fetchAll(PDO::FETCH_ASSOC);
-
-// Calculate additional statistics
-foreach ($playerStats as &$player) {
-    // Calculate win rates
-    $totalMaps = ($player['MapsW'] ?? 0) + ($player['MapsL'] ?? 0);
-    $player['MapWinRate'] = $totalMaps > 0 ? round(($player['MapsW'] / $totalMaps) * 100, 1) : 0;
-    
-    $totalSets = ($player['SetsW'] ?? 0) + ($player['SetsL'] ?? 0);
-    $player['SetWinRate'] = $totalSets > 0 ? round(($player['SetsW'] / $totalSets) * 100, 1) : 0;
-}
+// Sort cached data in PHP
+usort($playerStats, function($a, $b) use ($sortField, $sortDirection) {
+    $aVal = $a[$sortField] ?? '';
+    $bVal = $b[$sortField] ?? '';
+    $cmp = is_numeric($aVal) && is_numeric($bVal) ? $aVal <=> $bVal : strcasecmp($aVal, $bVal);
+    return $sortDirection === 'desc' ? -$cmp : $cmp;
+});
 
 // Set page title
 $pageTitle = "Player Statistics";
@@ -93,57 +137,113 @@ function formatChampionshipRecord($jsonData, $outputMode = 2) {
 }
 
 /**
- * Parse Teams History JSON into a readable format
- * @param string|null $jsonData The JSON data to parse
- * @return string Formatted teams history
+ * Team ID to name/abbreviation mapping
  */
-function formatTeamsHistory($jsonData) {
+function getTeamInfo($teamId) {
+    $teamMap = [
+        '1' => ['name' => 'PulledTheBoys', 'abbrev' => 'PTB'],
+        '2' => ['name' => 'Angry Space Hares', 'abbrev' => 'ASH'],
+        '3' => ['name' => 'Infinite Cyclists', 'abbrev' => 'IC'],
+        '4' => ['name' => 'Rages Raiders', 'abbrev' => 'RR'],
+        '5' => ['name' => 'Cheesy Nachos', 'abbrev' => 'CN'],
+    ];
+    return $teamMap[$teamId] ?? ['name' => "Team $teamId", 'abbrev' => "T$teamId"];
+}
+
+/**
+ * Get team abbreviation from full name
+ */
+function getTeamAbbreviation($teamName) {
+    $abbrevMap = [
+        'PulledTheBoys' => 'PTB',
+        'Pulled The Boys' => 'PTB',
+        'Angry Space Hares' => 'ASH',
+        'AngrySpaceHares' => 'ASH',
+        'Infinite Cyclists' => 'IC',
+        'InfiniteCyclists' => 'IC',
+        'Rages Raiders' => 'RR',
+        'RagesRaiders' => 'RR',
+        'Cheesy Nachos' => 'CN',
+        'CheesyNachos' => 'CN',
+        'Free Agent' => 'FA',
+        'FreeAgent' => 'FA',
+    ];
+    return $abbrevMap[$teamName] ?? substr(preg_replace('/[^A-Z]/', '', $teamName), 0, 3);
+}
+
+/**
+ * Parse Teams History JSON into a readable format
+ * Format: {"history": [{"season": 9, "team_id": "3"}]}
+ * @param string|null $jsonData The JSON data to parse
+ * @param int|null $currentTeamId Current team ID to exclude from history
+ * @return string Formatted teams history with clickable abbreviations
+ */
+function formatTeamsHistory($jsonData, $currentTeamId = null) {
     if (empty($jsonData) || $jsonData === 'null' || $jsonData === 'None') {
-        return 'No team history';
+        return '';
     }
     
     try {
-        // Try to decode the JSON
         $data = json_decode($jsonData, true);
         
-        // If it's valid JSON, format it nicely
-        if (json_last_error() === JSON_ERROR_NONE && !empty($data)) {
-            $output = '';
-            
-            foreach ($data as $season => $team) {
-                $output .= "Season " . $season . ": ";
-                
-                if (is_array($team)) {
-                    if (isset($team['name'])) {
-                        $output .= $team['name'];
-                    } else {
-                        $output .= json_encode($team);
-                    }
-                } else {
-                    $output .= $team;
-                }
-                
-                $output .= "\n";
-            }
-            
-            return nl2br(trim($output));
+        if (json_last_error() !== JSON_ERROR_NONE || empty($data)) {
+            return '';
         }
         
-        // If it's not valid JSON, clean up the raw string
-        $cleaned = $jsonData;
-        $cleaned = str_replace(['{', '}', '"', '[', ']'], '', $cleaned);
-        $cleaned = preg_replace('/,\s*/', "\n", $cleaned);
-        $cleaned = preg_replace('/:/', ': ', $cleaned);
+        // Handle {"history": [...]} format
+        $history = $data['history'] ?? $data;
+        if (!is_array($history)) {
+            return '';
+        }
         
-        return nl2br(trim($cleaned));
+        // Sort by season descending to find the latest
+        usort($history, function($a, $b) {
+            return ($b['season'] ?? 0) <=> ($a['season'] ?? 0);
+        });
+        
+        // Filter out current team (latest season entry if it matches current team)
+        $filtered = [];
+        foreach ($history as $entry) {
+            $teamId = $entry['team_id'] ?? null;
+            // Skip if this is the current team
+            if ($currentTeamId && $teamId == $currentTeamId) {
+                continue;
+            }
+            $filtered[] = $entry;
+        }
+        
+        if (empty($filtered)) {
+            return '';
+        }
+        
+        // Sort remaining by season ascending for display
+        usort($filtered, function($a, $b) {
+            return ($a['season'] ?? 0) <=> ($b['season'] ?? 0);
+        });
+        
+        $parts = [];
+        foreach ($filtered as $entry) {
+            $season = $entry['season'] ?? '?';
+            $teamId = $entry['team_id'] ?? null;
+            $teamName = $entry['team_name'] ?? null;
+            
+            if ($teamId) {
+                $info = getTeamInfo($teamId);
+                $teamName = $info['name'];
+                $abbrev = $info['abbrev'];
+            } elseif ($teamName) {
+                $abbrev = getTeamAbbreviation($teamName);
+            } else {
+                continue;
+            }
+            
+            $encodedName = urlencode($teamName);
+            $parts[] = "<a href=\"view_team.php?name={$encodedName}\" class=\"team-abbrev\" title=\"S{$season}: {$teamName}\">S{$season}:{$abbrev}</a>";
+        }
+        
+        return implode(' ', $parts);
     } catch (Exception $e) {
-        // If any error occurs, clean up the raw string
-        $cleaned = $jsonData;
-        $cleaned = str_replace(['{', '}', '"', '[', ']'], '', $cleaned);
-        $cleaned = preg_replace('/,\s*/', "\n", $cleaned);
-        $cleaned = preg_replace('/:/', ': ', $cleaned);
-        
-        return nl2br(trim($cleaned));
+        return '';
     }
 }
 
@@ -152,7 +252,7 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
     return processChampionshipJSON($jsonData, $outputMode);
 }
 ?>
-
+<!-- Data: <?= $cacheStatus ?> -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -393,6 +493,25 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
             color: #ff6f61;
             text-shadow: 0 0 5px rgba(255, 111, 97, 0.5);
         }
+        .past-teams-cell {
+            white-space: nowrap;
+        }
+        .team-abbrev {
+            display: inline-block;
+            padding: 2px 5px;
+            margin: 1px;
+            background: rgba(0, 212, 255, 0.15);
+            border-radius: 3px;
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .team-abbrev:hover {
+            background: rgba(0, 212, 255, 0.3);
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -584,17 +703,11 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                                         
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <?php if (!empty($player['Past_Team_History']) && $player['Past_Team_History'] !== 'None' && $player['Past_Team_History'] !== 'null'): ?>
-                                        <div class="tooltip">
-                                            <span>View History</span>
-                                            <div class="tooltip-content">
-                                                <?= formatTeamsHistory($player['Past_Team_History']) ?>
-                                            </div>
-                                        </div>
-                                    <?php else: ?>
-                                        
-                                    <?php endif; ?>
+                                <td class="past-teams-cell">
+                                    <?php 
+                                    $pastTeams = formatTeamsHistory($player['Past_Team_History'], $player['Current_Team_ID'] ?? null);
+                                    echo $pastTeams ?: '';
+                                    ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -23,9 +23,15 @@ function processChampionshipJSON($json, $outputMode = 1) {
         return '';
     }
     
+    // Sort records by season ascending (Season 1 first)
+    $records = $data['records'];
+    usort($records, function($a, $b) {
+        return ($a['season'] ?? 0) - ($b['season'] ?? 0);
+    });
+    
     $outputLines = [];
     
-    foreach ($data['records'] as $record) {
+    foreach ($records as $record) {
         // Ensure required keys exist.
         if (!isset($record['result']) || !isset($record['season'])) {
             continue;
@@ -47,33 +53,39 @@ function processChampionshipJSON($json, $outputMode = 1) {
             }
             $outputLines[] = $line;
         } else if ($outputMode == 2) {
-            // Output Mode 2: HTML with medal images.
+            // Output Mode 2: HTML with medal images and season label.
             $medalHTML = '';
             $text = '';
+            $divisionLabel = ($division != '') ? $division : '';
+            $seasonLabel = "S{$season}" . ($divisionLabel ? " {$divisionLabel}" : '');
+            
             if ($result === 1) {
                 // Gold medal for 1st.
                 $text = ($division != '')
                     ? "Season {$season} Code {$division} Champion"
                     : "Season {$season} Champion";
-                $medalHTML = "<img src='images/gold_medal_icon.png' height='50px' alt='Gold Medal' title='" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "' style='margin-right:5px;'>";
+                $medalHTML = "<img src='images/gold_medal_icon.png' height='50px' alt='Gold Medal' title='" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "'>";
             } else if ($result === 2) {
                 // Silver medal for 2nd.
                 $ordinal = convertToOrdinal($result); // "2nd"
                 $text = "Season {$season} Code {$division} {$ordinal} place";
-                $medalHTML = "<img src='images/silver_medal_icon.png' height='50px' alt='Silver Medal' title='" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "' style='margin-right:5px;'>";
+                $medalHTML = "<img src='images/silver_medal_icon.png' height='50px' alt='Silver Medal' title='" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "'>";
             } else if ($result === 3) {
                 // Bronze medal for 3rd.
                 $ordinal = convertToOrdinal($result); // "3rd"
                 $text = "Season {$season} {$ordinal} place";
-                $medalHTML = "<img src='images/bronze_medal_icon.png' height='50px' alt='Bronze Medal' title='" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "' style='margin-right:5px;'>";
+                $medalHTML = "<img src='images/bronze_medal_icon.png' height='50px' alt='Bronze Medal' title='" . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . "'>";
             } else {
                 // For results beyond 3, no medal image.
                 $ordinal = convertToOrdinal($result);
                 $text = "Season {$season} {$ordinal} place";
             }
-            // Wrap in a div with flex display for proper alignment.
-            //$line = "<div style='display: flex; align-items: center; margin-bottom: 5px;'>{$medalHTML}<span>{$text}</span></div>";
-            $line = "<span style='display: inline-flex; align-items: center; margin-right: 0px;'>{$medalHTML}</span>";
+            
+            // Wrap medal with season label below it
+            $line = "<span class='medal-container' style='display: inline-flex; flex-direction: column; align-items: center; margin-right: 8px; text-align: center;'>"
+                  . $medalHTML
+                  . "<span style='font-size: 0.7em; color: #00d4ff; margin-top: 2px; font-weight: 600;'>{$seasonLabel}</span>"
+                  . "</span>";
 
             $outputLines[] = $line;
         }

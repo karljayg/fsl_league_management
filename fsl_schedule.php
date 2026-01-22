@@ -2,6 +2,7 @@
 /**
  * FSL Season Standings and Schedule Page
  * Displays team standings and match schedule for Season 9
+ * Uses file-based caching (15 min TTL) to reduce database load
  */
 
 // Enable error reporting for debugging
@@ -12,104 +13,167 @@ error_reporting(E_ALL);
 // Start session
 session_start();
 
-// Include database connection
-require_once 'includes/db.php';
 require_once 'includes/team_logo.php';
 
-// Connect to database
-try {
-    $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Cache configuration
+define('CACHE_FILE', __DIR__ . '/cache/fsl_schedule.json');
+define('CACHE_TTL', 900); // 15 minutes
+
+// Check for valid cached data
+$cachedData = null;
+$cacheStatus = '';
+$cacheTime = '';
+
+if (file_exists(CACHE_FILE)) {
+    $cacheTime = date('Y-m-d H:i:s', filemtime(CACHE_FILE));
+    $cacheAge = time() - filemtime(CACHE_FILE);
+    
+    if ($cacheAge < CACHE_TTL) {
+        $cachedData = json_decode(file_get_contents(CACHE_FILE), true);
+        $cacheStatus = "CACHE_FRESH (age: {$cacheAge}s, created: {$cacheTime})";
+    }
 }
 
-// Get Season 9 schedule from database
-$scheduleQuery = "
-    SELECT 
-        s.schedule_id,
-        s.season,
-        s.week_number,
-        s.match_date,
-        s.team1_id,
-        s.team2_id,
-        s.team1_score,
-        s.team2_score,
-        s.winner_team_id,
-        s.status,
-        s.notes,
-        s.team_2v2_results,
-        t1.Team_Name as team1_name,
-        t2.Team_Name as team2_name,
-        tw.Team_Name as winner_name
-    FROM fsl_schedule s
-    JOIN Teams t1 ON s.team1_id = t1.Team_ID
-    JOIN Teams t2 ON s.team2_id = t2.Team_ID
-    LEFT JOIN Teams tw ON s.winner_team_id = tw.Team_ID
-    WHERE s.season = 9
-    ORDER BY s.week_number
-";
+if ($cachedData === null) {
+    // Include database connection
+    require_once 'includes/db.php';
 
-try {
-    $season9Schedule = $db->query($scheduleQuery)->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("Schedule query failed: " . $e->getMessage());
+    try {
+        // Connect to database
+        $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Get Season 9 schedule from database
+    $scheduleQuery = "
+        SELECT 
+            s.schedule_id,
+            s.season,
+            s.week_number,
+            s.match_date,
+            s.team1_id,
+            s.team2_id,
+            s.team1_score,
+            s.team2_score,
+            s.winner_team_id,
+            s.status,
+            s.notes,
+            s.team_2v2_results,
+            t1.Team_Name as team1_name,
+            t2.Team_Name as team2_name,
+            tw.Team_Name as winner_name
+        FROM fsl_schedule s
+        JOIN Teams t1 ON s.team1_id = t1.Team_ID
+        JOIN Teams t2 ON s.team2_id = t2.Team_ID
+        LEFT JOIN Teams tw ON s.winner_team_id = tw.Team_ID
+        WHERE s.season = 9
+        ORDER BY s.week_number
+    ";
+
+        $season9Schedule = $db->query($scheduleQuery)->fetchAll(PDO::FETCH_ASSOC);
+
+    // Pre-fetch all match data for all schedule entries at once (batch query)
+    $allScheduleIds = array_column($season9Schedule, 'schedule_id');
+    $scheduleMatchMap = [];
+    $allMatchIds = [];
+    
+    if (!empty($allScheduleIds)) {
+        $placeholders = str_repeat('?,', count($allScheduleIds) - 1) . '?';
+        $matchIdsQuery = "SELECT schedule_id, fsl_match_id, match_type FROM fsl_schedule_matches WHERE schedule_id IN ($placeholders)";
+        $stmt = $db->prepare($matchIdsQuery);
+        $stmt->execute($allScheduleIds);
+        $matchRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($matchRows as $row) {
+            $scheduleMatchMap[$row['schedule_id']][] = $row['fsl_match_id'];
+            $allMatchIds[] = $row['fsl_match_id'];
+        }
+    }
+
+    // Fetch all match details in one query
+    $allMatchDetails = [];
+    if (!empty($allMatchIds)) {
+        $allMatchIds = array_values(array_unique($allMatchIds));
+        $placeholders = str_repeat('?,', count($allMatchIds) - 1) . '?';
+        $detailsQuery = "SELECT 
+            fm.fsl_match_id,
+            fm.t_code,
+            fm.season_extra_info,
+            fm.map_win,
+            fm.map_loss,
+            fm.notes,
+            fm.vod,
+            p_w.Real_Name AS winner_name,
+            p_w.Team_ID AS winner_team_id,
+            p_l.Real_Name AS loser_name,
+            p_l.Team_ID AS loser_team_id,
+            fm.winner_race,
+            fm.loser_race,
+            fsm.match_type,
+            fsm.schedule_id
+        FROM fsl_matches fm
+        JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
+        JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
+        JOIN fsl_schedule_matches fsm ON fm.fsl_match_id = fsm.fsl_match_id
+        WHERE fm.fsl_match_id IN ($placeholders)";
+        
+        $stmt = $db->prepare($detailsQuery);
+        $stmt->execute($allMatchIds);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach ($rows as $row) {
+            $allMatchDetails[$row['schedule_id']][] = $row;
+        }
+    }
+
+        // Save to cache
+        $cachedData = [
+            'schedule' => $season9Schedule,
+            'matchMap' => $scheduleMatchMap,
+            'matchDetails' => $allMatchDetails
+        ];
+        
+        if (!is_dir(dirname(CACHE_FILE))) {
+            mkdir(dirname(CACHE_FILE), 0755, true);
+        }
+        file_put_contents(CACHE_FILE, json_encode($cachedData));
+        $cacheStatus = "DB_LIVE (cache refreshed: " . date('Y-m-d H:i:s') . ")";
+        
+    } catch (PDOException $e) {
+        // DB failed - try stale cache as fallback
+        if (file_exists(CACHE_FILE)) {
+            $cachedData = json_decode(file_get_contents(CACHE_FILE), true);
+            $cacheStatus = "CACHE_STALE_FALLBACK (DB unreachable, using cache from: {$cacheTime})";
+        } else {
+            die("Database unavailable and no cache exists: " . $e->getMessage());
+        }
+    }
 }
 
-// Get individual match IDs for each schedule entry
+if ($cachedData !== null && empty($season9Schedule)) {
+    $season9Schedule = $cachedData['schedule'];
+    $scheduleMatchMap = $cachedData['matchMap'];
+    $allMatchDetails = $cachedData['matchDetails'];
+}
+
+// Helper functions (use cached data instead of DB queries)
 function getScheduleMatchIds($db, $scheduleId) {
-    $query = "SELECT fsl_match_id FROM fsl_schedule_matches WHERE schedule_id = ? ORDER BY 
-        CASE match_type 
-            WHEN 'S' THEN 1 
-            WHEN 'A' THEN 2 
-            WHEN 'B' THEN 3 
-            WHEN '2v2' THEN 4 
-            WHEN 'ACE' THEN 5 
-            ELSE 6 
-        END";
-    $stmt = $db->prepare($query);
-    $stmt->execute([$scheduleId]);
-    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    global $scheduleMatchMap;
+    return $scheduleMatchMap[$scheduleId] ?? [];
 }
 
-// Get individual match details for weeks that have data
 function getMatchDetails($db, $matchIds) {
-    if (empty($matchIds)) return [];
-    
-    $placeholders = str_repeat('?,', count($matchIds) - 1) . '?';
-    $query = "SELECT 
-        fm.fsl_match_id,
-        fm.t_code,
-        fm.season_extra_info,
-        fm.map_win,
-        fm.map_loss,
-        fm.notes,
-        fm.vod,
-        p_w.Real_Name AS winner_name,
-        p_w.Team_ID AS winner_team_id,
-        p_l.Real_Name AS loser_name,
-        p_l.Team_ID AS loser_team_id,
-        fm.winner_race,
-        fm.loser_race,
-        fsm.match_type
-    FROM fsl_matches fm
-    JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
-    JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
-    JOIN fsl_schedule_matches fsm ON fm.fsl_match_id = fsm.fsl_match_id
-    WHERE fm.fsl_match_id IN ($placeholders)
-    ORDER BY 
-        CASE 
-            WHEN fsm.match_type = 'ACE' OR fm.t_code = 'ACE' OR fm.season_extra_info LIKE '%Ace%' OR fm.notes LIKE '%ACE%' OR fm.notes LIKE '%Ace%' THEN 5
-            WHEN fm.t_code = 'S' THEN 1 
-            WHEN fm.t_code = 'A' THEN 2 
-            WHEN fm.t_code = 'B' THEN 3 
-            WHEN fm.t_code = '2v2' THEN 4 
-            ELSE 6 
-        END";
-    
-    $stmt = $db->prepare($query);
-    $stmt->execute($matchIds);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    global $allMatchDetails;
+    // This now returns from cache - find by matching matchIds
+    // We iterate through allMatchDetails to find rows matching the matchIds
+    $result = [];
+    foreach ($allMatchDetails as $scheduleId => $matches) {
+        foreach ($matches as $match) {
+            if (in_array($match['fsl_match_id'], $matchIds)) {
+                $result[] = $match;
+            }
+        }
+    }
+    return $result;
 }
 
 // Function to extract YouTube video ID from URL
@@ -153,6 +217,7 @@ $pageTitle = "FSL Season 9 Standings and Schedule";
 
 // Include header
 include 'includes/header.php';
+echo "<!-- Data: $cacheStatus -->\n";
 ?>
 
 <div class="container mt-4">

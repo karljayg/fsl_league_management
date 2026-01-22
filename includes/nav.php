@@ -189,6 +189,7 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
                     <h5>Player Analysis</h5>
                     <a href="player_statistics.php" class="dropdown-link sub-link">Statistics</a>
                     <a href="public_spider_chart.php" class="dropdown-link sub-link">Spider Charts</a>
+                    <a href="player_network.php" class="dropdown-link sub-link">Player Network</a>
                     <a href="voting_guide.php" class="dropdown-link sub-link">Voting Guide</a>
                 </div>
             </div>
@@ -316,6 +317,7 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
                     <h5>Player Analysis</h5>
                     <a href="player_statistics.php" class="mobile-link sub-link">Statistics</a>
                     <a href="public_spider_chart.php" class="mobile-link sub-link">Spider Charts</a>
+                    <a href="player_network.php" class="mobile-link sub-link">Player Network</a>
                     <a href="voting_guide.php" class="mobile-link sub-link">Voting Guide</a>
                 </div>
             </div>

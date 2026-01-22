@@ -35,11 +35,33 @@ try {
 }
 
 // Get player name from URL parameter
-$playerName = isset($_GET['name']) ? htmlspecialchars($_GET['name']) : '';
+$playerName = isset($_GET['name']) ? trim($_GET['name']) : '';
 
 if (empty($playerName)) {
     die("Player name is required");
 }
+
+// Check if the name is an alias and redirect to the canonical Real_Name
+$aliasCheckQuery = "SELECT p.Real_Name 
+    FROM Players p 
+    JOIN Player_Aliases pa ON p.Player_ID = pa.Player_ID 
+    WHERE pa.Alias_Name = :aliasName AND p.Real_Name != :aliasName";
+try {
+    $stmt = $db->prepare($aliasCheckQuery);
+    $stmt->execute(['aliasName' => $playerName]);
+    $realNameResult = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($realNameResult) {
+        // Redirect to the canonical Real_Name URL
+        header("Location: view_player.php?name=" . urlencode($realNameResult['Real_Name']));
+        exit;
+    }
+} catch (PDOException $e) {
+    // Continue with original name if alias check fails
+}
+
+// Sanitize for display after alias check
+$playerName = htmlspecialchars($playerName);
 
 // Get player information
 $playerQuery = "SELECT 
@@ -88,6 +110,17 @@ try {
 
 if (empty($playerInfo)) {
     die("Player not found");
+}
+
+// Get ALL aliases for this player (directly from Player_Aliases table)
+$playerId = $playerInfo[0]['Player_ID'];
+$aliasQuery = "SELECT Alias_Name FROM Player_Aliases WHERE Player_ID = :playerId AND Alias_Name != :realName ORDER BY Alias_Name";
+try {
+    $stmt = $db->prepare($aliasQuery);
+    $stmt->execute(['playerId' => $playerId, 'realName' => $playerInfo[0]['Real_Name']]);
+    $allAliases = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    $allAliases = [];
 }
 
 // Get recent matches
@@ -224,12 +257,12 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
     return processChampionshipJSON($jsonData, $outputMode);
 }
 
-// Add helper function for team history
+// Add helper function for team history (shows only PREVIOUS teams, not current)
 function formatTeamsHistory($jsonData, $currentTeamId = null) {
     global $db;
     
     if (empty($jsonData) || $jsonData === 'null' || $jsonData === 'None') {
-        return 'No team history';
+        return 'No previous teams';
     }
     
     try {
@@ -239,14 +272,8 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
         // If it's valid JSON, format it nicely
         if (json_last_error() === JSON_ERROR_NONE && !empty($data)) {
             
-            // Check if this is a single entry matching current team (don't display)
-            if ($currentTeamId && isset($data['history']) && is_array($data['history'])) {
-                if (count($data['history']) === 1 && $data['history'][0]['team_id'] == $currentTeamId) {
-                    return 'No team history';
-                }
-            }
-            
             $output = '';
+            $hasPreviousTeams = false;
             
             // Handle three different JSON formats:
             // Format 1: {"8": "Team Name", "7": "Previous Team"}
@@ -258,15 +285,22 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                 // Format 3: Object with "history" key containing array
                 $historyData = $data['history'];
                 
-                // Sort by season descending
+                // Sort by season ascending (oldest first)
                 usort($historyData, function($a, $b) {
-                    return $b['season'] - $a['season'];
+                    return ($a['season'] ?? 0) - ($b['season'] ?? 0);
                 });
                 
                 foreach ($historyData as $record) {
                     $season = $record['season'];
                     $teamId = $record['team_id'];
                     
+                    // Skip if this is the current team
+                    if ($currentTeamId && $teamId == $currentTeamId) {
+                        continue;
+                    }
+                    
+                    $hasPreviousTeams = true;
+                    
                     // Look up team name
                     $teamQuery = "SELECT Team_Name FROM Teams WHERE Team_ID = :teamId";
                     $stmt = $db->prepare($teamQuery);
@@ -274,21 +308,28 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                     $teamResult = $stmt->fetch(PDO::FETCH_ASSOC);
                     $teamName = $teamResult ? $teamResult['Team_Name'] : 'Unknown Team';
                     
-                    $output .= "Season " . $season . ": ";
+                    $output .= "S" . $season . ": ";
                     $output .= "<a href='view_team.php?name=" . urlencode($teamName) . "' class='team-link'>" . htmlspecialchars($teamName) . "</a>";
                     $output .= "\n";
                 }
             } elseif (is_array($data) && isset($data[0]['season'])) {
                 // Format 2: Array of objects with season and team_id
-                // Sort by season descending
+                // Sort by season ascending (oldest first)
                 usort($data, function($a, $b) {
-                    return $b['season'] - $a['season'];
+                    return ($a['season'] ?? 0) - ($b['season'] ?? 0);
                 });
                 
                 foreach ($data as $record) {
                     $season = $record['season'];
                     $teamId = $record['team_id'];
                     
+                    // Skip if this is the current team
+                    if ($currentTeamId && $teamId == $currentTeamId) {
+                        continue;
+                    }
+                    
+                    $hasPreviousTeams = true;
+                    
                     // Look up team name
                     $teamQuery = "SELECT Team_Name FROM Teams WHERE Team_ID = :teamId";
                     $stmt = $db->prepare($teamQuery);
@@ -296,18 +337,16 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                     $teamResult = $stmt->fetch(PDO::FETCH_ASSOC);
                     $teamName = $teamResult ? $teamResult['Team_Name'] : 'Unknown Team';
                     
-                    $output .= "Season " . $season . ": ";
+                    $output .= "S" . $season . ": ";
                     $output .= "<a href='view_team.php?name=" . urlencode($teamName) . "' class='team-link'>" . htmlspecialchars($teamName) . "</a>";
                     $output .= "\n";
                 }
             } else {
                 // Format 1: Object with season as key and team name as value
-                // Sort by season number (descending)
-                krsort($data);
+                // Sort by season number ascending (oldest first)
+                ksort($data);
                 
                 foreach ($data as $season => $team) {
-                    $output .= "Season " . $season . ": ";
-                    
                     if (is_array($team)) {
                         if (isset($team['name'])) {
                             $teamName = $team['name'];
@@ -318,9 +357,16 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                         $teamName = $team;
                     }
                     
+                    $hasPreviousTeams = true;
+                    $output .= "S" . $season . ": ";
                     $output .= "<a href='view_team.php?name=" . urlencode($teamName) . "' class='team-link'>" . htmlspecialchars($teamName) . "</a>";
                     $output .= "\n";
                 }
+            }
+            
+            // Return "No previous teams" if all entries were current team
+            if (!$hasPreviousTeams || empty(trim($output))) {
+                return 'No previous teams';
             }
             
             return nl2br(trim($output));
@@ -423,22 +469,17 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                     </div>
                     <?php endif; ?>
                 </div>
-                <?php if (!empty($playerInfo[0]['Alias_Name'])): ?>
+                <?php if (!empty($allAliases)): ?>
                 <div class="info-item">
                     <label>Aliases:</label>
-                    <span>
-                        <?php
-                        $aliases = array_unique(array_column($playerInfo, 'Alias_Name'));
-                        echo implode(', ', array_filter($aliases));
-                        ?>
-                    </span>
+                    <span><?= htmlspecialchars(implode(', ', $allAliases)) ?></span>
                 </div>
                 <?php endif; ?>
                 <?php if (!empty($playerInfo[0]['Teams_History']) && $playerInfo[0]['Teams_History'] !== 'None' && $playerInfo[0]['Teams_History'] !== 'null'): ?>
                 <?php $teamHistoryOutput = formatTeamsHistory($playerInfo[0]['Teams_History'], $playerInfo[0]['Team_ID']); ?>
-                <?php if ($teamHistoryOutput !== 'No team history'): ?>
+                <?php if ($teamHistoryOutput !== 'No previous teams'): ?>
                 <div class="info-item team-history">
-                    <label>Team History:</label>
+                    <label>Previous Teams:</label>
                     <span><?= $teamHistoryOutput ?></span>
                 </div>
                 <?php endif; ?>

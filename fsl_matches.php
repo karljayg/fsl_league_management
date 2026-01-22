@@ -2,6 +2,7 @@
 /**
  * FSL Matches Page
  * Displays all FSL matches with sorting functionality
+ * Uses file-based caching (15 min TTL) to reduce database load
  */
 
 // Enable error reporting for debugging
@@ -12,18 +13,88 @@ error_reporting(E_ALL);
 // Start session
 session_start();
 
-// Include database connection
-require_once 'includes/db.php';
+// Cache configuration
+define('CACHE_FILE', __DIR__ . '/cache/fsl_matches.json');
+define('CACHE_TTL', 900); // 15 minutes
 
-// Connect to database
-try {
-    $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+// Check for valid cached data
+$matches = null;
+$cacheStatus = '';
+$cacheTime = '';
+
+if (file_exists(CACHE_FILE)) {
+    $cacheTime = date('Y-m-d H:i:s', filemtime(CACHE_FILE));
+    $cacheAge = time() - filemtime(CACHE_FILE);
+    
+    if ($cacheAge < CACHE_TTL) {
+        $matches = json_decode(file_get_contents(CACHE_FILE), true);
+        $cacheStatus = "CACHE_FRESH (age: {$cacheAge}s, created: {$cacheTime})";
+    }
 }
 
-// Get URL parameters for sorting
+if ($matches === null) {
+    // Include database connection
+    require_once 'includes/db.php';
+
+    try {
+        // Connect to database
+        $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        // Get FSL matches (default sort - will be re-sorted client-side or via URL params)
+        $query = "SELECT 
+            fm.fsl_match_id,
+            fm.season,
+            fm.season_extra_info,
+            fm.notes,
+            fm.t_code,
+            fm.best_of,
+            fm.map_win,
+            fm.map_loss,
+            fm.winner_race,
+            fm.loser_race,
+            fm.source,
+            fm.vod,
+            p_w.Real_Name AS winner_name,
+            pa_w.Alias_Name AS winner_alias,
+            p_l.Real_Name AS loser_name,
+            pa_l.Alias_Name AS loser_alias
+        FROM fsl_matches fm
+        JOIN Players p_w 
+            ON fm.winner_player_id = p_w.Player_ID
+        JOIN Players p_l 
+            ON fm.loser_player_id = p_l.Player_ID
+        LEFT JOIN users u_w 
+            ON p_w.User_ID = u_w.id
+        LEFT JOIN users u_l 
+            ON p_l.User_ID = u_l.id
+        LEFT JOIN Player_Aliases pa_w 
+            ON p_w.Player_ID = pa_w.Player_ID
+        LEFT JOIN Player_Aliases pa_l 
+            ON p_l.Player_ID = pa_l.Player_ID
+        ORDER BY fm.fsl_match_id DESC";
+
+        $matches = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Save to cache
+        if (!is_dir(dirname(CACHE_FILE))) {
+            mkdir(dirname(CACHE_FILE), 0755, true);
+        }
+        file_put_contents(CACHE_FILE, json_encode($matches));
+        $cacheStatus = "DB_LIVE (cache refreshed: " . date('Y-m-d H:i:s') . ")";
+        
+    } catch (PDOException $e) {
+        // DB failed - try stale cache as fallback
+        if (file_exists(CACHE_FILE)) {
+            $matches = json_decode(file_get_contents(CACHE_FILE), true);
+            $cacheStatus = "CACHE_STALE_FALLBACK (DB unreachable, using cache from: {$cacheTime})";
+        } else {
+            die("Database unavailable and no cache exists: " . $e->getMessage());
+        }
+    }
+}
+
+// Get URL parameters for sorting (applied to cached data)
 $sortField = isset($_GET['sort']) ? htmlspecialchars($_GET['sort']) : 'fsl_match_id';
 $sortDirection = isset($_GET['dir']) ? htmlspecialchars($_GET['dir']) : 'desc';
 
@@ -38,58 +109,20 @@ if (!in_array($sortField, $validSortFields)) {
     $sortField = 'fsl_match_id';
 }
 
-// Build the ORDER BY clause
-$orderBy = "fm.$sortField $sortDirection";
-if ($sortField === 'winner_name') {
-    $orderBy = "p_w.Real_Name $sortDirection";
-} elseif ($sortField === 'loser_name') {
-    $orderBy = "p_l.Real_Name $sortDirection";
-}
-
-// Get FSL matches
-$query = "SELECT 
-    fm.fsl_match_id,
-    fm.season,
-    fm.season_extra_info,
-    fm.notes,
-    fm.t_code,
-    fm.best_of,
-    fm.map_win,
-    fm.map_loss,
-    fm.winner_race,
-    fm.loser_race,
-    fm.source,
-    fm.vod,
-    p_w.Real_Name AS winner_name,
-    pa_w.Alias_Name AS winner_alias,
-    p_l.Real_Name AS loser_name,
-    pa_l.Alias_Name AS loser_alias
-FROM fsl_matches fm
-JOIN Players p_w 
-    ON fm.winner_player_id = p_w.Player_ID
-JOIN Players p_l 
-    ON fm.loser_player_id = p_l.Player_ID
-LEFT JOIN users u_w 
-    ON p_w.User_ID = u_w.id
-LEFT JOIN users u_l 
-    ON p_l.User_ID = u_l.id
-LEFT JOIN Player_Aliases pa_w 
-    ON p_w.Player_ID = pa_w.Player_ID
-LEFT JOIN Player_Aliases pa_l 
-    ON p_l.Player_ID = pa_l.Player_ID
-ORDER BY $orderBy, fm.fsl_match_id";
-
-try {
-    $matches = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("Query failed: " . $e->getMessage());
-}
+// Sort cached data in PHP
+usort($matches, function($a, $b) use ($sortField, $sortDirection) {
+    $aVal = $a[$sortField] ?? '';
+    $bVal = $b[$sortField] ?? '';
+    $cmp = is_numeric($aVal) && is_numeric($bVal) ? $aVal <=> $bVal : strcasecmp($aVal, $bVal);
+    return $sortDirection === 'desc' ? -$cmp : $cmp;
+});
 
 // Set page title
 $pageTitle = "FSL Matches";
 
 // Include header
 include 'includes/header.php';
+echo "<!-- Data: $cacheStatus -->\n";
 
 // Function to get sort URL
 function getSortUrl($field) {

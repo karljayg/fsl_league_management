@@ -321,12 +321,6 @@ $pageTitle = "Chat Room";
           : `${month}/${day} ${hours}:${minutes}`;
       }
 
-      function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-      }
-
       function sendMessage(user, inputId) {
         let message = document.getElementById(inputId).value.trim();
         if (message === "") return;
@@ -459,28 +453,18 @@ $pageTitle = "Chat Room";
                 msgDiv.classList.add("received");
               }
               
-              // Create message content - use DOM methods to prevent XSS
-              const messageContent = document.createElement('div');
-              messageContent.className = 'message-content';
-              messageContent.textContent = `${msg.user}: ${msg.message}`;
-              
-              const messageTimestamp = document.createElement('div');
-              messageTimestamp.className = 'message-timestamp';
-              messageTimestamp.textContent = formatTimestamp(msg.timestamp);
-              
-              msgDiv.appendChild(messageContent);
-              msgDiv.appendChild(messageTimestamp);
+              // Create message content
+              let messageHTML = `
+                <div class="message-content">${msg.user}: ${msg.message}</div>
+                <div class="message-timestamp">${formatTimestamp(msg.timestamp)}</div>
+              `;
               
               // Add delete button if user has permission
               <?php if ($canDeleteMessages): ?>
-              const deleteBtn = document.createElement('div');
-              deleteBtn.className = 'message-delete';
-              deleteBtn.title = 'Delete message';
-              deleteBtn.textContent = '×';
-              const messageId = (msg.id || msg.timestamp).toString();
-              deleteBtn.onclick = () => deleteMessage(messageId);
-              msgDiv.appendChild(deleteBtn);
+              messageHTML += `<div class="message-delete" onclick="deleteMessage('${msg.id || msg.timestamp}')" title="Delete message">×</div>`;
               <?php endif; ?>
+              
+              msgDiv.innerHTML = messageHTML;
               chat1.appendChild(msgDiv);
             });
             
