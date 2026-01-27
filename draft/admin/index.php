@@ -241,7 +241,7 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                     <?php foreach ($teams as $team): ?>
                         <div style="margin-bottom: 0.5rem; font-size: 0.8rem;">
                             <strong><?= htmlspecialchars($team['name']) ?>:</strong><br>
-                            <input type="text" readonly value="<?= $baseUrl ?>/team/?token=<?= $team['token'] ?>" 
+                            <input type="text" readonly value="<?= $baseUrl ?>/draft/team/?token=<?= $team['token'] ?>" 
                                    style="width: 100%; font-size: 0.75rem; padding: 0.3rem;" onclick="this.select()">
                         </div>
                     <?php endforeach; ?>
