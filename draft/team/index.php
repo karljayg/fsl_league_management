@@ -253,11 +253,19 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
         
         .players-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 0.75rem;
             padding: 1rem;
             max-height: 600px;
             overflow-y: auto;
+        }
+        
+        @media (max-width: 1400px) {
+            .players-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 800px) {
+            .players-grid { grid-template-columns: 1fr; }
         }
         
         .players-grid::-webkit-scrollbar { width: 8px; }

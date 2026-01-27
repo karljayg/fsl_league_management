@@ -124,7 +124,7 @@ if ($session['current_team_id']) {
 }
 
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . 
-           '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']);
+           '://' . $_SERVER['HTTP_HOST'] . dirname(dirname($_SERVER['REQUEST_URI']));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -282,6 +282,12 @@ Rank,Name,Race,Notes
                     usort($players, fn($a, $b) => $a['ranking'] - $b['ranking']);
                     foreach ($players as $player): 
                     ?>
+                        <?php
+                        // Strip Captain/Protected from notes to show only other notes
+                        $displayNotes = $player['notes'] ?? '';
+                        $displayNotes = preg_replace('/\b(Captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $displayNotes);
+                        $displayNotes = trim($displayNotes, " \t\n\r\0\x0B,;");
+                    ?>
                         <div class="player-card <?= $player['status'] !== 'available' ? 'drafted' : '' ?>">
                             <div class="player-info">
                                 <span class="player-rank"><?= $player['ranking'] ?></span>
@@ -294,6 +300,9 @@ Rank,Name,Race,Notes
                                 ?><img src="../../images/<?= $icon ?>" alt="<?= $player['race'] ?>" class="race-icon">
                                 <span class="player-bucket">G<?= $player['bucket_index'] ?></span>
                             </div>
+                            <?php if (!empty($displayNotes)): ?>
+                            <div class="player-notes" title="<?= htmlspecialchars($displayNotes) ?>"><?= htmlspecialchars($displayNotes) ?></div>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 </div>

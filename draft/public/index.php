@@ -450,6 +450,12 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
             margin-left: 0.5rem;
         }
         
+        .player-row .player-note {
+            margin-left: 0.25rem;
+            cursor: help;
+            font-size: 0.85rem;
+        }
+        
         /* ==================== */
         /* TICKER TAPE - ESPN STYLE */
         /* ==================== */
@@ -555,6 +561,15 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         
         .ticker-item.skip .player-name {
             color: #e74c3c;
+            font-style: italic;
+        }
+        
+        .ticker-item.pending {
+            opacity: 0.6;
+        }
+        
+        .ticker-item .player-name.tbd {
+            color: #888;
             font-style: italic;
         }
         
@@ -664,7 +679,12 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                 <div class="sidebar-panel">
                     <h3>Available Players <span class="count">(<?= count($availablePlayers) ?>)</span></h3>
                     <div class="players-list">
-                        <?php foreach ($players as $player): ?>
+                        <?php foreach ($players as $player): 
+                            // Strip Captain/Protected from notes to show only other notes
+                            $displayNotes = $player['notes'] ?? '';
+                            $displayNotes = preg_replace('/\b(Captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $displayNotes);
+                            $displayNotes = trim($displayNotes, " \t\n\r\0\x0B,;");
+                        ?>
                             <div class="player-row <?= $player['status'] !== 'available' ? 'drafted' : '' ?>">
                                 <span class="rank"><?= $player['ranking'] ?></span>
                                 <a href="../../view_player.php?name=<?= urlencode($player['display_name']) ?>" class="name" target="_blank"><?= htmlspecialchars($player['display_name']) ?></a>
@@ -674,6 +694,9 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                                 ?>
                                 <img src="../../images/<?= $icon ?>" alt="<?= $player['race'] ?>" class="race-icon">
                                 <span class="group">G<?= $player['bucket_index'] ?></span>
+                                <?php if (!empty($displayNotes)): ?>
+                                <span class="player-note" title="<?= htmlspecialchars($displayNotes) ?>">📝</span>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -682,57 +705,83 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         </div>
     </div>
 
-    <!-- Ticker Tape - Pick History -->
+    <!-- Ticker Tape - Draft Picks (excludes Captain/Protected pre-assignments) -->
+    <?php
+    // Filter to only actual draft picks (PICK and SKIP, not ADMIN_ASSIGN)
+    $draftPicks = array_filter($events, fn($e) => in_array($e['result'], ['PICK', 'SKIP']));
+    
+    // Build a lookup of picks by pick number
+    $picksByNumber = [];
+    $maxPickNumber = 0;
+    foreach ($draftPicks as $event) {
+        if (isset($event['pick_number']) && $event['pick_number'] > 0) {
+            $picksByNumber[$event['pick_number']] = $event;
+            $maxPickNumber = max($maxPickNumber, $event['pick_number']);
+        }
+    }
+    
+    // Determine how many slots to show: minimum 8, or all if more than 8 picks exist
+    $slotsToShow = max(8, $maxPickNumber);
+    
+    // Get draft order from session
+    $draftOrder = $session['draft_order'] ?? [1, 2, 3, 4];
+    ?>
     <div class="ticker-wrapper">
         <div class="ticker-label">
             <i class="fas fa-history" style="margin-right: 0.5rem;"></i> PICKS
         </div>
         <div class="ticker-content">
-            <?php if (empty($events)): ?>
-                <div class="ticker-empty">Waiting for first pick...</div>
-            <?php else: ?>
-                <div class="ticker-track">
-                    <?php 
-                    // Show picks in order (oldest to newest for scrolling effect)
-                    $totalEvents = count($events);
-                    foreach ($events as $index => $event): 
-                        $team = get_team_by_id($event['team_id']);
-                        $player = $event['player_id'] ? get_player_by_id($event['player_id']) : null;
-                        $isLatest = ($index === $totalEvents - 1);
-                        $raceIcons = ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'];
-                    ?>
-                        <div class="ticker-item <?= $event['result'] === 'SKIP' ? 'skip' : '' ?> <?= $isLatest ? 'latest' : '' ?>">
-                            <span class="pick-badge">#<?= $event['pick_number'] ?? '-' ?></span>
-                            <span class="team-name"><?= htmlspecialchars($team['name'] ?? '?') ?></span>
-                            <span class="arrow">→</span>
-                            <?php if ($event['result'] === 'SKIP'): ?>
-                                <span class="player-name">SKIPPED</span>
-                            <?php elseif ($player): ?>
-                                <span class="player-name"><?= htmlspecialchars($player['display_name']) ?></span>
-                                <img src="../../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                    <!-- Duplicate for seamless loop -->
-                    <?php foreach ($events as $index => $event): 
-                        $team = get_team_by_id($event['team_id']);
-                        $player = $event['player_id'] ? get_player_by_id($event['player_id']) : null;
-                        $raceIcons = ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'];
-                    ?>
-                        <div class="ticker-item <?= $event['result'] === 'SKIP' ? 'skip' : '' ?>">
-                            <span class="pick-badge">#<?= $event['pick_number'] ?? '-' ?></span>
-                            <span class="team-name"><?= htmlspecialchars($team['name'] ?? '?') ?></span>
-                            <span class="arrow">→</span>
-                            <?php if ($event['result'] === 'SKIP'): ?>
-                                <span class="player-name">SKIPPED</span>
-                            <?php elseif ($player): ?>
-                                <span class="player-name"><?= htmlspecialchars($player['display_name']) ?></span>
-                                <img src="../../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                            <?php endif; ?>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+            <div class="ticker-track">
+                <?php 
+                $raceIcons = ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'];
+                
+                for ($pickNum = 1; $pickNum <= $slotsToShow; $pickNum++):
+                    $teamId = get_team_for_pick($pickNum, $draftOrder);
+                    $team = get_team_by_id($teamId);
+                    $hasPick = isset($picksByNumber[$pickNum]);
+                    $event = $hasPick ? $picksByNumber[$pickNum] : null;
+                    $player = ($hasPick && $event['player_id']) ? get_player_by_id($event['player_id']) : null;
+                    $isLatest = ($pickNum === $maxPickNumber && $maxPickNumber > 0);
+                    $isSkip = $hasPick && $event['result'] === 'SKIP';
+                ?>
+                    <div class="ticker-item <?= $isSkip ? 'skip' : '' ?> <?= $isLatest ? 'latest' : '' ?> <?= !$hasPick ? 'pending' : '' ?>">
+                        <span class="pick-badge">#<?= $pickNum ?></span>
+                        <span class="team-name"><?= htmlspecialchars($team['name'] ?? '?') ?></span>
+                        <span class="arrow">→</span>
+                        <?php if ($isSkip): ?>
+                            <span class="player-name">SKIPPED</span>
+                        <?php elseif ($player): ?>
+                            <span class="player-name"><?= htmlspecialchars($player['display_name']) ?></span>
+                            <img src="../../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
+                        <?php else: ?>
+                            <span class="player-name tbd">TBD</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endfor; ?>
+                <!-- Duplicate for seamless loop -->
+                <?php for ($pickNum = 1; $pickNum <= $slotsToShow; $pickNum++):
+                    $teamId = get_team_for_pick($pickNum, $draftOrder);
+                    $team = get_team_by_id($teamId);
+                    $hasPick = isset($picksByNumber[$pickNum]);
+                    $event = $hasPick ? $picksByNumber[$pickNum] : null;
+                    $player = ($hasPick && $event['player_id']) ? get_player_by_id($event['player_id']) : null;
+                    $isSkip = $hasPick && $event['result'] === 'SKIP';
+                ?>
+                    <div class="ticker-item <?= $isSkip ? 'skip' : '' ?> <?= !$hasPick ? 'pending' : '' ?>">
+                        <span class="pick-badge">#<?= $pickNum ?></span>
+                        <span class="team-name"><?= htmlspecialchars($team['name'] ?? '?') ?></span>
+                        <span class="arrow">→</span>
+                        <?php if ($isSkip): ?>
+                            <span class="player-name">SKIPPED</span>
+                        <?php elseif ($player): ?>
+                            <span class="player-name"><?= htmlspecialchars($player['display_name']) ?></span>
+                            <img src="../../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
+                        <?php else: ?>
+                            <span class="player-name tbd">TBD</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endfor; ?>
+            </div>
         </div>
     </div>
 

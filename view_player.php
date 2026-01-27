@@ -36,126 +36,139 @@ try {
 
 // Get player name from URL parameter
 $playerName = isset($_GET['name']) ? trim($_GET['name']) : '';
+$playerNotFound = false;
+$playerNotFoundMessage = '';
 
 if (empty($playerName)) {
-    die("Player name is required");
+    $playerNotFound = true;
+    $playerNotFoundMessage = 'Player name is required';
 }
 
-// Check if the name is an alias and redirect to the canonical Real_Name
-$aliasCheckQuery = "SELECT p.Real_Name 
-    FROM Players p 
-    JOIN Player_Aliases pa ON p.Player_ID = pa.Player_ID 
-    WHERE pa.Alias_Name = :aliasName AND p.Real_Name != :aliasName";
-try {
-    $stmt = $db->prepare($aliasCheckQuery);
-    $stmt->execute(['aliasName' => $playerName]);
-    $realNameResult = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($realNameResult) {
-        // Redirect to the canonical Real_Name URL
-        header("Location: view_player.php?name=" . urlencode($realNameResult['Real_Name']));
-        exit;
-    }
-} catch (PDOException $e) {
-    // Continue with original name if alias check fails
-}
-
-// Sanitize for display after alias check
-$playerName = htmlspecialchars($playerName);
-
-// Get player information
-$playerQuery = "SELECT 
-    p.Player_ID,
-    p.Real_Name,
-    u.username,
-    u.email,
-    fs.Division,
-    fs.Race,
-    fs.MapsW,
-    fs.MapsL,
-    fs.SetsW,
-    fs.SetsL,
-    pa.Alias_Name,
-    t.Team_ID,
-    t.Team_Name,
-    p.Championship_Record,
-    p.TeamLeague_Championship_Record,
-    p.Teams_History,
-    p.Status,
-    CASE 
-        WHEN t.Captain_ID = p.Player_ID THEN 'Captain'
-        WHEN t.Co_Captain_ID = p.Player_ID THEN 'Co-Captain'
-        ELSE NULL
-    END AS Team_Role
-FROM
-    Players p
-        LEFT JOIN
-    users u ON p.User_ID = u.id
-        LEFT JOIN
-    FSL_STATISTICS fs ON p.Player_ID = fs.Player_ID
-        LEFT JOIN
-    Player_Aliases pa ON fs.Alias_ID = pa.Alias_ID
-        LEFT JOIN
-    Teams t ON p.Team_ID = t.Team_ID
-WHERE
-    p.Real_Name = :playerName";
-
-try {
-    $stmt = $db->prepare($playerQuery);
-    $stmt->execute(['playerName' => $playerName]);
-    $playerInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("Query failed: " . $e->getMessage());
-}
-
-if (empty($playerInfo)) {
-    die("Player not found");
-}
-
-// Get ALL aliases for this player (directly from Player_Aliases table)
-$playerId = $playerInfo[0]['Player_ID'];
-$aliasQuery = "SELECT Alias_Name FROM Player_Aliases WHERE Player_ID = :playerId AND Alias_Name != :realName ORDER BY Alias_Name";
-try {
-    $stmt = $db->prepare($aliasQuery);
-    $stmt->execute(['playerId' => $playerId, 'realName' => $playerInfo[0]['Real_Name']]);
-    $allAliases = $stmt->fetchAll(PDO::FETCH_COLUMN);
-} catch (PDOException $e) {
-    $allAliases = [];
-}
-
-// Get recent matches
-$matchesQuery = "SELECT 
-    fm.*,
-    p_w.Real_Name AS winner_name,
-    pa_w.Alias_Name AS winner_alias,
-    p_l.Real_Name AS loser_name,
-    pa_l.Alias_Name AS loser_alias
-FROM fsl_matches fm
-JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
-JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
-LEFT JOIN Player_Aliases pa_w ON p_w.Player_ID = pa_w.Player_ID
-LEFT JOIN Player_Aliases pa_l ON p_l.Player_ID = pa_l.Player_ID
-WHERE winner_player_id = (SELECT Player_ID FROM Players WHERE Real_Name = :playerName)
-   OR loser_player_id = (SELECT Player_ID FROM Players WHERE Real_Name = :playerName)
-ORDER BY fsl_match_id DESC
-LIMIT 5";
-
-try {
-    $stmt = $db->prepare($matchesQuery);
-    $stmt->execute(['playerName' => $playerName]);
-    $recentMatches = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    die("Matches query failed: " . $e->getMessage());
-}
-
-// Get player spider chart data with division support
-$playerId = $playerInfo[0]['Player_ID'];
+// Initialize variables
+$playerInfo = [];
+$allAliases = [];
+$recentMatches = [];
 $spiderChartData = null;
 $voteStats = null;
 $availableDivisions = [];
 $selectedDivision = null;
+$playerId = null;
 
-try {
+if (!$playerNotFound) {
+    // Check if the name is an alias and redirect to the canonical Real_Name
+    $aliasCheckQuery = "SELECT p.Real_Name 
+        FROM Players p 
+        JOIN Player_Aliases pa ON p.Player_ID = pa.Player_ID 
+        WHERE pa.Alias_Name = :aliasName AND p.Real_Name != :aliasName";
+    try {
+        $stmt = $db->prepare($aliasCheckQuery);
+        $stmt->execute(['aliasName' => $playerName]);
+        $realNameResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($realNameResult) {
+            // Redirect to the canonical Real_Name URL
+            header("Location: view_player.php?name=" . urlencode($realNameResult['Real_Name']));
+            exit;
+        }
+    } catch (PDOException $e) {
+        // Continue with original name if alias check fails
+    }
+
+    // Sanitize for display after alias check
+    $playerName = htmlspecialchars($playerName);
+
+    // Get player information
+    $playerQuery = "SELECT 
+        p.Player_ID,
+        p.Real_Name,
+        u.username,
+        u.email,
+        fs.Division,
+        fs.Race,
+        fs.MapsW,
+        fs.MapsL,
+        fs.SetsW,
+        fs.SetsL,
+        pa.Alias_Name,
+        t.Team_ID,
+        t.Team_Name,
+        p.Championship_Record,
+        p.TeamLeague_Championship_Record,
+        p.Teams_History,
+        p.Status,
+        CASE 
+            WHEN t.Captain_ID = p.Player_ID THEN 'Captain'
+            WHEN t.Co_Captain_ID = p.Player_ID THEN 'Co-Captain'
+            ELSE NULL
+        END AS Team_Role
+    FROM
+        Players p
+            LEFT JOIN
+        users u ON p.User_ID = u.id
+            LEFT JOIN
+        FSL_STATISTICS fs ON p.Player_ID = fs.Player_ID
+            LEFT JOIN
+        Player_Aliases pa ON fs.Alias_ID = pa.Alias_ID
+            LEFT JOIN
+        Teams t ON p.Team_ID = t.Team_ID
+    WHERE
+        p.Real_Name = :playerName";
+
+    try {
+        $stmt = $db->prepare($playerQuery);
+        $stmt->execute(['playerName' => $playerName]);
+        $playerInfo = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $playerNotFound = true;
+        $playerNotFoundMessage = 'Database error occurred';
+    }
+
+    if (empty($playerInfo)) {
+        $playerNotFound = true;
+        $playerNotFoundMessage = 'Player not found (yet) in our FSL Database';
+    }
+}
+
+if (!$playerNotFound) {
+    // Get ALL aliases for this player (directly from Player_Aliases table)
+    $playerId = $playerInfo[0]['Player_ID'];
+    $aliasQuery = "SELECT Alias_Name FROM Player_Aliases WHERE Player_ID = :playerId AND Alias_Name != :realName ORDER BY Alias_Name";
+    try {
+        $stmt = $db->prepare($aliasQuery);
+        $stmt->execute(['playerId' => $playerId, 'realName' => $playerInfo[0]['Real_Name']]);
+        $allAliases = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (PDOException $e) {
+        $allAliases = [];
+    }
+}
+
+if (!$playerNotFound) {
+    // Get recent matches
+    $matchesQuery = "SELECT 
+        fm.*,
+        p_w.Real_Name AS winner_name,
+        pa_w.Alias_Name AS winner_alias,
+        p_l.Real_Name AS loser_name,
+        pa_l.Alias_Name AS loser_alias
+    FROM fsl_matches fm
+    JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
+    JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
+    LEFT JOIN Player_Aliases pa_w ON p_w.Player_ID = pa_w.Player_ID
+    LEFT JOIN Player_Aliases pa_l ON p_l.Player_ID = pa_l.Player_ID
+    WHERE winner_player_id = (SELECT Player_ID FROM Players WHERE Real_Name = :playerName)
+       OR loser_player_id = (SELECT Player_ID FROM Players WHERE Real_Name = :playerName)
+    ORDER BY fsl_match_id DESC
+    LIMIT 5";
+
+    try {
+        $stmt = $db->prepare($matchesQuery);
+        $stmt->execute(['playerName' => $playerName]);
+        $recentMatches = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $recentMatches = [];
+    }
+
+    try {
     // Get all available divisions for this player with reviewed match counts
     $divisionsQuery = "
         SELECT 
@@ -204,10 +217,11 @@ try {
             $voteStats = $stmt->fetch(PDO::FETCH_ASSOC);
         }
     }
-} catch (PDOException $e) {
-    // Silently fail - spider chart data is optional
-    error_log("Spider chart query failed: " . $e->getMessage());
-}
+    } catch (PDOException $e) {
+        // Silently fail - spider chart data is optional
+        error_log("Spider chart query failed: " . $e->getMessage());
+    }
+} // End if (!$playerNotFound)
 
 // Calculate total statistics
 $totalMapsW = 0;
@@ -215,18 +229,20 @@ $totalMapsL = 0;
 $totalSetsW = 0;
 $totalSetsL = 0;
 
-foreach ($playerInfo as $stat) {
-    $totalMapsW += $stat['MapsW'] ?? 0;
-    $totalMapsL += $stat['MapsL'] ?? 0;
-    $totalSetsW += $stat['SetsW'] ?? 0;
-    $totalSetsL += $stat['SetsL'] ?? 0;
+if (!$playerNotFound) {
+    foreach ($playerInfo as $stat) {
+        $totalMapsW += $stat['MapsW'] ?? 0;
+        $totalMapsL += $stat['MapsL'] ?? 0;
+        $totalSetsW += $stat['SetsW'] ?? 0;
+        $totalSetsL += $stat['SetsL'] ?? 0;
+    }
 }
 
 $mapWinRate = $totalMapsW + $totalMapsL > 0 ? round(($totalMapsW / ($totalMapsW + $totalMapsL)) * 100, 1) : 0;
 $setWinRate = $totalSetsW + $totalSetsL > 0 ? round(($totalSetsW / ($totalSetsW + $totalSetsL)) * 100, 1) : 0;
 
 // Set page title
-$pageTitle = "Player Profile - " . htmlspecialchars($playerName);
+$pageTitle = $playerNotFound ? "Player Not Found" : "Player Profile - " . htmlspecialchars($playerName);
 
 // Include header
 include 'includes/header.php';
@@ -392,6 +408,76 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
 ?>
 
 <div class="container mt-4">
+<?php if ($playerNotFound): ?>
+    <div class="player-not-found">
+        <h1><center><?= htmlspecialchars($playerName ?: 'Unknown Player') ?></center></h1>
+        <div class="not-found-message">
+            <i class="fas fa-user-slash"></i>
+            <h2><?= htmlspecialchars($playerNotFoundMessage) ?></h2>
+            <p>The player you're looking for may not have participated in FSL yet, or the name might be spelled differently.</p>
+            <div class="not-found-actions">
+                <a href="fsl_roster.php" class="btn-primary">Browse All Players</a>
+            </div>
+        </div>
+    </div>
+    <style>
+        .player-not-found {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .not-found-message {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 40px;
+            margin-top: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+        }
+        .not-found-message i {
+            font-size: 4em;
+            color: #ff6f61;
+            margin-bottom: 20px;
+        }
+        .not-found-message h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+        .not-found-message p {
+            color: #e0e0e0;
+            font-size: 1.1em;
+            margin-bottom: 30px;
+        }
+        .not-found-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .not-found-actions a {
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .not-found-actions .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #000;
+        }
+        .not-found-actions .btn-primary:hover {
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+            transform: translateY(-2px);
+        }
+        .not-found-actions .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+        }
+        .not-found-actions .btn-secondary:hover {
+            background: rgba(0, 212, 255, 0.2);
+        }
+    </style>
+<?php else: ?>
     <h1><center>
         <?= htmlspecialchars($playerName) ?>
         <?php if (!empty($playerInfo[0]['Team_Role'])): ?>
@@ -679,6 +765,7 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
             </div>
         </div>
     </div>
+<?php endif; // End else (!$playerNotFound) ?>
 </div>
 
 <style>
@@ -1257,7 +1344,7 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
     }
 </style>
 
-<?php if ($spiderChartData): ?>
+<?php if (!$playerNotFound && $spiderChartData): ?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1337,6 +1424,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <?php endif; ?>
 
+<?php if (!$playerNotFound): ?>
 <script>
 // Division selector function (available for all cases)
 function changeDivision(division) {
@@ -1345,5 +1433,6 @@ function changeDivision(division) {
     window.location.href = currentUrl.toString();
 }
 </script>
+<?php endif; ?>
 
 <?php include 'includes/footer.php'; ?> 
