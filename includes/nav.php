@@ -155,13 +155,76 @@ if (isset($_GET['clear_role_cache'])) {
 $isLoggedIn = isLoggedIn();
 $username = $isLoggedIn ? getUsername() : null;
 $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
+
+// Calculate base path for links and images based on where nav.php is included from
+// If $basePath is already set by the including file, use that; otherwise calculate it
+if (!isset($basePath)) {
+    // Get the file that included nav.php via backtrace
+    $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+    $includingFile = isset($backtrace[1]) ? $backtrace[1]['file'] : ($backtrace[0]['file'] ?? __FILE__);
+    
+    // Get absolute paths
+    $includingFileAbs = realpath($includingFile);
+    $rootDirAbs = realpath(dirname(__FILE__) . '/..'); // Root is one level up from includes/
+    
+    $basePath = '';
+    
+    if ($includingFileAbs && $rootDirAbs) {
+        // Get the directory of the including file
+        $includingDir = dirname($includingFileAbs);
+        
+        // Normalize paths for comparison (handle trailing slashes)
+        $includingDir = rtrim($includingDir, DIRECTORY_SEPARATOR);
+        $rootDirAbs = rtrim($rootDirAbs, DIRECTORY_SEPARATOR);
+        
+        // If including file is in root directory, basePath is empty
+        if ($includingDir === $rootDirAbs) {
+            $basePath = '';
+        } 
+        // If including file is in a subdirectory of root
+        elseif (strpos($includingDir, $rootDirAbs) === 0) {
+            // Get the relative path from root to including file's directory
+            $relativePath = substr($includingDir, strlen($rootDirAbs));
+            $relativePath = trim($relativePath, DIRECTORY_SEPARATOR);
+            
+            if ($relativePath) {
+                // Count directory separators to determine depth
+                // Handle both / and \ for cross-platform compatibility
+                $depth = 0;
+                if (DIRECTORY_SEPARATOR === '/') {
+                    $depth = substr_count($relativePath, '/') + 1;
+                } else {
+                    // Windows: count both \ and /
+                    $depth = max(substr_count($relativePath, '\\'), substr_count($relativePath, '/')) + 1;
+                }
+                
+                // Generate ../ for each level
+                $basePath = str_repeat('../', $depth);
+            } else {
+                $basePath = '';
+            }
+        } else {
+            // Including file is outside root - default to empty (shouldn't happen)
+            $basePath = '';
+        }
+    } else {
+        // Fallback: if realpath fails, default to empty
+        $basePath = '';
+    }
+}
+
+// Ensure basePath ends with / if it's not empty
+$basePath = rtrim($basePath, '/');
+if ($basePath !== '') {
+    $basePath .= '/';
+}
 ?>
 
 
 <nav class="nav-menu">
     <div class="nav-brand">
-        <a href="about_psistorm.php">
-            <img src="images/psistorm_gaming_logo_strip.png" alt="PSISTORM GAMING" class="nav-logo">
+        <a href="<?= $basePath ?>about_psistorm.php">
+            <img src="<?= $basePath ?>images/psistorm_gaming_logo_strip.png" alt="PSISTORM GAMING" class="nav-logo">
         </a>
     </div>
     
@@ -169,43 +232,44 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
     <div class="nav-links desktop-nav">
         <!-- FSL Dropdown -->
         <div class="dropdown">
-            <a href="fsl_season.php" class="menu-item logo-button">
-                <img src="images/fsl_sc2_logo.png" alt="FSL" class="nav-logo">
+            <a href="<?= $basePath ?>fsl_season.php" class="menu-item logo-button">
+                <img src="<?= $basePath ?>images/fsl_sc2_logo.png" alt="FSL" class="nav-logo">
                 <span class="dropdown-arrow">&#9662;</span>
             </a>
             <div class="dropdown-content">
                 <div class="dropdown-section">
                     <h4>FSL</h4>
-                    <a href="fsl_season.php" class="dropdown-link">Seasons</a>
-                    <a href="fsl_schedule.php" class="dropdown-link">Schedule</a>
-                    <a href="fsl_teams.php" class="dropdown-link">Teams</a>
-                    <a href="fsl_roster.php" class="dropdown-link">Players</a>
-                    <a href="fsl_matches.php" class="dropdown-link">Matches</a>
-                    <a href="faq.php" class="dropdown-link">FAQ</a>
-                    <a href="apply.php" class="dropdown-link">Apply</a>
+                    <a href="<?= $basePath ?>fsl_season.php" class="dropdown-link">Seasons</a>
+                    <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link">Schedule</a>
+                    <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link">Teams</a>
+                    <a href="<?= $basePath ?>fsl_roster.php" class="dropdown-link">Players</a>
+                    <a href="<?= $basePath ?>fsl_matches.php" class="dropdown-link">Matches</a>
+                    <a href="<?= $basePath ?>draft/public" class="dropdown-link">Draft</a>
+                    <a href="<?= $basePath ?>faq.php" class="dropdown-link">FAQ</a>
+                    <a href="<?= $basePath ?>apply.php" class="dropdown-link">Apply</a>
                 </div>
                 
                 <div class="dropdown-subsection">
                     <h5>Player Analysis</h5>
-                    <a href="player_statistics.php" class="dropdown-link sub-link">Statistics</a>
-                    <a href="public_spider_chart.php" class="dropdown-link sub-link">Spider Charts</a>
-                    <a href="player_network.php" class="dropdown-link sub-link">Player Network</a>
-                    <a href="voting_guide.php" class="dropdown-link sub-link">Voting Guide</a>
+                    <a href="<?= $basePath ?>player_statistics.php" class="dropdown-link sub-link">Statistics</a>
+                    <a href="<?= $basePath ?>public_spider_chart.php" class="dropdown-link sub-link">Spider Charts</a>
+                    <a href="<?= $basePath ?>player_network.php" class="dropdown-link sub-link">Player Network</a>
+                    <a href="<?= $basePath ?>voting_guide.php" class="dropdown-link sub-link">Voting Guide</a>
                 </div>
             </div>
         </div>
 
         <!-- Pros and Joes Dropdown -->
         <div class="dropdown">
-            <a href="pros_and_joes.php" class="menu-item logo-button">
-                <img src="images/pros_and_joes_transparent_bg.png" alt="Pros and Joes" class="nav-logo">
+            <a href="<?= $basePath ?>pros_and_joes.php" class="menu-item logo-button">
+                <img src="<?= $basePath ?>images/pros_and_joes_transparent_bg.png" alt="Pros and Joes" class="nav-logo">
                 <span class="dropdown-arrow">&#9662;</span>
             </a>
             <div class="dropdown-content">
                 <div class="dropdown-section">
                     <h4>Pros and Joes</h4>
-                    <a href="matches.php" class="dropdown-link">Matches</a>
-                    <a href="leaderboard.php" class="dropdown-link">Leaderboard</a>
+                    <a href="<?= $basePath ?>matches.php" class="dropdown-link">Matches</a>
+                    <a href="<?= $basePath ?>leaderboard.php" class="dropdown-link">Leaderboard</a>
                 </div>
             </div>
         </div>
@@ -219,8 +283,8 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
             <div class="dropdown-content">
                 <div class="dropdown-section">
                     <h4>Community</h4>
-                    <a href="discord.php" class="dropdown-link">Discord</a>
-                    <a href="chat.php" class="dropdown-link">Chat</a>
+                    <a href="<?= $basePath ?>discord.php" class="dropdown-link">Discord</a>
+                    <a href="<?= $basePath ?>chat.php" class="dropdown-link">Chat</a>
                 </div>
             </div>
         </div>
@@ -236,41 +300,46 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
                 <div class="dropdown-section">
                     <h4>Admin</h4>
                     <?php if ($hasAdminRole || hasNavPermission('manage fsl schedule')): ?>
-                    <a href="admin_schedule.php" class="dropdown-link">Manage FSL Schedule</a>
+                    <a href="<?= $basePath ?>admin_schedule.php" class="dropdown-link">Manage FSL Schedule</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit_matches')): ?>
-                    <a href="edit_fsl_matches.php" class="dropdown-link">Edit Matches</a>
+                    <a href="<?= $basePath ?>edit_fsl_matches.php" class="dropdown-link">Edit Matches</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
-                    <a href="edit_player_statistics.php" class="dropdown-link">Edit Player Statistics</a>
+                    <a href="<?= $basePath ?>edit_player_statistics.php" class="dropdown-link">Edit Player Statistics</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
-                    <a href="update_player_statistics.php" class="dropdown-link">Run Stats Updater</a>
+                    <a href="<?= $basePath ?>update_player_statistics.php" class="dropdown-link">Run Stats Updater</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('faq')): ?>
-                    <a href="edit_faq.php" class="dropdown-link">Edit FAQ</a>
+                    <a href="<?= $basePath ?>edit_faq.php" class="dropdown-link">Edit FAQ</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('manage_permissions')): ?>
-                    <a href="manage_permissions.php" class="dropdown-link">Manage Permissions</a>
+                    <a href="<?= $basePath ?>manage_permissions.php" class="dropdown-link">Manage Permissions</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('manage_user_roles')): ?>
-                    <a href="manage_user_roles.php" class="dropdown-link">Manage User Roles</a>
+                    <a href="<?= $basePath ?>manage_user_roles.php" class="dropdown-link">Manage User Roles</a>
                     <?php endif; ?>
+
+                    <?php if ($hasAdminRole || hasNavPermission('manage_user_roles')): ?>
+                        <a href="<?= $basePath ?>draft/admin/index.php" class="dropdown-link">Manage Draft</a>
+                    <?php endif; ?>
+
                 </div>
                 
                 <?php if ($hasAdminRole || hasNavPermission('manage spider charts')): ?>
                 <div class="dropdown-subsection">
                     <h5>Spider Chart System</h5>
-                    <a href="spider_chart_admin.php" class="dropdown-link sub-link">Dashboard</a>
-                    <a href="manage_reviewers.php" class="dropdown-link sub-link">Manage Reviewers</a>
-                    <a href="voting_activity.php" class="dropdown-link sub-link">Voting Activity</a>
-                    <a href="player_analysis.php" class="dropdown-link sub-link">Player Analysis</a>
+                    <a href="<?= $basePath ?>spider_chart_admin.php" class="dropdown-link sub-link">Dashboard</a>
+                    <a href="<?= $basePath ?>manage_reviewers.php" class="dropdown-link sub-link">Manage Reviewers</a>
+                    <a href="<?= $basePath ?>voting_activity.php" class="dropdown-link sub-link">Voting Activity</a>
+                    <a href="<?= $basePath ?>player_analysis.php" class="dropdown-link sub-link">Player Analysis</a>
                 </div>
                 <?php endif; ?>
             </div>
@@ -279,11 +348,11 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
 
         <!-- Login, Register, Profile, Logout -->
         <?php if (!$isLoggedIn): ?>
-            <a href="login.php" class="menu-item button">Login</a>
-            <a href="register.php" class="menu-item button">Register</a>
+            <a href="<?= $basePath ?>login.php" class="menu-item button">Login</a>
+            <a href="<?= $basePath ?>register.php" class="menu-item button">Register</a>
         <?php else: ?>
-            <a href="profile.php" class="menu-item button"><?php echo htmlspecialchars($username); ?></a>
-            <a href="logout.php" class="menu-item button">Logout</a>
+            <a href="<?= $basePath ?>profile.php" class="menu-item button"><?php echo htmlspecialchars($username); ?></a>
+            <a href="<?= $basePath ?>logout.php" class="menu-item button">Logout</a>
         <?php endif; ?>
     </div>
 
@@ -305,35 +374,36 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
             <!-- FSL Section -->
             <div class="mobile-section">
                 <h4>FSL</h4>
-                <a href="fsl_season.php" class="mobile-link">Seasons</a>
-                <a href="fsl_schedule.php" class="mobile-link">Schedule</a>
-                <a href="fsl_teams.php" class="mobile-link">Teams</a>
-                <a href="fsl_roster.php" class="mobile-link">Players</a>
-                <a href="fsl_matches.php" class="mobile-link">Matches</a>
-                <a href="faq.php" class="mobile-link">FAQ</a>
-                <a href="apply.php" class="mobile-link">Apply</a>
+                <a href="<?= $basePath ?>fsl_season.php" class="mobile-link">Seasons</a>
+                <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link">Schedule</a>
+                <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link">Teams</a>
+                <a href="<?= $basePath ?>fsl_roster.php" class="mobile-link">Players</a>
+                <a href="<?= $basePath ?>fsl_matches.php" class="mobile-link">Matches</a>
+                <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link">Draft</a>
+                <a href="<?= $basePath ?>faq.php" class="mobile-link">FAQ</a>
+                <a href="<?= $basePath ?>apply.php" class="mobile-link">Apply</a>
                 
                 <div class="mobile-subsection">
                     <h5>Player Analysis</h5>
-                    <a href="player_statistics.php" class="mobile-link sub-link">Statistics</a>
-                    <a href="public_spider_chart.php" class="mobile-link sub-link">Spider Charts</a>
-                    <a href="player_network.php" class="mobile-link sub-link">Player Network</a>
-                    <a href="voting_guide.php" class="mobile-link sub-link">Voting Guide</a>
+                    <a href="<?= $basePath ?>player_statistics.php" class="mobile-link sub-link">Statistics</a>
+                    <a href="<?= $basePath ?>public_spider_chart.php" class="mobile-link sub-link">Spider Charts</a>
+                    <a href="<?= $basePath ?>player_network.php" class="mobile-link sub-link">Player Network</a>
+                    <a href="<?= $basePath ?>voting_guide.php" class="mobile-link sub-link">Voting Guide</a>
                 </div>
             </div>
 
             <!-- Pros and Joes Section -->
             <div class="mobile-section">
                 <h4>Pros and Joes</h4>
-                <a href="matches.php" class="mobile-link">Matches</a>
-                <a href="leaderboard.php" class="mobile-link">Leaderboard</a>
+                <a href="<?= $basePath ?>matches.php" class="mobile-link">Matches</a>
+                <a href="<?= $basePath ?>leaderboard.php" class="mobile-link">Leaderboard</a>
             </div>
 
             <!-- Community Section -->
             <div class="mobile-section">
                 <h4>Community</h4>
-                <a href="discord.php" class="mobile-link">Discord</a>
-                <a href="chat.php" class="mobile-link">Chat</a>
+                <a href="<?= $basePath ?>discord.php" class="mobile-link">Discord</a>
+                <a href="<?= $basePath ?>chat.php" class="mobile-link">Chat</a>
             </div>
 
             <!-- Admin Section -->
@@ -341,40 +411,40 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
             <div class="mobile-section">
                 <h4>Admin</h4>
                 <?php if ($hasAdminRole || hasNavPermission('manage fsl schedule')): ?>
-                <a href="admin_schedule.php" class="mobile-link">Manage FSL Schedule</a>
+                <a href="<?= $basePath ?>admin_schedule.php" class="mobile-link">Manage FSL Schedule</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit_matches')): ?>
-                <a href="edit_fsl_matches.php" class="mobile-link">Edit Matches</a>
+                <a href="<?= $basePath ?>edit_fsl_matches.php" class="mobile-link">Edit Matches</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
-                <a href="edit_player_statistics.php" class="mobile-link">Edit Player Statistics</a>
+                <a href="<?= $basePath ?>edit_player_statistics.php" class="mobile-link">Edit Player Statistics</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
-                <a href="update_player_statistics.php" class="mobile-link">Run Stats Updater</a>
+                <a href="<?= $basePath ?>update_player_statistics.php" class="mobile-link">Run Stats Updater</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('faq')): ?>
-                <a href="edit_faq.php" class="mobile-link">Edit FAQ</a>
+                <a href="<?= $basePath ?>edit_faq.php" class="mobile-link">Edit FAQ</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('manage_permissions')): ?>
-                <a href="manage_permissions.php" class="mobile-link">Manage Permissions</a>
+                <a href="<?= $basePath ?>manage_permissions.php" class="mobile-link">Manage Permissions</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('manage_user_roles')): ?>
-                <a href="manage_user_roles.php" class="mobile-link">Manage User Roles</a>
+                <a href="<?= $basePath ?>manage_user_roles.php" class="mobile-link">Manage User Roles</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('manage spider charts')): ?>
                 <div class="mobile-subsection">
                     <h5>Spider Chart System</h5>
-                    <a href="spider_chart_admin.php" class="mobile-link sub-link">Dashboard</a>
-                    <a href="manage_reviewers.php" class="mobile-link sub-link">Manage Reviewers</a>
-                    <a href="voting_activity.php" class="mobile-link sub-link">Voting Activity</a>
-                    <a href="player_analysis.php" class="mobile-link sub-link">Player Analysis</a>
+                    <a href="<?= $basePath ?>spider_chart_admin.php" class="mobile-link sub-link">Dashboard</a>
+                    <a href="<?= $basePath ?>manage_reviewers.php" class="mobile-link sub-link">Manage Reviewers</a>
+                    <a href="<?= $basePath ?>voting_activity.php" class="mobile-link sub-link">Voting Activity</a>
+                    <a href="<?= $basePath ?>player_analysis.php" class="mobile-link sub-link">Player Analysis</a>
                 </div>
                 <?php endif; ?>
             </div>
@@ -384,11 +454,11 @@ $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
             <div class="mobile-section">
                 <h4>User</h4>
                 <?php if (!$isLoggedIn): ?>
-                    <a href="login.php" class="mobile-link">Login</a>
-                    <a href="register.php" class="mobile-link">Register</a>
+                    <a href="<?= $basePath ?>login.php" class="mobile-link">Login</a>
+                    <a href="<?= $basePath ?>register.php" class="mobile-link">Register</a>
                 <?php else: ?>
-                    <a href="profile.php" class="mobile-link"><?php echo htmlspecialchars($username); ?></a>
-                    <a href="logout.php" class="mobile-link">Logout</a>
+                    <a href="<?= $basePath ?>profile.php" class="mobile-link"><?php echo htmlspecialchars($username); ?></a>
+                    <a href="<?= $basePath ?>logout.php" class="mobile-link">Logout</a>
                 <?php endif; ?>
             </div>
         </div>

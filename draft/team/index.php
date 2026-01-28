@@ -4,6 +4,10 @@
  * Pick interface for team captains - Redesigned for optimal drafting UX
  */
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/../includes/data.php';
 require_once __DIR__ . '/../includes/draft_logic.php';
 require_once __DIR__ . '/../includes/auth.php';
@@ -598,6 +602,7 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
     </style>
 </head>
 <body>
+    <?php include_once '../../includes/nav.php'; ?>
     <!-- Top Bar -->
     <div class="top-bar">
         <div class="my-team-identity">

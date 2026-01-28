@@ -83,6 +83,7 @@ if (!$session) {
         <link rel="stylesheet" href="../css/draft.css">
     </head>
     <body>
+        <?php include_once '../../includes/nav.php'; ?>
         <div class="draft-container" style="max-width: 500px; margin-top: 5rem;">
             <div class="draft-panel">
                 <h2>Initialize New Draft</h2>
@@ -123,8 +124,14 @@ if ($session['current_team_id']) {
     $currentTeamName = $currentTeam ? $currentTeam['name'] : '';
 }
 
+// Calculate base URL - need to go up from /fsl/draft/admin/ to /fsl/
+// File is at /fsl/draft/admin/index.php, so we need to go up 3 levels
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+$uriDir = dirname($requestUri); // /fsl/draft/admin
+$uriDir = dirname($uriDir); // /fsl/draft  
+$uriDir = dirname($uriDir); // /fsl
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . 
-           '://' . $_SERVER['HTTP_HOST'] . dirname(dirname($_SERVER['REQUEST_URI']));
+           '://' . $_SERVER['HTTP_HOST'] . $uriDir;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -139,6 +146,7 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
     <link rel="stylesheet" href="../css/draft.css">
 </head>
 <body>
+    <?php include_once '../../includes/nav.php'; ?>
     <div class="draft-container">
         <div class="draft-header">
             <a href="../../index.php"><img src="../../images/fsl_sc2_logo.png" alt="FSL" style="height: 80px; margin-bottom: 0.5rem;"></a>
@@ -238,17 +246,40 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                 
                 <div style="margin-top: 1rem;">
                     <h3 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Team Links</h3>
-                    <?php foreach ($teams as $team): ?>
-                        <div style="margin-bottom: 0.5rem; font-size: 0.8rem;">
+                    <?php foreach ($teams as $team): 
+                        $teamUrl = $baseUrl . '/draft/team/?token=' . $team['token'];
+                    ?>
+                        <div style="margin-bottom: 0.75rem; font-size: 0.8rem;">
                             <strong><?= htmlspecialchars($team['name']) ?>:</strong><br>
-                            <input type="text" readonly value="<?= $baseUrl ?>/draft/team/?token=<?= $team['token'] ?>" 
-                                   style="width: 100%; font-size: 0.75rem; padding: 0.3rem;" onclick="this.select()">
+                            <div style="display: flex; gap: 0.25rem; margin-top: 0.25rem;">
+                                <input type="text" readonly value="<?= $teamUrl ?>" 
+                                       style="flex: 1; font-size: 0.75rem; padding: 0.3rem;" onclick="this.select()" id="team-link-<?= $team['id'] ?>">
+                                <button type="button" class="admin-btn secondary" onclick="copyToClipboard('team-link-<?= $team['id'] ?>', this)" 
+                                        style="padding: 0.3rem 0.5rem; font-size: 0.75rem; white-space: nowrap;" title="Copy to clipboard">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <a href="<?= $teamUrl ?>" target="_blank" class="admin-btn secondary" 
+                                   style="padding: 0.3rem 0.5rem; font-size: 0.75rem; white-space: nowrap; text-decoration: none;" title="Open in new window">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                     <div style="margin-top: 0.5rem; font-size: 0.8rem;">
                         <strong>Public View:</strong><br>
-                        <input type="text" readonly value="<?= $baseUrl ?>/public/" 
-                               style="width: 100%; font-size: 0.75rem; padding: 0.3rem;" onclick="this.select()">
+                        <?php $publicUrl = $baseUrl . '/draft/public/'; ?>
+                        <div style="display: flex; gap: 0.25rem; margin-top: 0.25rem;">
+                            <input type="text" readonly value="<?= $publicUrl ?>" 
+                                   style="flex: 1; font-size: 0.75rem; padding: 0.3rem;" onclick="this.select()" id="public-link">
+                            <button type="button" class="admin-btn secondary" onclick="copyToClipboard('public-link', this)" 
+                                    style="padding: 0.3rem 0.5rem; font-size: 0.75rem; white-space: nowrap;" title="Copy to clipboard">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <a href="<?= $publicUrl ?>" target="_blank" class="admin-btn secondary" 
+                               style="padding: 0.3rem 0.5rem; font-size: 0.75rem; white-space: nowrap; text-decoration: none;" title="Open in new window">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -506,6 +537,46 @@ Rank,Name,Race,Notes
         // Poll when draft is live or paused
         if (status === 'live' || status === 'paused') {
             setInterval(checkForUpdates, 3000);
+        }
+        
+        // Copy to clipboard function
+        function copyToClipboard(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+            
+            input.select();
+            input.setSelectionRange(0, 99999); // For mobile devices
+            
+            try {
+                document.execCommand('copy');
+                // Visual feedback
+                const icon = button.querySelector('i');
+                const originalClass = icon.className;
+                icon.className = 'fas fa-check';
+                button.style.backgroundColor = 'var(--success-color, #28a745)';
+                
+                setTimeout(() => {
+                    icon.className = originalClass;
+                    button.style.backgroundColor = '';
+                }, 1500);
+            } catch (err) {
+                // Fallback for modern browsers
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(input.value).then(() => {
+                        const icon = button.querySelector('i');
+                        const originalClass = icon.className;
+                        icon.className = 'fas fa-check';
+                        button.style.backgroundColor = 'var(--success-color, #28a745)';
+                        
+                        setTimeout(() => {
+                            icon.className = originalClass;
+                            button.style.backgroundColor = '';
+                        }, 1500);
+                    });
+                } else {
+                    alert('Copy failed. Please select and copy manually.');
+                }
+            }
         }
     </script>
 </body>

@@ -4,6 +4,10 @@
  * Read-only spectator page - optimized for broadcast display
  */
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 require_once __DIR__ . '/../includes/data.php';
 require_once __DIR__ . '/../includes/draft_logic.php';
 
@@ -602,6 +606,7 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
     </style>
 </head>
 <body>
+    <?php include_once '../../includes/nav.php'; ?>
     <div class="public-container">
         <!-- Header -->
         <div class="draft-header">
@@ -688,15 +693,15 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                             <div class="player-row <?= $player['status'] !== 'available' ? 'drafted' : '' ?>">
                                 <span class="rank"><?= $player['ranking'] ?></span>
                                 <a href="../../view_player.php?name=<?= urlencode($player['display_name']) ?>" class="name" target="_blank"><?= htmlspecialchars($player['display_name']) ?></a>
+                                <?php if (!empty($displayNotes)): ?>
+                                <span class="player-note" title="<?= htmlspecialchars($displayNotes) ?>">📝</span>
+                                <?php endif; ?>
                                 <?php
                                 $raceIcons = ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'];
                                 $icon = $raceIcons[$player['race']] ?? 'random_icon.png';
                                 ?>
                                 <img src="../../images/<?= $icon ?>" alt="<?= $player['race'] ?>" class="race-icon">
                                 <span class="group">G<?= $player['bucket_index'] ?></span>
-                                <?php if (!empty($displayNotes)): ?>
-                                <span class="player-note" title="<?= htmlspecialchars($displayNotes) ?>">📝</span>
-                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
                     </div>
