@@ -327,6 +327,14 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
             flex-shrink: 0;
         }
         
+        .roster-player .pick-num {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #00b894;
+            min-width: 28px;
+        }
+        
         .roster-player .group-badge {
             font-size: 0.8rem;
             color: #6c5ce7;
@@ -647,7 +655,7 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                 <h2>Team Rosters</h2>
                 <div class="teams-grid">
                     <?php foreach ($teams as $team): ?>
-                        <?php $roster = get_team_roster($team['id']); ?>
+                        <?php $roster = get_team_roster_by_draft_order($team['id']); ?>
                         <div class="team-panel <?= $team['id'] === $session['current_team_id'] ? 'on-clock' : '' ?>">
                             <div class="team-header">
                                 <?php if (!empty($team['logo'])): ?>
@@ -663,6 +671,9 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                                     <?php foreach ($roster as $p): ?>
                                         <div class="roster-player">
                                             <span class="player-info">
+                                                <?php if ($p['pick_number'] !== null): ?>
+                                                    <span class="pick-num">#<?= $p['pick_number'] ?></span>
+                                                <?php endif; ?>
                                                 <span class="rank"><?= $p['ranking'] ?></span>
                                                 <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="player-name" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
                                             </span>

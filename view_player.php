@@ -112,7 +112,8 @@ if (!$playerNotFound) {
             LEFT JOIN
         Teams t ON p.Team_ID = t.Team_ID
     WHERE
-        p.Real_Name = :playerName";
+        p.Real_Name = :playerName
+    ORDER BY FIELD(fs.Division, 'S', 'A', 'B')";
 
     try {
         $stmt = $db->prepare($playerQuery);

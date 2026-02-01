@@ -7,7 +7,8 @@
 
 define('THUMBNAIL_DIR', __DIR__ . '/../images/player_thumbnails');
 define('THUMBNAIL_SIZE', 128); // Square thumbnail size in pixels
-define('FFMPEG_PATH', '/opt/homebrew/bin/ffmpeg');
+// Use system PATH to find ffmpeg - works on any system with ffmpeg installed
+define('FFMPEG_PATH', 'ffmpeg');
 
 /**
  * Sanitize player name for use as a filename

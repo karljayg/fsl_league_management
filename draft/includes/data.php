@@ -254,6 +254,58 @@ function get_team_buckets_used(int $team_id): array {
 }
 
 /**
+ * Get team roster sorted by draft selection order
+ * Returns players with 'pick_number' added (null for captain/protected)
+ */
+function get_team_roster_by_draft_order(int $team_id): array {
+    $events = get_events();
+    $players = get_players();
+    $roster = [];
+    $addedIds = [];
+    
+    // Build player lookup
+    $playerLookup = [];
+    foreach ($players as $player) {
+        $playerLookup[$player['id']] = $player;
+    }
+    
+    // First, add captain/protected (they come before draft picks)
+    foreach ($players as $player) {
+        if (isset($player['team_id']) && $player['team_id'] === $team_id) {
+            $player['pick_number'] = null; // Pre-assigned, no pick number
+            $roster[] = $player;
+            $addedIds[] = $player['id'];
+        }
+    }
+    
+    // Sort captain/protected: captain first, then protected, then by ranking
+    usort($roster, function($a, $b) {
+        $roleOrder = ['captain' => 0, 'protected' => 1];
+        $aOrder = $roleOrder[$a['role'] ?? ''] ?? 2;
+        $bOrder = $roleOrder[$b['role'] ?? ''] ?? 2;
+        if ($aOrder !== $bOrder) return $aOrder - $bOrder;
+        return ($a['ranking'] ?? 999) - ($b['ranking'] ?? 999);
+    });
+    
+    // Then add players from pick events in order they were picked
+    foreach ($events as $event) {
+        if ($event['team_id'] === $team_id && 
+            $event['result'] === 'PICK' && 
+            isset($event['player_id']) &&
+            !in_array($event['player_id'], $addedIds)) {
+            if (isset($playerLookup[$event['player_id']])) {
+                $player = $playerLookup[$event['player_id']];
+                $player['pick_number'] = $event['pick_number'];
+                $roster[] = $player;
+                $addedIds[] = $player['id'];
+            }
+        }
+    }
+    
+    return $roster;
+}
+
+/**
  * Get role marker for a player (C) for captain, (P) for protected
  */
 function get_role_marker(array $player): string {

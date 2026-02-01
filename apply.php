@@ -210,7 +210,7 @@ include_once 'includes/header.php';
     <h1>Apply to Join FSL</h1>
 
     <div class="section">
-        <h2>Welcome to the Family StarCraft League</h2>
+        <h2>Welcome to FSL - Fun StarCraft League</h2>
         <p>FSL is a welcoming, family-friendly StarCraft II league that brings together players of all skill levels. We pride ourselves on creating a positive, inclusive environment where everyone can enjoy competitive StarCraft II while maintaining good sportsmanship and respect for one another.</p>
         <p>Whether you're a seasoned veteran or just starting your StarCraft journey, FSL offers a place where you can compete, learn, and grow as a player in a supportive community atmosphere.</p>
     </div>
@@ -240,25 +240,26 @@ include_once 'includes/header.php';
 
     <div class="section">
         <h2>How to Apply</h2>
-        <p>We offer several ways to submit your application to join FSL. Choose the method that works best for you:</p>
+        <p>Submit your application to join FSL. Additional contact options for questions and discussion are available:</p>
         
         <div class="application-options">
             <div class="application-option">
+                <h4>Google Form</h4>
+		<a href="https://forms.cloud.microsoft/pages/responsepage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__qmuwg9UMUpaODVSNEdBNzFGN0ZaTUZRRzVISTJQTy4u&route=shorturl" target="_blank" class="reddit-link">
+		Apply here
+		</a>
+            </div>
+            <div class="application-option">
                 <h4>Discord</h4>
-                <p>Send a direct message to <span class="username">hyper_turtle</span> on Discord to express your interest in joining FSL.</p>
+                <p>Send a direct message to <span class="username">hyper_turtle</span> on Discord to express your interest in joining FSL. You'll need to fill out the form above regardless, but he will be discussing the league with you to ensure full understanding.</p>
             </div>
             
             <div class="application-option">
                 <h4>Reddit</h4>
-                <p>Reach out to <span class="username">CounterfeitDLC</span> on Reddit via direct message to apply for FSL membership.</p>
+                <p>We posted on reddit, you can message <span class="username">CounterfeitDLC</span> on Reddit also.</p>
                 <a href="https://www.reddit.com/r/starcraft/comments/1qcsg5l/casual_team_league_fsl_is_looking_for_players/" target="_blank" class="reddit-link">
                     View Latest Reddit Post →
                 </a>
-            </div>
-            
-            <div class="application-option">
-                <h4>Google Form</h4>
-                <p class="coming-soon">Coming soon! We're working on a convenient Google Form application process that will be available shortly.</p>
             </div>
         </div>
     </div>

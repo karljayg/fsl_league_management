@@ -150,11 +150,11 @@ include_once 'includes/header.php';
             </div>
             
             <p>The season featured a comprehensive team league format with strategic drafting, delivering intense competition as teams battled for supremacy.</p>
-            <p><strong>VODs:</strong></p>
+            <p><strong>VODs & Highlights:</strong></p>
             <ul>
                 <li><a href="https://www.youtube.com/watch?v=vt04Xbq57Dk&list=PLuxOPc104MmmySmrbE813nXWuamZpecw5&index=34&pp=gAQBiAQBsAgC" target="_blank">9 Seasons of FSL Video</a></li>
                 <li><a href="https://www.youtube.com/watch?v=kqnD8K0Tfnw&list=PLuxOPc104MmmySmrbE813nXWuamZpecw5&index=35&pp=gAQBiAQBsAgC" target="_blank">Team League Highlights</a></li>
-                <li><a href="https://www.youtube.com/watch?v=7pRh7ohhXrk&list=PLuxOPc104MmmySmrbE813nXWuamZpecw5&index=37&pp=gAQBiAQBsAgC" target="_blank">Individual Championships - Code B</a></li>
+                <li><a href="https://www.youtube.com/live/pOdCKQ67Qjg?si=vUqPiToCg_cAlkrD&t=480" target="_blank">Individual Championships - Code B</a></li>
                 <li><a href="https://www.youtube.com/watch?v=7pRh7ohhXrk&list=PLuxOPc104MmmySmrbE813nXWuamZpecw5&index=37&pp=gAQBiAQBsAgC" target="_blank">Individual Championships - Code A & S</a></li>
             </ul>
         </div>

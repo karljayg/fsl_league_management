@@ -214,6 +214,13 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                 <button class="admin-btn danger" onclick="if(confirm('Reset entire draft? This cannot be undone!')) { adminAction('reset'); setTimeout(() => window.location.href = window.location.pathname, 500); }">
                     <i class="fas fa-trash-alt"></i> Reset Draft
                 </button>
+                
+                <a href="../ajax/export_backup.php" class="admin-btn secondary" style="text-decoration: none;">
+                    <i class="fas fa-file-archive"></i> Download Backup
+                </a>
+                <a href="../public/results.php" target="_blank" class="admin-btn secondary" style="text-decoration: none;">
+                    <i class="fas fa-tv"></i> Broadcast View
+                </a>
             </div>
         </div>
 

@@ -5,7 +5,8 @@ config.local.php
 *.env
 
 # Cache files
-cache/
+cache/*
+!cache/.gitkeep
 *.cache
 
 # Debug and test files
@@ -19,6 +20,7 @@ test.php
 run_tests.php
 upload_test*.php
 check_*.php
+!includes/check_permission.php
 file_write_test.php
 create_test_user.php
 profile_pic_test.php
@@ -62,6 +64,8 @@ test_write_dir/
 
 # Draft data (regenerated on each draft)
 draft/data/*.json
+draft/data_predraft/
+draft/data_s10_results/
 
 # User uploads (if any)
 uploads/*
@@ -76,6 +80,7 @@ uploads/*
 
 # OS files
 .DS_Store
+._*
 Thumbs.db
 
 # Chat data
@@ -86,13 +91,18 @@ unique.txt
 unique2.txt
 intro_files_list.txt
 reviewers.csv
+players.csv
 
 # Windows deployment scripts (if not needed on other platforms)
 deploy.ps1
 deploy_tests.ps1
 
 # Generated player thumbnails
-images/player_thumbnails/
+images/player_thumbnails/*
+!images/player_thumbnails/.gitkeep
+
+# User uploaded profile pictures
+images/profile_pics/
 
 # Backup files
 *.BACKUP

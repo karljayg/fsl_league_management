@@ -243,6 +243,7 @@ if ($basePath !== '') {
                     <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link">Schedule</a>
                     <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link">Teams</a>
                     <a href="<?= $basePath ?>fsl_roster.php" class="dropdown-link">Players</a>
+                    <a href="<?= $basePath ?>rankings" class="dropdown-link">Rankings</a>
                     <a href="<?= $basePath ?>fsl_matches.php" class="dropdown-link">Matches</a>
                     <a href="<?= $basePath ?>draft/public" class="dropdown-link">Draft</a>
                     <a href="<?= $basePath ?>faq.php" class="dropdown-link">FAQ</a>
