@@ -37,6 +37,13 @@ function getDropdownOptions($db, $table, $valueColumn, $textColumn, $orderBy = n
 
 // Get dropdown options
 $players = getDropdownOptions($db, 'Players', 'Player_ID', 'Real_Name');
+$teams = getDropdownOptions($db, 'Teams', 'Team_ID', 'Team_Name');
+// Player ID -> Team ID for auto-fill when player selection changes
+$playerTeamStmt = $db->query("SELECT Player_ID, Team_ID FROM Players");
+$playerToTeam = [];
+while ($row = $playerTeamStmt->fetch(PDO::FETCH_ASSOC)) {
+    $playerToTeam[$row['Player_ID']] = $row['Team_ID'] ? (int)$row['Team_ID'] : '';
+}
 
 // Get races
 $races = [
@@ -110,6 +117,8 @@ $query = "
         fm.loser_race,
         fm.source,
         fm.vod,
+        fm.winner_team_id,
+        fm.loser_team_id,
         p_w.Real_Name AS winner_name,
         p_l.Real_Name AS loser_name
     FROM 
@@ -268,7 +277,7 @@ include 'includes/header.php';
                     <tr class="match-row match-row-2" data-match-id="<?php echo $match['fsl_match_id']; ?>">
                         <!-- Empty ID cell so it lines up visually -->
                         <td></td>
-                        <!-- Season + Extra Info -->
+                        <!-- Season + Extra Info + Teams -->
                         <td colspan="3">
                             <div class="metadata-group">
                                 <label class="metadata-label">Season:</label>
@@ -281,6 +290,20 @@ include 'includes/header.php';
                                 </select>
                                 <label class="metadata-label">Extra Info:</label>
                                 <input type="text" name="season_extra_info" class="form-control editor-input metadata-input" value="<?php echo htmlspecialchars($match['season_extra_info'] ?? ''); ?>" maxlength="100" placeholder="Extra info">
+                                <label class="metadata-label">Winner Team:</label>
+                                <select name="winner_team_id" class="form-control editor-select metadata-input team-dropdown">
+                                    <option value="" <?php echo empty($match['winner_team_id']) ? 'selected' : ''; ?>>—</option>
+                                    <?php foreach ($teams as $tid => $tname): ?>
+                                        <option value="<?php echo $tid; ?>" <?php echo (!empty($match['winner_team_id']) && (string)$match['winner_team_id'] === (string)$tid) ? 'selected' : ''; ?>><?php echo htmlspecialchars($tname); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <label class="metadata-label">Loser Team:</label>
+                                <select name="loser_team_id" class="form-control editor-select metadata-input team-dropdown">
+                                    <option value="" <?php echo empty($match['loser_team_id']) ? 'selected' : ''; ?>>—</option>
+                                    <?php foreach ($teams as $tid => $tname): ?>
+                                        <option value="<?php echo $tid; ?>" <?php echo (!empty($match['loser_team_id']) && (string)$match['loser_team_id'] === (string)$tid) ? 'selected' : ''; ?>><?php echo htmlspecialchars($tname); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                         </td>
                         <!-- Notes + T Code -->
@@ -456,6 +479,15 @@ include 'includes/header.php';
                                 <label>Score A *</label>
                                 <input type="number" name="score_a" class="form-control form-control-lg" required min="0" value="2" onchange="updateModalWinnerIndicator()">
                             </div>
+                            <div class="form-group">
+                                <label>Team A</label>
+                                <select name="team_a_id" class="form-control form-control-lg modal-team-dropdown">
+                                    <option value="">—</option>
+                                    <?php foreach ($teams as $tid => $tname): ?>
+                                        <option value="<?php echo $tid; ?>"><?php echo htmlspecialchars($tname); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <h6>Player B</h6>
@@ -480,6 +512,15 @@ include 'includes/header.php';
                             <div class="form-group">
                                 <label>Score B *</label>
                                 <input type="number" name="score_b" class="form-control form-control-lg" required min="0" value="1" onchange="updateModalWinnerIndicator()">
+                            </div>
+                            <div class="form-group">
+                                <label>Team B</label>
+                                <select name="team_b_id" class="form-control form-control-lg modal-team-dropdown">
+                                    <option value="">—</option>
+                                    <?php foreach ($teams as $tid => $tname): ?>
+                                        <option value="<?php echo $tid; ?>"><?php echo htmlspecialchars($tname); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="form-group">
                                 <label id="modal-winner-indicator" style="color: #00d4ff; font-weight: bold; margin-top: 10px;"></label>
@@ -511,6 +552,9 @@ include 'includes/header.php';
 </div>
 
 <script>
+    // Player ID -> Team ID for auto-fill when player selection changes
+    var playerToTeam = <?php echo json_encode($playerToTeam); ?>;
+    
     // Update winner indicator based on scores
     function updateWinnerIndicator(input) {
         const row = input.closest('tr');
@@ -557,6 +601,30 @@ include 'includes/header.php';
             indicator.style.color = '#ffc107';
         }
     }
+    
+    // When winner (Player A) or loser (Player B) changes, set team dropdown from player's current team
+    document.getElementById('matches-table').addEventListener('change', function(e) {
+        if (e.target.matches('select[name="player_a_id"]')) {
+            var row = e.target.closest('tr');
+            var matchId = row.getAttribute('data-match-id');
+            var secondRow = document.querySelector('tr[data-match-id="' + matchId + '"].match-row-2');
+            if (secondRow) {
+                var teamSelect = secondRow.querySelector('select[name="winner_team_id"]');
+                var pid = e.target.value;
+                teamSelect.value = (playerToTeam[pid] !== undefined && playerToTeam[pid] !== '') ? String(playerToTeam[pid]) : '';
+            }
+        }
+        if (e.target.matches('select[name="player_b_id"]')) {
+            var row = e.target.closest('tr');
+            var matchId = row.getAttribute('data-match-id');
+            var secondRow = document.querySelector('tr[data-match-id="' + matchId + '"].match-row-2');
+            if (secondRow) {
+                var teamSelect = secondRow.querySelector('select[name="loser_team_id"]');
+                var pid = e.target.value;
+                teamSelect.value = (playerToTeam[pid] !== undefined && playerToTeam[pid] !== '') ? String(playerToTeam[pid]) : '';
+            }
+        }
+    });
     
     // Initialize winner indicators on page load
     document.addEventListener('DOMContentLoaded', function() {
@@ -606,6 +674,8 @@ include 'includes/header.php';
         formData.append('t_code', secondRow.querySelector('select[name="t_code"]').value);
         formData.append('source', secondRow.querySelector('input[name="source"]').value);
         formData.append('vod', secondRow.querySelector('input[name="vod"]').value);
+        formData.append('winner_team_id', secondRow.querySelector('select[name="winner_team_id"]').value);
+        formData.append('loser_team_id', secondRow.querySelector('select[name="loser_team_id"]').value);
         
         // Send AJAX request
         fetch('edit_fsl_matches_handler.php', {
@@ -680,6 +750,19 @@ include 'includes/header.php';
     // Show add match form
     function showAddMatchForm() {
         $('#addMatchModal').modal('show');
+    }
+    
+    // When Add Match modal player A/B changes, set Team A/B from player's current team
+    var addMatchForm = document.getElementById('addMatchForm');
+    if (addMatchForm) {
+        addMatchForm.querySelector('select[name="player_a_id"]').addEventListener('change', function() {
+            var tid = playerToTeam[this.value];
+            addMatchForm.querySelector('select[name="team_a_id"]').value = (tid !== undefined && tid !== '') ? String(tid) : '';
+        });
+        addMatchForm.querySelector('select[name="player_b_id"]').addEventListener('change', function() {
+            var tid = playerToTeam[this.value];
+            addMatchForm.querySelector('select[name="team_b_id"]').value = (tid !== undefined && tid !== '') ? String(tid) : '';
+        });
     }
     
     // Add new match

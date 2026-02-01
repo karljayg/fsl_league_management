@@ -189,6 +189,9 @@ function handleUpdateMatch($db) {
     $db->beginTransaction();
     
     try {
+        $winner_team_id = !empty($_POST['winner_team_id']) ? $_POST['winner_team_id'] : null;
+        $loser_team_id = !empty($_POST['loser_team_id']) ? $_POST['loser_team_id'] : null;
+
         // Update the match
         $updateQuery = "UPDATE fsl_matches SET 
                         season = :season,
@@ -202,6 +205,8 @@ function handleUpdateMatch($db) {
                         map_loss = :map_loss,
                         loser_player_id = :loser_player_id,
                         loser_race = :loser_race,
+                        winner_team_id = :winner_team_id,
+                        loser_team_id = :loser_team_id,
                         source = :source,
                         vod = :vod
                         WHERE fsl_match_id = :match_id";
@@ -219,6 +224,8 @@ function handleUpdateMatch($db) {
         $stmt->bindParam(':map_loss', $map_loss);
         $stmt->bindParam(':loser_player_id', $loser_player_id);
         $stmt->bindParam(':loser_race', $loser_race);
+        $stmt->bindParam(':winner_team_id', $winner_team_id);
+        $stmt->bindParam(':loser_team_id', $loser_team_id);
         $stmt->bindParam(':source', $_POST['source']);
         $stmt->bindParam(':vod', $_POST['vod']);
         $stmt->execute();
@@ -300,6 +307,16 @@ function handleAddMatch($db) {
         $map_win = $scoreA;
         $map_loss = $scoreB;
     }
+
+    $team_a_id = !empty($_POST['team_a_id']) ? $_POST['team_a_id'] : null;
+    $team_b_id = !empty($_POST['team_b_id']) ? $_POST['team_b_id'] : null;
+    if ($scoreA > $scoreB) {
+        $winner_team_id = $team_a_id;
+        $loser_team_id = $team_b_id;
+    } else {
+        $winner_team_id = $team_b_id;
+        $loser_team_id = $team_a_id;
+    }
     
     // Begin transaction
     $db->beginTransaction();
@@ -308,10 +325,10 @@ function handleAddMatch($db) {
         // Insert the new match
         $insertQuery = "INSERT INTO fsl_matches 
                         (season, season_extra_info, notes, t_code, winner_player_id, winner_race, 
-                         best_of, map_win, map_loss, loser_player_id, loser_race, source, vod)
+                         best_of, map_win, map_loss, loser_player_id, loser_race, winner_team_id, loser_team_id, source, vod)
                         VALUES 
                         (:season, :season_extra_info, :notes, :t_code, :winner_player_id, :winner_race,
-                         :best_of, :map_win, :map_loss, :loser_player_id, :loser_race, :source, :vod)";
+                         :best_of, :map_win, :map_loss, :loser_player_id, :loser_race, :winner_team_id, :loser_team_id, :source, :vod)";
         
         $stmt = $db->prepare($insertQuery);
         $stmt->bindParam(':season', $_POST['season']);
@@ -325,6 +342,8 @@ function handleAddMatch($db) {
         $stmt->bindParam(':map_loss', $map_loss);
         $stmt->bindParam(':loser_player_id', $loser_player_id);
         $stmt->bindParam(':loser_race', $loser_race);
+        $stmt->bindParam(':winner_team_id', $winner_team_id);
+        $stmt->bindParam(':loser_team_id', $loser_team_id);
         $stmt->bindParam(':source', $_POST['source']);
         $stmt->bindParam(':vod', $_POST['vod']);
         $stmt->execute();

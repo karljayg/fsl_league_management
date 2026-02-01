@@ -57,6 +57,7 @@ draft_buggy.tar
 
 # Temporary files
 TEMP/
+temp-files/
 test_write_dir/
 *.tmp
 *.bak

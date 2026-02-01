@@ -92,20 +92,49 @@ try {
     $playersStmt->execute(['teamId' => $team['Team_ID']]);
     $allPlayers = $playersStmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get team roster with statistics
+    // Team-scoped stats from fsl_matches (only matches where player was on this team)
+    $teamStatsFromMatchesQuery = "
+        SELECT
+            COALESCE(SUM(CASE WHEN fm.winner_team_id = :teamId THEN fm.map_win WHEN fm.loser_team_id = :teamId THEN fm.map_loss ELSE 0 END), 0) AS totalMapsW,
+            COALESCE(SUM(CASE WHEN fm.winner_team_id = :teamId THEN fm.map_loss WHEN fm.loser_team_id = :teamId THEN fm.map_win ELSE 0 END), 0) AS totalMapsL,
+            COALESCE(SUM(CASE WHEN fm.winner_team_id = :teamId THEN 1 ELSE 0 END), 0) AS totalSetsW,
+            COALESCE(SUM(CASE WHEN fm.loser_team_id = :teamId THEN 1 ELSE 0 END), 0) AS totalSetsL
+        FROM fsl_matches fm
+        WHERE fm.winner_team_id = :teamId2 OR fm.loser_team_id = :teamId3
+    ";
+    $stmt = $db->prepare($teamStatsFromMatchesQuery);
+    $stmt->execute(['teamId' => $team['Team_ID'], 'teamId2' => $team['Team_ID'], 'teamId3' => $team['Team_ID']]);
+    $teamStatsFromMatches = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    // Per-player team-scoped stats (Maps/Sets while on this team) from fsl_matches
+    $teamRosterStatsSubquery = "
+        SELECT Player_ID, Team_ID, SUM(MapsW) AS MapsW, SUM(MapsL) AS MapsL, SUM(SetsW) AS SetsW, SUM(SetsL) AS SetsL
+        FROM (
+            SELECT winner_player_id AS Player_ID, winner_team_id AS Team_ID, SUM(map_win) AS MapsW, SUM(map_loss) AS MapsL, COUNT(*) AS SetsW, 0 AS SetsL
+            FROM fsl_matches WHERE winner_team_id IS NOT NULL
+            GROUP BY winner_player_id, winner_team_id
+            UNION ALL
+            SELECT loser_player_id, loser_team_id, SUM(map_loss), SUM(map_win), 0, COUNT(*)
+            FROM fsl_matches WHERE loser_team_id IS NOT NULL
+            GROUP BY loser_player_id, loser_team_id
+        ) raw
+        GROUP BY Player_ID, Team_ID
+    ";
+    // Get team roster with stats from fsl_matches (team-scoped), Division/Race from FSL_STATISTICS
     $rosterQuery = "
         SELECT 
             p.Player_ID,
             p.Real_Name,
             s.Division,
             s.Race,
-            s.MapsW,
-            s.MapsL,
-            s.SetsW,
-            s.SetsL,
+            COALESCE(ts.MapsW, 0) AS MapsW,
+            COALESCE(ts.MapsL, 0) AS MapsL,
+            COALESCE(ts.SetsW, 0) AS SetsW,
+            COALESCE(ts.SetsL, 0) AS SetsL,
             p.Status
         FROM Players p
         LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
+        LEFT JOIN ($teamRosterStatsSubquery) ts ON ts.Player_ID = p.Player_ID AND ts.Team_ID = :teamId
         WHERE p.Team_ID = :teamId AND p.Status = 'active'
         ORDER BY 
             CASE WHEN p.Player_ID = :captainId THEN 1 
@@ -118,19 +147,20 @@ try {
     $stmt->execute(['teamId' => $team['Team_ID'], 'captainId' => $team['Captain_ID'], 'coCaptainId' => $team['Co_Captain_ID']]);
     $roster = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get inactive players
+    // Get inactive players (team-scoped stats from fsl_matches)
     $inactiveQuery = "
         SELECT 
             p.Player_ID,
             p.Real_Name,
             s.Division,
             s.Race,
-            s.MapsW,
-            s.MapsL,
-            s.SetsW,
-            s.SetsL
+            COALESCE(ts.MapsW, 0) AS MapsW,
+            COALESCE(ts.MapsL, 0) AS MapsL,
+            COALESCE(ts.SetsW, 0) AS SetsW,
+            COALESCE(ts.SetsL, 0) AS SetsL
         FROM Players p
         LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
+        LEFT JOIN ($teamRosterStatsSubquery) ts ON ts.Player_ID = p.Player_ID AND ts.Team_ID = :teamId
         WHERE p.Team_ID = :teamId AND p.Status = 'inactive'
         ORDER BY s.Division, p.Real_Name
     ";
@@ -139,7 +169,7 @@ try {
     $stmt->execute(['teamId' => $team['Team_ID']]);
     $inactivePlayers = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get team match history (last 10 matches)
+    // Get team match history (last 10 matches) — filter by team at time of match
     $matchesQuery = "
         SELECT 
             fm.fsl_match_id,
@@ -148,11 +178,11 @@ try {
             fm.map_win,
             fm.map_loss,
             p_w.Real_Name AS winner_name,
-            p_w.Team_ID AS winner_team_id,
+            fm.winner_team_id,
             t_w.Team_Name AS winner_team,
             fm.winner_race,
             p_l.Real_Name AS loser_name,
-            p_l.Team_ID AS loser_team_id,
+            fm.loser_team_id,
             t_l.Team_Name AS loser_team,
             fm.loser_race,
             fm.source,
@@ -160,9 +190,9 @@ try {
         FROM fsl_matches fm
         JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
         JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
-        LEFT JOIN Teams t_w ON p_w.Team_ID = t_w.Team_ID
-        LEFT JOIN Teams t_l ON p_l.Team_ID = t_l.Team_ID
-        WHERE p_w.Team_ID = :teamId OR p_l.Team_ID = :teamId
+        LEFT JOIN Teams t_w ON fm.winner_team_id = t_w.Team_ID
+        LEFT JOIN Teams t_l ON fm.loser_team_id = t_l.Team_ID
+        WHERE fm.winner_team_id = :teamId OR fm.loser_team_id = :teamId
         ORDER BY fm.fsl_match_id DESC
         LIMIT 10
     ";
@@ -171,21 +201,14 @@ try {
     $stmt->execute(['teamId' => $team['Team_ID']]);
     $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Calculate team statistics
+    // Team statistics from fsl_matches (team at time of match)
     $teamStats = [
-        'totalMapsW' => 0,
-        'totalMapsL' => 0,
-        'totalSetsW' => 0,
-        'totalSetsL' => 0,
+        'totalMapsW' => (int) ($teamStatsFromMatches['totalMapsW'] ?? 0),
+        'totalMapsL' => (int) ($teamStatsFromMatches['totalMapsL'] ?? 0),
+        'totalSetsW' => (int) ($teamStatsFromMatches['totalSetsW'] ?? 0),
+        'totalSetsL' => (int) ($teamStatsFromMatches['totalSetsL'] ?? 0),
         'players' => count($roster)
     ];
-    
-    foreach ($roster as $player) {
-        $teamStats['totalMapsW'] += $player['MapsW'] ?? 0;
-        $teamStats['totalMapsL'] += $player['MapsL'] ?? 0;
-        $teamStats['totalSetsW'] += $player['SetsW'] ?? 0;
-        $teamStats['totalSetsL'] += $player['SetsL'] ?? 0;
-    }
     
     $teamStats['mapWinRate'] = $teamStats['totalMapsW'] + $teamStats['totalMapsL'] > 0 
         ? round(($teamStats['totalMapsW'] / ($teamStats['totalMapsW'] + $teamStats['totalMapsL'])) * 100, 1) 

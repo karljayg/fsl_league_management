@@ -42,6 +42,7 @@ if ($matches === null) {
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         // Get FSL matches (default sort - will be re-sorted client-side or via URL params)
+        // winner_team_id/loser_team_id are set for Team League matches; null for others
         $query = "SELECT 
             fm.fsl_match_id,
             fm.season,
@@ -58,12 +59,16 @@ if ($matches === null) {
             p_w.Real_Name AS winner_name,
             pa_w.Alias_Name AS winner_alias,
             p_l.Real_Name AS loser_name,
-            pa_l.Alias_Name AS loser_alias
+            pa_l.Alias_Name AS loser_alias,
+            t_w.Team_Name AS winner_team,
+            t_l.Team_Name AS loser_team
         FROM fsl_matches fm
         JOIN Players p_w 
             ON fm.winner_player_id = p_w.Player_ID
         JOIN Players p_l 
             ON fm.loser_player_id = p_l.Player_ID
+        LEFT JOIN Teams t_w ON fm.winner_team_id = t_w.Team_ID
+        LEFT JOIN Teams t_l ON fm.loser_team_id = t_l.Team_ID
         LEFT JOIN users u_w 
             ON p_w.User_ID = u_w.id
         LEFT JOIN users u_l 
@@ -220,6 +225,7 @@ function getDomainFromUrl($url) {
                         <th class="sortable <?= getSortClass('winner_race') ?>" data-sort="winner_race">
                             <a href="<?= getSortUrl('winner_race') ?>">Winner Race</a>
                         </th>
+                        <th>Winner Team</th>
                         <th class="sortable <?= getSortClass('loser_name') ?>" data-sort="loser_name">
                             <a href="<?= getSortUrl('loser_name') ?>">Loser</a>
                         </th>
@@ -227,6 +233,7 @@ function getDomainFromUrl($url) {
                         <th class="sortable <?= getSortClass('loser_race') ?>" data-sort="loser_race">
                             <a href="<?= getSortUrl('loser_race') ?>">Loser Race</a>
                         </th>
+                        <th>Loser Team</th>
                         <th class="sortable <?= getSortClass('map_win') ?>" data-sort="map_win">
                             <a href="<?= getSortUrl('map_win') ?>">Score</a>
                         </th>
@@ -246,9 +253,11 @@ function getDomainFromUrl($url) {
                             <td><a href="view_player.php?name=<?= urlencode($match['winner_name']) ?>" class="player-link"><?= htmlspecialchars($match['winner_name']) ?></a></td>
                             <td><?= htmlspecialchars($match['winner_alias'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($match['winner_race']) ?></td>
+                            <td><?= !empty($match['winner_team']) ? htmlspecialchars($match['winner_team']) : '—' ?></td>
                             <td><a href="view_player.php?name=<?= urlencode($match['loser_name']) ?>" class="player-link"><?= htmlspecialchars($match['loser_name']) ?></a></td>
                             <td><?= htmlspecialchars($match['loser_alias'] ?? 'N/A') ?></td>
                             <td><?= htmlspecialchars($match['loser_race']) ?></td>
+                            <td><?= !empty($match['loser_team']) ? htmlspecialchars($match['loser_team']) : '—' ?></td>
                             <td><?= $match['map_win'] . '-' . $match['map_loss'] ?></td>
                             <td>
                                 <?php if (!empty($match['source'])): ?>
@@ -492,9 +501,9 @@ function getDomainFromUrl($url) {
                 const winnerName = row.children[6].textContent.toLowerCase(); // Winner column
                 const winnerAlias = row.children[7].textContent.toLowerCase(); // Winner Alias column
                 const winnerRace = row.children[8].textContent; // Winner Race column
-                const loserName = row.children[9].textContent.toLowerCase(); // Loser column
-                const loserAlias = row.children[10].textContent.toLowerCase(); // Loser Alias column
-                const loserRace = row.children[11].textContent; // Loser Race column
+                const loserName = row.children[10].textContent.toLowerCase(); // Loser column
+                const loserAlias = row.children[11].textContent.toLowerCase(); // Loser Alias column
+                const loserRace = row.children[12].textContent; // Loser Race column
                 
                 const seasonMatch = seasonValue === 'all' || season === seasonValue;
                 const raceMatch = raceValue === 'all' || winnerRace === raceValue || loserRace === raceValue;
