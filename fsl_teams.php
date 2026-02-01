@@ -3,54 +3,81 @@
 session_start();
 require_once 'includes/db.php';
 require_once 'includes/team_logo.php';
-
-// Function to get current season
-function getCurrentSeason($db) {
-    try {
-        $stmt = $db->query("SELECT MAX(season) as current_season FROM fsl_schedule");
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['current_season'] ?? 9; // Default to 9 if no data
-    } catch (PDOException $e) {
-        return 9; // Default fallback
-    }
-}
+require_once 'includes/season_utils.php';
 
 $currentSeason = getCurrentSeason($db);
 
-// Get teams and their players from database
-$teamsQuery = "
-    SELECT DISTINCT 
+// Get teams and their players; include Status for active/defunct when column exists. LEFT JOIN so defunct teams with no active players still appear.
+$teamsQueryWithStatus = "
+    SELECT 
         t.Team_ID,
         t.Team_Name,
         t.Captain_ID,
         t.Co_Captain_ID,
+        COALESCE(t.Status, 'active') AS Status,
         p.Player_ID,
         p.Real_Name as Player_Name,
         s.Race,
         s.Division
     FROM Teams t
-    JOIN Players p ON p.Team_ID = t.Team_ID AND p.Status = 'active'
+    LEFT JOIN Players p ON p.Team_ID = t.Team_ID AND p.Status = 'active'
     LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
-    ORDER BY t.Team_Name, 
-             CASE WHEN p.Player_ID = t.Captain_ID THEN 1 
-                  WHEN p.Player_ID = t.Co_Captain_ID THEN 2 
-                  ELSE 3 END, 
+    ORDER BY COALESCE(t.Status, 'active') ASC, t.Team_Name,
+             CASE WHEN p.Player_ID = t.Captain_ID THEN 1 WHEN p.Player_ID = t.Co_Captain_ID THEN 2 ELSE 3 END,
+             s.Division, p.Real_Name
+";
+$teamsQueryFallback = "
+    SELECT 
+        t.Team_ID,
+        t.Team_Name,
+        t.Captain_ID,
+        t.Co_Captain_ID,
+        'active' AS Status,
+        p.Player_ID,
+        p.Real_Name as Player_Name,
+        s.Race,
+        s.Division
+    FROM Teams t
+    LEFT JOIN Players p ON p.Team_ID = t.Team_ID AND p.Status = 'active'
+    LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
+    ORDER BY t.Team_Name,
+             CASE WHEN p.Player_ID = t.Captain_ID THEN 1 WHEN p.Player_ID = t.Co_Captain_ID THEN 2 ELSE 3 END,
              s.Division, p.Real_Name
 ";
 
 try {
-    $teamPlayers = $db->query($teamsQuery)->fetchAll(PDO::FETCH_ASSOC);
-    
-    // Organize players by team
-    $teams = [];
-    foreach ($teamPlayers as $player) {
-        if (!isset($teams[$player['Team_Name']])) {
-            $teams[$player['Team_Name']] = [];
-        }
-        $teams[$player['Team_Name']][] = $player;
+    try {
+        $teamPlayers = $db->query($teamsQueryWithStatus)->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $teamPlayers = $db->query($teamsQueryFallback)->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    // Get season records for all teams
+    $teams = [];
+    $teamStatus = [];
+    $seenPlayer = [];
+    foreach ($teamPlayers as $player) {
+        $name = $player['Team_Name'];
+        if (!isset($teams[$name])) {
+            $teams[$name] = [];
+            $teamStatus[$name] = $player['Status'] ?? 'active';
+            $seenPlayer[$name] = [];
+        }
+        if (!empty($player['Player_ID'])) {
+            $pid = (int) $player['Player_ID'];
+            if (empty($seenPlayer[$name][$pid])) {
+                $seenPlayer[$name][$pid] = true;
+                $teams[$name][] = $player;
+            }
+        }
+    }
+    $activeTeams = array_filter(array_keys($teams), function ($name) use ($teamStatus) {
+        return ($teamStatus[$name] ?? 'active') === 'active';
+    });
+    $defunctTeams = array_filter(array_keys($teams), function ($name) use ($teamStatus) {
+        return ($teamStatus[$name] ?? 'active') === 'defunct';
+    });
+    
+    // Get season records for all teams (used for both active and defunct)
     $seasonRecordsQuery = "
         SELECT 
             t.Team_ID,
@@ -99,7 +126,7 @@ include_once 'includes/header.php';
       line-height: 1.6;
     }
     .container {
-      max-width: 100%;
+      max-width: 1400px;
       margin: 20px auto;
       padding: 20px;
     }
@@ -109,6 +136,18 @@ include_once 'includes/header.php';
       text-shadow: 0 0 15px #00d4ff;
       font-size: 2.8em;
       margin-bottom: 40px;
+    }
+    .teams-section-heading {
+      color: #00d4ff;
+      font-size: 1.5rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+      padding-bottom: 0.5rem;
+    }
+    .teams-section-heading--inactive {
+      color: #888;
+      border-bottom-color: rgba(255, 255, 255, 0.15);
     }
     .teams-container {
       display: grid;
@@ -236,9 +275,15 @@ include_once 'includes/header.php';
   <div class="container">
     <h1>FSL Team Roster</h1>
 
-    <div class="teams-container">
-      <?php foreach ($teams as $teamName => $players): ?>
-      <?php $teamLogo = getTeamLogo($teamName); ?>
+    <?php
+    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason) {
+        $teamLogo = getTeamLogo($teamName);
+        $wins = $teamRecords[$teamName]['wins'] ?? 0;
+        $losses = $teamRecords[$teamName]['losses'] ?? 0;
+        $first = $teams[$teamName][0] ?? null;
+        $captainId = $first['Captain_ID'] ?? null;
+        $coCaptainId = $first['Co_Captain_ID'] ?? null;
+        ?>
       <div class="team">
         <?php if ($teamLogo): ?>
         <div class="team-logo-container">
@@ -248,15 +293,12 @@ include_once 'includes/header.php';
         </div>
         <?php endif; ?>
         <h2><a href="view_team.php?name=<?= urlencode($teamName) ?>" class="team-link"><?= htmlspecialchars($teamName) ?></a></h2>
-        
-        <?php 
-        $wins = $teamRecords[$teamName]['wins'] ?? 0;
-        $losses = $teamRecords[$teamName]['losses'] ?? 0;
-        ?>
+        <div style="text-align: center; margin-bottom: 5px; color: #b0b0b0; font-size: 0.9em;">
+          <?= count($players) ?> player<?= count($players) === 1 ? '' : 's' ?>
+        </div>
         <div style="text-align: center; margin-bottom: 15px; color: #00d4ff;">
           <strong><a href="fsl_schedule.php" style="color:rgb(46, 111, 124); text-decoration: none;">Season <?= $currentSeason ?>: <font size="+2" color="#00d4ff"><?= $wins ?> - <?= $losses ?></font></a></strong>
         </div>
-        
         <table>
           <thead>
             <tr>
@@ -268,33 +310,24 @@ include_once 'includes/header.php';
           <tbody>
             <?php foreach ($players as $player): ?>
             <tr>
-              <td><a href="view_player.php?name=<?= urlencode($player['Player_Name']) ?>" class="player-link" title="<?= $player['Player_ID'] == $teams[$teamName][0]['Captain_ID'] ? 'Captain' : ($player['Player_ID'] == $teams[$teamName][0]['Co_Captain_ID'] ? 'Co-captain' : '') ?>">
+              <td><a href="view_player.php?name=<?= urlencode($player['Player_Name']) ?>" class="player-link" title="<?= $player['Player_ID'] == $captainId ? 'Captain' : ($player['Player_ID'] == $coCaptainId ? 'Co-captain' : '') ?>">
                   <?= htmlspecialchars($player['Player_Name']) ?>
-                  <?php if ($player['Player_ID'] == $teams[$teamName][0]['Captain_ID']): ?>
+                  <?php if ($player['Player_ID'] == $captainId): ?>
                       <strong>(C)</strong>
-                  <?php elseif ($player['Player_ID'] == $teams[$teamName][0]['Co_Captain_ID']): ?>
+                  <?php elseif ($player['Player_ID'] == $coCaptainId): ?>
                       <small>(c)</small>
                   <?php endif; ?>
               </a></td>
               <td>
                 <?php if (!empty($player['Race'])): ?>
-                    <?php 
+                    <?php
                     $raceIcon = '';
                     switch ($player['Race']) {
-                        case 'T':
-                            $raceIcon = 'images/terran_icon.png';
-                            break;
-                        case 'P':
-                            $raceIcon = 'images/protoss_icon.png';
-                            break;
-                        case 'Z':
-                            $raceIcon = 'images/zerg_icon.png';
-                            break;
-                        case 'R':
-                            $raceIcon = 'images/random_icon.png';
-                            break;
+                        case 'T': $raceIcon = 'images/terran_icon.png'; break;
+                        case 'P': $raceIcon = 'images/protoss_icon.png'; break;
+                        case 'Z': $raceIcon = 'images/zerg_icon.png'; break;
+                        case 'R': $raceIcon = 'images/random_icon.png'; break;
                     }
-                    
                     if (!empty($raceIcon)) {
                         echo '<img src="' . $raceIcon . '" alt="' . htmlspecialchars($player['Race']) . '" class="race-icon">';
                     }
@@ -311,8 +344,25 @@ include_once 'includes/header.php';
           </tbody>
         </table>
       </div>
+        <?php
+    };
+    ?>
+
+    <h2 class="teams-section-heading">Active Teams</h2>
+    <div class="teams-container">
+      <?php foreach ($activeTeams as $teamName): ?>
+        <?php $teamCard($teamName, $teams[$teamName]); ?>
       <?php endforeach; ?>
     </div>
+
+    <?php if (!empty($defunctTeams)): ?>
+    <h2 class="teams-section-heading teams-section-heading--inactive">Inactive Teams</h2>
+    <div class="teams-container teams-container--inactive">
+      <?php foreach ($defunctTeams as $teamName): ?>
+        <?php $teamCard($teamName, $teams[$teamName]); ?>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
   </div>
 
 </body>

@@ -14,6 +14,7 @@ session_start();
 
 // Include database connection first
 require_once 'includes/db.php';
+require_once 'includes/season_utils.php';
 
 // Set required permission for this page
 $required_permission = 'manage spider charts';
@@ -21,8 +22,9 @@ $required_permission = 'manage spider charts';
 // Include permission check
 require_once 'includes/check_permission.php';
 
-// Get filter parameters
-$season = $_GET['season'] ?? 9;
+// Get filter parameters (default to current/max season)
+$currentSeason = getCurrentSeason($db);
+$season = isset($_GET['season']) ? (int) $_GET['season'] : $currentSeason;
 $t_code = $_GET['t_code'] ?? '';
 $status = $_GET['status'] ?? '';
 
@@ -164,8 +166,11 @@ include 'includes/header.php';
             <div class="form-group">
                 <label>Season:</label>
                 <select name="season" onchange="this.form.submit()">
-                    <option value="9" <?= $season == 9 ? 'selected' : '' ?>>Season 9</option>
-                    <option value="8" <?= $season == 8 ? 'selected' : '' ?>>Season 8</option>
+                    <?php
+                    $seasonOpts = $db->query("SELECT DISTINCT season FROM fsl_matches ORDER BY season DESC")->fetchAll(PDO::FETCH_COLUMN);
+                    foreach ($seasonOpts as $s): ?>
+                    <option value="<?= (int) $s ?>" <?= $season == (int) $s ? 'selected' : '' ?>>Season <?= (int) $s ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             

@@ -55,6 +55,7 @@ require_once 'includes/check_permission_updated.php';
 
 // Include database connection
 require_once 'includes/db.php';
+require_once 'includes/season_utils.php';
 
 // Connect to database
 try {
@@ -81,8 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $_POST['season'],
                             $_POST['week_number'],
                             $_POST['match_date'] !== '' ? $_POST['match_date'] : null,
-                            $_POST['team1_id'],
-                            $_POST['team2_id'],
+                            $_POST['team1_id'] !== '' ? (int) $_POST['team1_id'] : null,
+                            $_POST['team2_id'] !== '' ? (int) $_POST['team2_id'] : null,
                             $_POST['team1_score'] !== '' ? $_POST['team1_score'] : null,
                             $_POST['team2_score'] !== '' ? $_POST['team2_score'] : null,
                             $_POST['winner_team_id'] !== '' ? $_POST['winner_team_id'] : null,
@@ -103,8 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $stmt = $db->prepare("UPDATE fsl_schedule SET match_date=?, team1_id=?, team2_id=?, team1_score=?, team2_score=?, winner_team_id=?, status=?, notes=?, team_2v2_results=? WHERE schedule_id=?");
                             $stmt->execute([
                                 $_POST['match_date'] !== '' ? $_POST['match_date'] : null,
-                                $_POST['team1_id'],
-                                $_POST['team2_id'],
+                                $_POST['team1_id'] !== '' ? (int) $_POST['team1_id'] : null,
+                                $_POST['team2_id'] !== '' ? (int) $_POST['team2_id'] : null,
                                 $_POST['team1_score'] !== '' ? $_POST['team1_score'] : null,
                                 $_POST['team2_score'] !== '' ? $_POST['team2_score'] : null,
                                 $_POST['winner_team_id'] !== '' ? $_POST['winner_team_id'] : null,
@@ -121,8 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $_POST['season'],
                                 $_POST['week_number'],
                                 $_POST['match_date'] !== '' ? $_POST['match_date'] : null,
-                                $_POST['team1_id'],
-                                $_POST['team2_id'],
+                                $_POST['team1_id'] !== '' ? (int) $_POST['team1_id'] : null,
+                                $_POST['team2_id'] !== '' ? (int) $_POST['team2_id'] : null,
                                 $_POST['team1_score'] !== '' ? $_POST['team1_score'] : null,
                                 $_POST['team2_score'] !== '' ? $_POST['team2_score'] : null,
                                 $_POST['winner_team_id'] !== '' ? $_POST['winner_team_id'] : null,
@@ -141,8 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_POST['season'],
                         $_POST['week_number'],
                         $_POST['match_date'] !== '' ? $_POST['match_date'] : null,
-                        $_POST['team1_id'],
-                        $_POST['team2_id'],
+                        $_POST['team1_id'] !== '' ? (int) $_POST['team1_id'] : null,
+                        $_POST['team2_id'] !== '' ? (int) $_POST['team2_id'] : null,
                         $_POST['team1_score'] !== '' ? $_POST['team1_score'] : null,
                         $_POST['team2_score'] !== '' ? $_POST['team2_score'] : null,
                         $_POST['winner_team_id'] !== '' ? $_POST['winner_team_id'] : null,
@@ -244,18 +245,19 @@ $teams = $db->query("SELECT Team_ID, Team_Name FROM Teams ORDER BY Team_Name")->
 $schedule = $db->query("
     SELECT 
         s.*,
-        t1.Team_Name as team1_name,
-        t2.Team_Name as team2_name,
+        COALESCE(t1.Team_Name, 'TBD') as team1_name,
+        COALESCE(t2.Team_Name, 'TBD') as team2_name,
         tw.Team_Name as winner_name
     FROM fsl_schedule s
-    JOIN Teams t1 ON s.team1_id = t1.Team_ID
-    JOIN Teams t2 ON s.team2_id = t2.Team_ID
+    LEFT JOIN Teams t1 ON s.team1_id = t1.Team_ID
+    LEFT JOIN Teams t2 ON s.team2_id = t2.Team_ID
     LEFT JOIN Teams tw ON s.winner_team_id = tw.Team_ID
     ORDER BY s.season DESC, s.week_number
 ")->fetchAll(PDO::FETCH_ASSOC);
 
-// Get available matches for linking
-$availableMatches = $db->query("
+// Get available matches for linking (current season)
+$currentSeason = getCurrentSeason($db);
+$availableMatchesStmt = $db->prepare("
     SELECT 
         fm.fsl_match_id,
         fm.season,
@@ -268,9 +270,11 @@ $availableMatches = $db->query("
     FROM fsl_matches fm
     JOIN Players pw ON fm.winner_player_id = pw.Player_ID
     JOIN Players pl ON fm.loser_player_id = pl.Player_ID
-    WHERE fm.season = 9
+    WHERE fm.season = ?
     ORDER BY fm.fsl_match_id DESC
-")->fetchAll(PDO::FETCH_ASSOC);
+");
+$availableMatchesStmt->execute([$currentSeason]);
+$availableMatches = $availableMatchesStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Set page title
 $pageTitle = "FSL Schedule Admin";
@@ -447,8 +451,8 @@ include 'includes/header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label>Team 1:</label>
-                    <select name="team1_id" required>
-                        <option value="">Select team...</option>
+                    <select name="team1_id">
+                        <option value="">TBD (Placeholder)</option>
                         <?php foreach ($teams as $team): ?>
                             <option value="<?= $team['Team_ID'] ?>"><?= htmlspecialchars($team['Team_Name']) ?></option>
                         <?php endforeach; ?>
@@ -457,8 +461,8 @@ include 'includes/header.php';
                 
                 <div class="form-group">
                     <label>Team 2:</label>
-                    <select name="team2_id" required>
-                        <option value="">Select team...</option>
+                    <select name="team2_id">
+                        <option value="">TBD (Placeholder)</option>
                         <?php foreach ($teams as $team): ?>
                             <option value="<?= $team['Team_ID'] ?>"><?= htmlspecialchars($team['Team_Name']) ?></option>
                         <?php endforeach; ?>

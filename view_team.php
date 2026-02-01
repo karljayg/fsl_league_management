@@ -15,20 +15,10 @@ session_start();
 // Include database connection
 require_once 'includes/db.php';
 require_once 'includes/team_logo.php';
+require_once 'includes/season_utils.php';
 
 // Include the championship JSON processor
 require_once 'includes/championship_json_processor.php';
-
-// Function to get current season
-function getCurrentSeason($db) {
-    try {
-        $stmt = $db->query("SELECT MAX(season) as current_season FROM fsl_schedule");
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result['current_season'] ?? 9; // Default to 9 if no data
-    } catch (PDOException $e) {
-        return 9; // Default fallback
-    }
-}
 
 // Get team name from URL parameter
 $teamName = isset($_GET['name']) ? $_GET['name'] : '';

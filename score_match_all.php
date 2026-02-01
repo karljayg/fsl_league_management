@@ -14,6 +14,7 @@ session_start();
 
 // Include database connection
 require_once 'includes/db.php';
+require_once 'includes/season_utils.php';
 require_once 'includes/reviewer_functions.php';
 
 $reviewer = null;
@@ -133,13 +134,14 @@ $matches_per_page = 5;
 $current_page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $offset = ($current_page - 1) * $matches_per_page;
 
-// First, get total count of matches
+// First, get total count of matches (current season)
+$currentSeason = getCurrentSeason($db);
 $count_stmt = $db->prepare("
     SELECT COUNT(*) as total
     FROM fsl_matches fm
-    WHERE fm.season = 9
+    WHERE fm.season = ?
 ");
-$count_stmt->execute();
+$count_stmt->execute([$currentSeason]);
 $total_matches = $count_stmt->fetch(PDO::FETCH_ASSOC)['total'];
 $total_pages = ceil($total_matches / $matches_per_page);
 
@@ -165,14 +167,15 @@ $stmt = $db->prepare("
     LEFT JOIN Players p1 ON fm.winner_player_id = p1.Player_ID
     LEFT JOIN Players p2 ON fm.loser_player_id = p2.Player_ID
     LEFT JOIN Player_Attribute_Votes pav ON fm.fsl_match_id = pav.fsl_match_id AND pav.reviewer_id = ?
-    WHERE fm.season = 9
+    WHERE fm.season = ?
     GROUP BY fm.fsl_match_id
     ORDER BY fm.fsl_match_id DESC
     LIMIT ? OFFSET ?
 ");
 $stmt->bindValue(1, $reviewer['id'] ?? 0, PDO::PARAM_INT);
-$stmt->bindValue(2, $matches_per_page, PDO::PARAM_INT);
-$stmt->bindValue(3, $offset, PDO::PARAM_INT);
+$stmt->bindValue(2, $currentSeason, PDO::PARAM_INT);
+$stmt->bindValue(3, $matches_per_page, PDO::PARAM_INT);
+$stmt->bindValue(4, $offset, PDO::PARAM_INT);
 $stmt->execute();
 $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -285,7 +288,7 @@ include 'includes/header.php';
                 <div class="alert alert-warning">
                     <p>No matches found for scoring. This could be because:</p>
                     <ul>
-                        <li>No matches exist in season 9</li>
+                        <li>No matches exist in season <?= $currentSeason ?></li>
                         <li>All matches have missing player data</li>
                         <li>There's an issue with the database connection</li>
                     </ul>

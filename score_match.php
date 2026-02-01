@@ -6,6 +6,7 @@
 
 require_once 'config.php';
 require_once 'includes/db.php';
+require_once 'includes/season_utils.php';
 require_once 'includes/reviewer_functions.php';
 
 // Set timezone from config
@@ -120,7 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $reviewer) {
     }
 }
 
-// Get all matches for this reviewer
+// Get all matches for this reviewer (current season)
+$currentSeason = getCurrentSeason($db);
 $stmt = $db->prepare("
     SELECT 
         fm.fsl_match_id,
@@ -142,12 +144,12 @@ $stmt = $db->prepare("
     LEFT JOIN Players p1 ON fm.winner_player_id = p1.Player_ID
     LEFT JOIN Players p2 ON fm.loser_player_id = p2.Player_ID
     LEFT JOIN Player_Attribute_Votes pav ON fm.fsl_match_id = pav.fsl_match_id AND pav.reviewer_id = ?
-    WHERE fm.season = 9
+    WHERE fm.season = ?
     GROUP BY fm.fsl_match_id
     ORDER BY fm.fsl_match_id DESC
     LIMIT 200
 ");
-$stmt->execute([$reviewer['id'] ?? 0]);
+$stmt->execute([$reviewer['id'] ?? 0, $currentSeason]);
 $all_matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Process vote status for each match

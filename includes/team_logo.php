@@ -1,14 +1,17 @@
 <?php
 /**
  * Team Logo Helper
- * Maps team names to their logo image paths
+ * Maps team names to their logo image paths. Returns placeholder for teams without a logo.
  */
+
+/** Path to generic "Logo Here" placeholder for teams without a logo */
+define('TEAM_LOGO_PLACEHOLDER', 'images/team_logo_placeholder.svg');
 
 /**
  * Get the logo path for a team name
  * @param string $teamName The team name
  * @param string $size '256px' or '' for full size
- * @return string|null The logo path or null if not found
+ * @return string|null The logo path, or placeholder path if no logo, or null if no team name
  */
 function getTeamLogo($teamName, $size = '256px') {
     if (empty($teamName)) {
@@ -25,29 +28,32 @@ function getTeamLogo($teamName, $size = '256px') {
         'Pulled The Boys' => 'FSL_team_square_logo_PulledTheBoys',
         'CheesyNachos' => 'FSL_team_square_logo_CheesyNachos',
         'Cheesy Nachos' => 'FSL_team_square_logo_CheesyNachos',
+        'PSISOP Gaming' => null,
+        'Finite Drivers' => null,
+        'TBD' => null,  // Placeholder display for schedule slots with NULL team_id
     ];
     
     $baseName = $logoMap[$teamName] ?? null;
     
-    if (!$baseName) {
-        return null;
+    if ($baseName === null) {
+        $placeholderPath = dirname(__DIR__) . '/' . TEAM_LOGO_PLACEHOLDER;
+        return file_exists($placeholderPath) ? TEAM_LOGO_PLACEHOLDER : null;
     }
     
     $suffix = $size ? "_{$size}" : '';
     $path = "images/{$baseName}{$suffix}.png";
     
-    // Check if file exists (relative to document root)
     $fullPath = dirname(__DIR__) . '/' . $path;
     if (file_exists($fullPath)) {
         return $path;
     }
     
-    // Try without size suffix
     $path = "images/{$baseName}.png";
     $fullPath = dirname(__DIR__) . '/' . $path;
     if (file_exists($fullPath)) {
         return $path;
     }
     
-    return null;
+    $placeholderPath = dirname(__DIR__) . '/' . TEAM_LOGO_PLACEHOLDER;
+    return file_exists($placeholderPath) ? TEAM_LOGO_PLACEHOLDER : null;
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * FSL Season Standings and Schedule Page
- * Displays team standings and match schedule for Season 9
+ * Displays team standings and match schedule for current season
  * Uses file-based caching (15 min TTL) to reduce database load
  */
 
@@ -37,13 +37,15 @@ if (file_exists(CACHE_FILE)) {
 if ($cachedData === null) {
     // Include database connection
     require_once 'includes/db.php';
+    require_once 'includes/season_utils.php';
 
     try {
         // Connect to database
         $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Get Season 9 schedule from database
+        $currentSeason = getCurrentSeason($db);
+    // Get current season schedule from database
     $scheduleQuery = "
         SELECT 
             s.schedule_id,
@@ -58,18 +60,20 @@ if ($cachedData === null) {
             s.status,
             s.notes,
             s.team_2v2_results,
-            t1.Team_Name as team1_name,
-            t2.Team_Name as team2_name,
+            COALESCE(t1.Team_Name, 'TBD') as team1_name,
+            COALESCE(t2.Team_Name, 'TBD') as team2_name,
             tw.Team_Name as winner_name
         FROM fsl_schedule s
-        JOIN Teams t1 ON s.team1_id = t1.Team_ID
-        JOIN Teams t2 ON s.team2_id = t2.Team_ID
+        LEFT JOIN Teams t1 ON s.team1_id = t1.Team_ID
+        LEFT JOIN Teams t2 ON s.team2_id = t2.Team_ID
         LEFT JOIN Teams tw ON s.winner_team_id = tw.Team_ID
-        WHERE s.season = 9
+        WHERE s.season = ?
         ORDER BY s.week_number
     ";
 
-        $season9Schedule = $db->query($scheduleQuery)->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $db->prepare($scheduleQuery);
+        $stmt->execute([$currentSeason]);
+        $season9Schedule = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Pre-fetch all match data for all schedule entries at once (batch query)
     $allScheduleIds = array_column($season9Schedule, 'schedule_id');
@@ -127,6 +131,7 @@ if ($cachedData === null) {
 
         // Save to cache
         $cachedData = [
+            'currentSeason' => $currentSeason,
             'schedule' => $season9Schedule,
             'matchMap' => $scheduleMatchMap,
             'matchDetails' => $allMatchDetails
@@ -149,10 +154,13 @@ if ($cachedData === null) {
     }
 }
 
-if ($cachedData !== null && empty($season9Schedule)) {
-    $season9Schedule = $cachedData['schedule'];
-    $scheduleMatchMap = $cachedData['matchMap'];
-    $allMatchDetails = $cachedData['matchDetails'];
+if ($cachedData !== null) {
+    if (empty($season9Schedule)) {
+        $season9Schedule = $cachedData['schedule'];
+        $scheduleMatchMap = $cachedData['matchMap'];
+        $allMatchDetails = $cachedData['matchDetails'];
+    }
+    $currentSeason = $cachedData['currentSeason'] ?? ($season9Schedule[0]['season'] ?? 9);
 }
 
 // Helper functions (use cached data instead of DB queries)
@@ -213,7 +221,7 @@ foreach ($season9Schedule as $match) {
 }
 
 // Set page title
-$pageTitle = "FSL Season 9 Standings and Schedule";
+$pageTitle = "FSL Season {$currentSeason} Standings and Schedule";
 
 // Include header
 include 'includes/header.php';
@@ -221,7 +229,7 @@ echo "<!-- Data: $cacheStatus -->\n";
 ?>
 
 <div class="container mt-4">
-    <h1>Season 9 Standings and Schedule</h1>
+    <h1>Season <?= (int) $currentSeason ?> Standings and Schedule</h1>
     
     <!-- Week Navigation Bar -->
     <div class="week-navigation">
@@ -248,24 +256,27 @@ echo "<!-- Data: $cacheStatus -->\n";
                 // Calculate standings from results - include all teams
                 $standings = [];
                 
-                // Initialize all teams with 0-0 records
+                // Initialize all teams with 0-0 records (skip placeholder TBD when both teams null)
                 foreach ($season9Schedule as $match) {
-                    if (!isset($standings[$match['team1_name']])) {
-                        $standings[$match['team1_name']] = ['wins' => 0, 'losses' => 0];
+                    $n1 = $match['team1_name'] ?? null;
+                    $n2 = $match['team2_name'] ?? null;
+                    if ($n1 && $n1 !== 'TBD' && !isset($standings[$n1])) {
+                        $standings[$n1] = ['wins' => 0, 'losses' => 0];
                     }
-                    if (!isset($standings[$match['team2_name']])) {
-                        $standings[$match['team2_name']] = ['wins' => 0, 'losses' => 0];
+                    if ($n2 && $n2 !== 'TBD' && !isset($standings[$n2])) {
+                        $standings[$n2] = ['wins' => 0, 'losses' => 0];
                     }
                 }
                 
                 // Add wins and losses from completed matches
                 foreach ($season9Schedule as $match) {
-                    if ($match['status'] === 'completed') {
+                    if ($match['status'] === 'completed' && $match['winner_team_id']) {
                         $winner = $match['winner_name'];
                         $loser = ($match['winner_team_id'] == $match['team1_id']) ? $match['team2_name'] : $match['team1_name'];
-                        
-                        $standings[$winner]['wins']++;
-                        $standings[$loser]['losses']++;
+                        if ($winner && $loser && isset($standings[$winner]) && isset($standings[$loser])) {
+                            $standings[$winner]['wins']++;
+                            $standings[$loser]['losses']++;
+                        }
                     }
                 }
                 
@@ -389,18 +400,28 @@ echo "<!-- Data: $cacheStatus -->\n";
                         $team2_score = ($match['team2_score'] !== null) ? $match['team2_score'] : '?';
                         ?>
                         
-                        <?php $team1Logo = getTeamLogo($match['team1_name']); ?>
-                        <?php $team2Logo = getTeamLogo($match['team2_name']); ?>
+                        <?php
+                        $team1_name = $match['team1_name'];
+                        $team2_name = $match['team2_name'];
+                        $team1_is_placeholder = empty($match['team1_id']);
+                        $team2_is_placeholder = empty($match['team2_id']);
+                        $team1Logo = getTeamLogo($team1_name);
+                        $team2Logo = getTeamLogo($team2_name);
+                        ?>
                         <div class="team-side <?= $team1_class ?>">
                             <?php if ($team1Logo): ?>
-                            <a href="view_team.php?name=<?= urlencode($match['team1_name']) ?>">
-                                <img src="<?= htmlspecialchars($team1Logo) ?>" alt="<?= htmlspecialchars($match['team1_name']) ?>" class="matchup-team-logo">
+                            <a href="view_team.php?name=<?= urlencode($team1_name) ?>">
+                                <img src="<?= htmlspecialchars($team1Logo) ?>" alt="<?= htmlspecialchars($team1_name) ?>" class="matchup-team-logo">
                             </a>
                             <?php endif; ?>
                             <h4>
-                                <a href="view_team.php?name=<?= urlencode($match['team1_name']) ?>" class="team-link">
-                                    <?= htmlspecialchars($match['team1_name']) ?> <span class="team-record"><?= getTeamRecord($match['team1_name'], $standings) ?></span>
-                                </a>
+                                <?php if ($team1_is_placeholder): ?>
+                                    <span class="team-link"><?= htmlspecialchars($team1_name) ?></span>
+                                <?php else: ?>
+                                    <a href="view_team.php?name=<?= urlencode($team1_name) ?>" class="team-link">
+                                        <?= htmlspecialchars($team1_name) ?> <span class="team-record"><?= getTeamRecord($team1_name, $standings) ?></span>
+                                    </a>
+                                <?php endif; ?>
                             </h4>
                             <div class="team-score"><?= $team1_score ?></div>
                         </div>
@@ -411,14 +432,18 @@ echo "<!-- Data: $cacheStatus -->\n";
                         
                         <div class="team-side <?= $team2_class ?>">
                             <?php if ($team2Logo): ?>
-                            <a href="view_team.php?name=<?= urlencode($match['team2_name']) ?>">
-                                <img src="<?= htmlspecialchars($team2Logo) ?>" alt="<?= htmlspecialchars($match['team2_name']) ?>" class="matchup-team-logo">
+                            <a href="view_team.php?name=<?= urlencode($team2_name) ?>">
+                                <img src="<?= htmlspecialchars($team2Logo) ?>" alt="<?= htmlspecialchars($team2_name) ?>" class="matchup-team-logo">
                             </a>
                             <?php endif; ?>
                             <h4>
-                                <a href="view_team.php?name=<?= urlencode($match['team2_name']) ?>" class="team-link">
-                                    <?= htmlspecialchars($match['team2_name']) ?> <span class="team-record"><?= getTeamRecord($match['team2_name'], $standings) ?></span>
-                                </a>
+                                <?php if ($team2_is_placeholder): ?>
+                                    <span class="team-link"><?= htmlspecialchars($team2_name) ?></span>
+                                <?php else: ?>
+                                    <a href="view_team.php?name=<?= urlencode($team2_name) ?>" class="team-link">
+                                        <?= htmlspecialchars($team2_name) ?> <span class="team-record"><?= getTeamRecord($team2_name, $standings) ?></span>
+                                    </a>
+                                <?php endif; ?>
                             </h4>
                             <div class="team-score"><?= $team2_score ?></div>
                         </div>
