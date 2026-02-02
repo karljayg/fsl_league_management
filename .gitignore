@@ -64,6 +64,7 @@ test_write_dir/
 *.orig
 
 # Draft data (regenerated on each draft)
+draft/data
 draft/data/*.json
 draft/data_predraft/
 draft/data_s10_results/

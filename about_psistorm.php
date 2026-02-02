@@ -16,68 +16,123 @@ $additionalCss = [];
 include_once 'includes/header.php';
 ?>
 
-<title>PSISTORM Gaming: A StarCraft Legacy</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: #e0e0e0;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-        }
-        h1 {
+<style>
+        .about-psistorm h1 {
             text-align: center;
             color: #00d4ff;
-            text-shadow: 0 0 15px #00d4ff;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
             font-size: 2.8em;
             margin-bottom: 40px;
         }
-        h2 {
+        .about-psistorm h2 {
             color: #ff6f61;
             font-size: 2em;
             margin-bottom: 15px;
             border-bottom: 2px solid #ff6f61;
             padding-bottom: 5px;
         }
-        p {
-            font-size: 1.1em;
-            margin: 10px 0;
+        .about-psistorm .section {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            border-left: 5px solid #ff6f61;
         }
-        ul {
+        .about-psistorm .section p,
+        .about-psistorm .section li {
+            font-size: 1.05em;
+            margin-bottom: 10px;
+        }
+        .about-psistorm .section ul {
             margin: 10px 0 20px 20px;
             padding-left: 20px;
         }
-        li {
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-        a {
+        .about-psistorm .section a {
             color: #00d4ff;
             text-decoration: none;
             transition: color 0.3s ease;
         }
-        a:hover {
+        .about-psistorm .section a:hover {
             color: #ff6f61;
             text-decoration: underline;
         }
-	.section {
-            margin: auto;
-	}
-        .section {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 20px;
+        .about-psistorm .image,
+        .about-psistorm .images {
             margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .about-psistorm .image img,
+        .about-psistorm .images img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        /* Verified Expansions & Milestones - same theme as rest of page */
+        .about-psistorm .psistorm-sources {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
             border-left: 5px solid #ff6f61;
         }
-        footer {
+        .about-psistorm .psistorm-sources h2 {
+            margin-top: 0;
+            text-align: left;
+        }
+        .about-psistorm .psistorm-sources h3 {
+            color: #00d4ff;
+            font-size: 1.25em;
+            margin-bottom: 12px;
+        }
+        .about-psistorm .psistorm-sources h4 {
+            color: #e0e0e0;
+            font-size: 1em;
+            margin: 0 0 10px 0;
+        }
+        .about-psistorm .psistorm-sources .summary-block {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .about-psistorm .psistorm-sources .summary-block p,
+        .about-psistorm .psistorm-sources .summary-block li {
+            color: #e0e0e0;
+            margin: 0 0 10px 0;
+            line-height: 1.6;
+        }
+        .about-psistorm .psistorm-sources .sources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .about-psistorm .psistorm-sources .source-card {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .about-psistorm .psistorm-sources .source-card ul {
+            margin: 0;
+            padding-left: 20px;
+            list-style: none;
+        }
+        .about-psistorm .psistorm-sources .source-card li {
+            margin-bottom: 8px;
+        }
+        .about-psistorm .psistorm-sources .source-card a {
+            color: #00d4ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .about-psistorm .psistorm-sources .source-card a:hover {
+            color: #ff6f61;
+            text-decoration: underline;
+        }
+        .about-psistorm .page-footer-note {
             text-align: center;
             padding: 20px;
             font-size: 0.9em;
@@ -85,15 +140,11 @@ include_once 'includes/header.php';
             border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
         @media (max-width: 768px) {
-            h1 { font-size: 2em; }
-            h2 { font-size: 1.6em; }
-            p, li { font-size: 1em; }
-            .container { padding: 10px; }
+            .about-psistorm h1 { font-size: 2em; }
+            .about-psistorm h2 { font-size: 1.6em; }
         }
     </style>
-</head>
-<body>
-    <div class="container">
+    <div class="about-psistorm">
         <h1>PSISTORM Gaming: A StarCraft Legacy</h1>
 
 	<div class="image">
@@ -180,17 +231,81 @@ include_once 'includes/header.php';
             <p><strong>Citation:</strong> <a href="https://psistorm.com/main/psistorm-leadership-staff/" target="_blank">PSISTORM Gaming - Leadership</a>, <a href="https://www.prweb.com/releases/2018/08/prweb15664323.htm" target="_blank">PRWeb - EBL Franchise</a></p>
         </div>
 
-        <div class="section">
-            <h2>Teams Acquired</h2>
-            <p>PSISTORM expanded through acquisitions:</p>
-            <ul>
-                <li><strong>Sloth Gaming:</strong> Acquired pre-2019, added early roster depth.</li>
-                <li><strong>Team eXoN:</strong> Acquired May 25, 2021, brought MaxPax, Gerald and SpeCiaL.</li>
-                <li><strong>TBD:</strong> Acquired September 18, 2019, focused on WoW and Hearthstone.</li>
-                <li><strong>DeadlyKittens (Partial):</strong> Heroes roster acquired November 2017 for HGC 2018.</li>
-            </ul>
-            <p><strong>Citation:</strong> <a href="https://psistorm.com/main/exon_acquired_psistorm/" target="_blank">PSISTORM - eXoN Acquisition</a>, <a href="https://psistorm.com/main/psistorm-acquired-tbd-enters-world-warcraft/" target="_blank">PSISTORM - TBD Acquisition</a>, <a href="https://liquipedia.net/heroes/PSISTORM_Gaming" target="_blank">Liquipedia - Heroes</a></p>
-        </div>
+<div class="section psistorm-sources" id="psistorm-external-sources">
+  <h2>Acquisition & Expansions &amp; Milestones</h2>
+
+  <div class="summary-block">
+    <h3>Quick Summary</h3>
+    <p>
+      PSISTORM explored <strong>sim racing</strong> (2016–2019), tied to founder KJ Garcia's supercar passion and community lore (e.g. the "ZERG OP" Lamborghini post).<sup>[1]</sup><br>
+      Secured <strong>EBL DC franchise</strong> rights (Aug 2018) for multi-game flexibility.<sup>[2]</sup><br>
+      Below are externally cited acquisitions and roster expansions.
+    </p>
+    <ul>
+      <li><strong>DeadlyKittens (Partial):</strong> Heroes of the Storm roster acquisition (Nov 2017).<sup>[3][4]</sup></li>
+      <li><strong>Sloth E-Sports:</strong> SC2 depth (Dec 2018).<sup>[5][6]</sup></li>
+      <li><strong>Team eXoN:</strong> SC2 expansion (May 2021), including players like MaxPax and SpeCiaL (per team and player histories).<sup>[7][8][9]</sup></li>
+    </ul>
+  </div>
+
+  <h3>External Sources (Non-PSISTORM.com)</h3>
+
+  <div class="sources-grid">
+    <div class="source-card">
+      <h4>Org Overview (SC2)</h4>
+      <ul>
+        <li><a href="https://liquipedia.net/starcraft2/PSISTORM_Gaming" target="_blank" rel="noopener noreferrer">Liquipedia (StarCraft II): PSISTORM Gaming</a><sup>[10]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>EBL Franchise Rights</h4>
+      <ul>
+        <li><a href="https://www.prweb.com/releases/PSISTORM_Gaming_Secures_DC_EBL_Franchise_Rights/prweb15668100.htm" target="_blank" rel="noopener noreferrer">PRWeb Announcement (Aug 2018)</a><sup>[2]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>DeadlyKittens Roster (Heroes)</h4>
+      <ul>
+        <li><a href="https://liquipedia.net/heroes/PSISTORM_Gaming" target="_blank" rel="noopener noreferrer">Liquipedia (Heroes): PSISTORM Gaming</a><sup>[3]</sup></li>
+        <li><a href="https://www.reddit.com/r/heroesofthestorm/comments/7batu0/psistorm_gaming_acquires_core_deadly_kittens" target="_blank" rel="noopener noreferrer">Reddit thread (Nov 2017): DeadlyKittens acquisition</a><sup>[4]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>Sloth E-Sports (SC2)</h4>
+      <ul>
+        <li><a href="https://liquipedia.net/starcraft2/Sloth_E-Sports_Club" target="_blank" rel="noopener noreferrer">Liquipedia (SC2): Sloth E-Sports Club</a><sup>[5]</sup></li>
+        <li><a href="https://www.reddit.com/r/starcraft/comments/a3fz02/psistorm_gaming_acquires_sloth_pro_and_adds_suppy" target="_blank" rel="noopener noreferrer">Reddit thread (Dec 2018): Sloth acquisition</a><sup>[6]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>Team eXoN (SC2)</h4>
+      <ul>
+        <li><a href="https://liquipedia.net/starcraft2/Team_eXoN" target="_blank" rel="noopener noreferrer">Liquipedia (SC2): Team eXoN</a><sup>[7]</sup></li>
+        <li><a href="https://www.reddit.com/r/starcraft/comments/nlkelb/psistorm_gaming_acquires_team_exon" target="_blank" rel="noopener noreferrer">Reddit thread (May 2021): eXoN acquisition</a><sup>[8]</sup></li>
+        <li><a href="https://aligulac.com/players/19591-MaxPax/" target="_blank" rel="noopener noreferrer">Aligulac: MaxPax player history</a><sup>[9]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>Org Milestone Mention</h4>
+      <ul>
+        <li><a href="https://www.linkedin.com/posts/danicanubas_proud-to-announce-american-esportss-official-activity-6620898158618689536-Q0Cg" target="_blank" rel="noopener noreferrer">LinkedIn: American Esports acquisition announcement</a><sup>[11]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>Founder Spotlight</h4>
+      <ul>
+        <li><a href="https://www.reddit.com/r/starcraft/comments/2pw9oe/i_would_get_along_very_well_with_this_guy" target="_blank" rel="noopener noreferrer">Reddit post (2014): "ZERG OP" Lamborghini community post</a><sup>[1]</sup></li>
+      </ul>
+    </div>
+    <div class="source-card">
+      <h4>External Media Presence</h4>
+      <ul>
+        <li><a href="https://www.facebook.com/psistormgaming/" target="_blank" rel="noopener noreferrer">Facebook: PSISTORM Gaming</a><sup>[12]</sup></li>
+        <li><a href="https://www.youtube.com/user/psistormgaming" target="_blank" rel="noopener noreferrer">YouTube: PSISTORM Gaming</a><sup>[13]</sup></li>
+      </ul>
+    </div>
+  </div>
+</div>
 
 	<div class="images">
 		<img src="images/PSISTORMCup_9_streaming_strip.png" width="100%">
@@ -246,9 +361,9 @@ include_once 'includes/header.php';
         </div>
     </div>
 
-    <footer>
+    <div class="page-footer-note">
         Compiled by Grok 3 (xAI) | Last updated: March 2, 2025
-    </footer>
+    </div>
 
 <?php
 // Include footer

@@ -164,12 +164,12 @@ if ($cachedData !== null) {
 }
 
 // Helper functions (use cached data instead of DB queries)
-function getScheduleMatchIds($db, $scheduleId) {
+function getScheduleMatchIds($scheduleId) {
     global $scheduleMatchMap;
     return $scheduleMatchMap[$scheduleId] ?? [];
 }
 
-function getMatchDetails($db, $matchIds) {
+function getMatchDetails($matchIds) {
     global $allMatchDetails;
     // This now returns from cache - find by matching matchIds
     // We iterate through allMatchDetails to find rows matching the matchIds
@@ -358,7 +358,7 @@ echo "<!-- Data: $cacheStatus -->\n";
             <h2>Match Schedule & Results</h2>
             
             <?php foreach ($season9Schedule as $match): 
-                $matchIds = getScheduleMatchIds($db, $match['schedule_id']);
+                $matchIds = getScheduleMatchIds($match['schedule_id']);
                 
 
             ?>
@@ -462,7 +462,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                             <?php 
                             // Show individual matches from database
                             if (!empty($matchIds)) {
-                                $matchDetails = getMatchDetails($db, $matchIds);
+                                $matchDetails = getMatchDetails($matchIds);
                                 
                                 // Debug: Show what matches we got
                                 if ($match['week_number'] == 5) {
@@ -529,7 +529,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                         if ($match['status'] === 'completed' && !empty($matchIds)) {
                             // Get match details if not already fetched
                             if (!isset($matchDetails)) {
-                                $matchDetails = getMatchDetails($db, $matchIds);
+                                $matchDetails = getMatchDetails($matchIds);
                             }
                             
                             $uniqueVods = [];
