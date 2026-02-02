@@ -113,7 +113,7 @@ if (!$playerNotFound) {
         Teams t ON p.Team_ID = t.Team_ID
     WHERE
         p.Real_Name = :playerName
-    ORDER BY FIELD(fs.Division, 'S', 'A', 'B')";
+    ORDER BY (fs.MapsW + fs.MapsL) DESC, FIELD(fs.Division, 'S', 'A', 'B')";
 
     try {
         $stmt = $db->prepare($playerQuery);

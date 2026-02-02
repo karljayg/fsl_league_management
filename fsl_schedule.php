@@ -280,12 +280,13 @@ echo "<!-- Data: $cacheStatus -->\n";
                     }
                 }
                 
-                // Sort by wins desc, losses asc
-                uasort($standings, function($a, $b) {
-                    if ($a['wins'] == $b['wins']) {
-                        return $a['losses'] - $b['losses'];
-                    }
-                    return $b['wins'] - $a['wins'];
+                // Sort by wins (desc), then losses (asc), then alphabetical by team name
+                uksort($standings, function($nameA, $nameB) use ($standings) {
+                    $a = $standings[$nameA];
+                    $b = $standings[$nameB];
+                    if ($a['wins'] != $b['wins']) return $b['wins'] - $a['wins'];
+                    if ($a['losses'] != $b['losses']) return $a['losses'] - $b['losses'];
+                    return strcasecmp($nameA, $nameB);
                 });
                 
                 // Function to get team record
@@ -339,17 +340,17 @@ echo "<!-- Data: $cacheStatus -->\n";
             </div>
         </div>
 
-        <!-- SEASON FORMAT INFO -->
         <div class="season-info">
             <h2>Season Format</h2>
-            <p>Each team match is <strong>best of 9</strong> with the following format:</p>
-            <ul>
-                <li><strong>Code S:</strong> Best of 2</li>
-                <li><strong>Code A:</strong> Best of 2</li>
-                <li><strong>Code B:</strong> Best of 2</li>
-                <li><strong>2v2:</strong> Best of 2</li>
-                <li><strong>Ace Match:</strong> Best of 1 (if tied 4-4)</li>
-            </ul>
+            <div class="season-format-content">
+                <a href="images/FSL_GSL_format_season10.png" target="_blank" class="season-format-image-wrap">
+                    <img src="images/FSL_GSL_format_season10.png" alt="FSL GSL Format Season 10" class="season-format-image">
+                </a>
+                <div class="season-format-text">
+                    <p>Teams first compete in a <strong>GSL-style group</strong> to determine Seeds 1 through 4, using opening matches, a winners match, a losers match, and a final elimination match.</p>
+                    <p>Those seeds then feed into a <strong>ladder-style playoff</strong>: Seeds 3 and 4 start in Week 1, Seed 2 enters in Week 2, and Seed 1 advances straight to the Grand Finals.</p>
+                </div>
+            </div>
         </div>
 
         <!-- MATCH SCHEDULE -->
@@ -821,15 +822,64 @@ echo "<!-- Data: $cacheStatus -->\n";
     }
     
     .season-info {
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 30px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(0, 0, 0, 0.2));
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 35px;
     }
     
     .season-info h2 {
         color: #00d4ff;
-        margin-bottom: 15px;
+        text-align: center;
+        margin: 0 0 20px 0;
+        font-size: 1.5em;
+    }
+    
+    .season-format-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .season-format-image-wrap {
+        flex-shrink: 0;
+        display: block;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 2px solid rgba(0, 212, 255, 0.3);
+        transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+    
+    .season-format-image-wrap:hover {
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        transform: scale(1.02);
+    }
+    
+    .season-format-image {
+        display: block;
+        max-width: 300px;
+        height: auto;
+    }
+    
+    .season-format-text {
+        flex: 1;
+        min-width: 280px;
+    }
+    
+    .season-format-text p {
+        margin: 0 0 12px 0;
+        line-height: 1.6;
+        color: #e0e0e0;
+    }
+    
+    .season-format-text p:last-child {
+        margin-bottom: 0;
+    }
+    
+    .season-format-text strong {
+        color: #00d4ff;
     }
     
     .season-info ul {
@@ -1180,6 +1230,16 @@ echo "<!-- Data: $cacheStatus -->\n";
             margin-bottom: 20px;
         }
         
+        .season-format-content {
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .season-format-image {
+            max-width: 100%;
+        }
+        
         .season-info h2 {
             font-size: 1.4em;
             margin-bottom: 10px;
@@ -1409,6 +1469,11 @@ echo "<!-- Data: $cacheStatus -->\n";
         
         .season-info {
             padding: 10px;
+        }
+        
+        .season-format-content {
+            flex-direction: column;
+            gap: 15px;
         }
         
         .season-info h2 {

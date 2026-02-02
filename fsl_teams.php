@@ -8,6 +8,7 @@ require_once 'includes/season_utils.php';
 $currentSeason = getCurrentSeason($db);
 
 // Get teams and their players; include Status for active/defunct when column exists. LEFT JOIN so defunct teams with no active players still appear.
+// Pick race from FSL_STATISTICS row with most maps played (MapsW + MapsL) when player has multiple rows
 $teamsQueryWithStatus = "
     SELECT 
         t.Team_ID,
@@ -22,6 +23,12 @@ $teamsQueryWithStatus = "
     FROM Teams t
     LEFT JOIN Players p ON p.Team_ID = t.Team_ID AND p.Status = 'active'
     LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
+        AND s.Player_Record_ID = (
+            SELECT s2.Player_Record_ID FROM FSL_STATISTICS s2
+            WHERE s2.Player_ID = p.Player_ID
+            ORDER BY (s2.MapsW + s2.MapsL) DESC
+            LIMIT 1
+        )
     ORDER BY COALESCE(t.Status, 'active') ASC, t.Team_Name,
              CASE WHEN p.Player_ID = t.Captain_ID THEN 1 WHEN p.Player_ID = t.Co_Captain_ID THEN 2 ELSE 3 END,
              s.Division, p.Real_Name
@@ -40,6 +47,12 @@ $teamsQueryFallback = "
     FROM Teams t
     LEFT JOIN Players p ON p.Team_ID = t.Team_ID AND p.Status = 'active'
     LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
+        AND s.Player_Record_ID = (
+            SELECT s2.Player_Record_ID FROM FSL_STATISTICS s2
+            WHERE s2.Player_ID = p.Player_ID
+            ORDER BY (s2.MapsW + s2.MapsL) DESC
+            LIMIT 1
+        )
     ORDER BY t.Team_Name,
              CASE WHEN p.Player_ID = t.Captain_ID THEN 1 WHEN p.Player_ID = t.Co_Captain_ID THEN 2 ELSE 3 END,
              s.Division, p.Real_Name
@@ -76,6 +89,8 @@ try {
     $defunctTeams = array_filter(array_keys($teams), function ($name) use ($teamStatus) {
         return ($teamStatus[$name] ?? 'active') === 'defunct';
     });
+    sort($activeTeams, SORT_FLAG_CASE | SORT_STRING);
+    sort($defunctTeams, SORT_FLAG_CASE | SORT_STRING);
     
     // Get season records for all teams (used for both active and defunct)
     $seasonRecordsQuery = "
@@ -144,18 +159,24 @@ include_once 'includes/header.php';
       margin-bottom: 1rem;
       border-bottom: 1px solid rgba(0, 212, 255, 0.3);
       padding-bottom: 0.5rem;
+      text-align: center;
     }
     .teams-section-heading--inactive {
       color: #888;
       border-bottom-color: rgba(255, 255, 255, 0.15);
+      text-align: center;
     }
     .teams-container {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 20px;
       margin-bottom: 30px;
     }
     .team {
+      flex: 0 1 280px;
+      min-width: 260px;
+      max-width: 320px;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
       padding: 20px;
@@ -235,14 +256,10 @@ include_once 'includes/header.php';
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       margin-top: 40px;
     }
-    @media (max-width: 1200px) {
-      .teams-container {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
     @media (max-width: 768px) {
-      .teams-container {
-        grid-template-columns: repeat(1, 1fr);
+      .team {
+        flex: 1 1 100%;
+        max-width: none;
       }
       h1 {
         font-size: 2em;

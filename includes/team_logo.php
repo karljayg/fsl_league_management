@@ -28,8 +28,8 @@ function getTeamLogo($teamName, $size = '256px') {
         'Pulled The Boys' => 'FSL_team_square_logo_PulledTheBoys',
         'CheesyNachos' => 'FSL_team_square_logo_CheesyNachos',
         'Cheesy Nachos' => 'FSL_team_square_logo_CheesyNachos',
-        'PSISOP Gaming' => null,
-        'Finite Drivers' => null,
+        'PSISOP Gaming' => 'FSL_team_square_logo_PSISOP_Gaming',
+        'Special Tactics' => 'FSL_team_square_logo_SpecialTactics',
         'TBD' => null,  // Placeholder display for schedule slots with NULL team_id
     ];
     
