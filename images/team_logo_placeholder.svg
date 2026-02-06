@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <rect width="256" height="256" fill="#2a2a3a" stroke="#555" stroke-width="2"/>
+  <text x="128" y="118" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="24" font-weight="bold">Logo</text>
+  <text x="128" y="148" text-anchor="middle" fill="#888" font-family="Arial, sans-serif" font-size="24" font-weight="bold">Here</text>
+</svg>

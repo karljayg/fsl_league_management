@@ -162,53 +162,48 @@ if (!isset($basePath)) {
     // Get the file that included nav.php via backtrace
     $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
     $includingFile = isset($backtrace[1]) ? $backtrace[1]['file'] : ($backtrace[0]['file'] ?? __FILE__);
-    
+
     // Get absolute paths
     $includingFileAbs = realpath($includingFile);
-    $rootDirAbs = realpath(dirname(__FILE__) . '/..'); // Root is one level up from includes/
-    
+    $rootDirAbs = realpath(dirname(__FILE__) . '/..'); // Root (fsl) is one level up from includes/
+
     $basePath = '';
-    
+
     if ($includingFileAbs && $rootDirAbs) {
         // Get the directory of the including file
         $includingDir = dirname($includingFileAbs);
-        
+
         // Normalize paths for comparison (handle trailing slashes)
         $includingDir = rtrim($includingDir, DIRECTORY_SEPARATOR);
         $rootDirAbs = rtrim($rootDirAbs, DIRECTORY_SEPARATOR);
-        
+
         // If including file is in root directory, basePath is empty
         if ($includingDir === $rootDirAbs) {
             $basePath = '';
-        } 
+        }
         // If including file is in a subdirectory of root
         elseif (strpos($includingDir, $rootDirAbs) === 0) {
             // Get the relative path from root to including file's directory
             $relativePath = substr($includingDir, strlen($rootDirAbs));
             $relativePath = trim($relativePath, DIRECTORY_SEPARATOR);
-            
+
             if ($relativePath) {
                 // Count directory separators to determine depth
-                // Handle both / and \ for cross-platform compatibility
                 $depth = 0;
                 if (DIRECTORY_SEPARATOR === '/') {
                     $depth = substr_count($relativePath, '/') + 1;
                 } else {
-                    // Windows: count both \ and /
                     $depth = max(substr_count($relativePath, '\\'), substr_count($relativePath, '/')) + 1;
                 }
-                
-                // Generate ../ for each level
+                // Generate ../ for each level (path from including dir up to fsl root)
                 $basePath = str_repeat('../', $depth);
             } else {
                 $basePath = '';
             }
         } else {
-            // Including file is outside root - default to empty (shouldn't happen)
             $basePath = '';
         }
     } else {
-        // Fallback: if realpath fails, default to empty
         $basePath = '';
     }
 }
@@ -224,16 +219,19 @@ if ($basePath !== '') {
 <nav class="nav-menu">
     <div class="nav-brand">
         <a href="<?= $basePath ?>about_psistorm.php">
-            <img src="<?= $basePath ?>images/psistorm_gaming_logo_strip.png" alt="PSISTORM GAMING" class="nav-logo">
+            <img src="<?= $basePath ?>images/psistorm_gaming_logo_strip_40px_166px.png" alt="PSISTORM GAMING" class="nav-logo" width="166" height="40">
         </a>
     </div>
     
     <!-- Desktop Navigation -->
     <div class="nav-links desktop-nav">
+        <!-- Forum (text link) -->
+        <a href="<?= $basePath ?>forum/" class="menu-item button">Forum</a>
+
         <!-- FSL Dropdown -->
         <div class="dropdown">
             <a href="<?= $basePath ?>fsl_season.php" class="menu-item logo-button">
-                <img src="<?= $basePath ?>images/fsl_sc2_logo.png" alt="FSL" class="nav-logo">
+                <img src="<?= $basePath ?>images/fsl_sc2_logo_small_40px_93px.png" alt="FSL" class="nav-logo" width="93" height="40">
                 <span class="dropdown-arrow">&#9662;</span>
             </a>
             <div class="dropdown-content">
@@ -263,7 +261,7 @@ if ($basePath !== '') {
         <!-- Pros and Joes Dropdown -->
         <div class="dropdown">
             <a href="<?= $basePath ?>pros_and_joes.php" class="menu-item logo-button">
-                <img src="<?= $basePath ?>images/pros_and_joes_transparent_bg.png" alt="Pros and Joes" class="nav-logo">
+                <img src="<?= $basePath ?>images/pros_and_joes_transparent_bg_40px_67px.png" alt="Pros and Joes" class="nav-logo" width="67" height="40">
                 <span class="dropdown-arrow">&#9662;</span>
             </a>
             <div class="dropdown-content">
@@ -372,6 +370,12 @@ if ($basePath !== '') {
         </div>
         
         <div class="mobile-nav-content">
+            <!-- Forum -->
+            <div class="mobile-section">
+                <h4>Forum</h4>
+                <a href="<?= $basePath ?>forum/" class="mobile-link">Forum</a>
+            </div>
+
             <!-- FSL Section -->
             <div class="mobile-section">
                 <h4>FSL</h4>
@@ -477,17 +481,24 @@ if ($basePath !== '') {
         background-color: #0a0a16;
         position: relative;
         z-index: 10000; /* Ensure nav menu is always on top */
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .nav-menu .nav-brand {
         flex: 1; /* Allow brand to grow and take available space */
+        min-width: 0;
         text-align: left;
+        overflow-x: hidden; /* logo only – does not affect dropdowns */
     }
 
     .nav-menu .nav-links {
         display: flex;
         align-items: center;
         gap: 20px;
+        min-width: 0;
+        flex-shrink: 1;
     }
 
     /* Dropdown Container */
@@ -679,12 +690,13 @@ if ($basePath !== '') {
         transform: translateY(-8px) rotate(-45deg);
     }
 
-    /* Mobile Navigation Styles */
+    /* Mobile Navigation Styles - fixed so it never affects .nav-menu width */
     .mobile-nav {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
+        max-width: 100vw;
         height: 100vh;
         background: rgba(10, 10, 22, 0.95);
         backdrop-filter: blur(10px);
@@ -692,6 +704,8 @@ if ($basePath !== '') {
         transform: translateX(-100%);
         transition: transform 0.3s ease-in-out;
         overflow-y: auto;
+        flex-shrink: 0;
+        flex-grow: 0;
     }
 
     .mobile-nav-header {
