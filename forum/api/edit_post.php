@@ -11,6 +11,7 @@ if (!forum_has_chat_admin()) {
 }
 require_once(dirname(__DIR__) . "/config.php");
 require_once(dirname(__DIR__) . "/safe_html.php");
+require_once(dirname(__DIR__) . "/embed_helper.php");
 
 $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 $subject = isset($_POST['subject']) ? trim($_POST['subject']) : null;
@@ -51,5 +52,5 @@ if ($body !== null) {
 
 $conn->close();
 $out = ['success' => true];
-if ($body !== null) $out['body_html'] = safe_post_html($body);
+if ($body !== null) $out['body_html'] = post_body_with_embeds($body);
 echo json_encode($out);

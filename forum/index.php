@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once(__DIR__ . "/config.php");
 require_once(__DIR__ . "/safe_html.php");
+require_once(__DIR__ . "/embed_helper.php");
 require_once(__DIR__ . "/forum_auth.php");
 require_once(__DIR__ . "/forum_user_lookup.php");
 $hasForumAdmin = forum_has_chat_admin();
@@ -22,7 +23,7 @@ if ($conn->connect_error) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Forum</title>
 <link rel="stylesheet" href="css/style.css?v=<?php echo filemtime(__DIR__ . '/css/style.css'); ?>">
-<script>(function(){var t=localStorage.getItem('forum-theme')||'mid';document.documentElement.setAttribute('data-theme',t);})();</script>
+<?php include __DIR__ . '/forum_theme_init.php'; ?>
 </head>
 <body>
 
@@ -183,6 +184,13 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         echo '</div>';
         echo '<div class="move-modal-results" aria-live="polite"></div>';
         echo '<div class="move-modal-selected" hidden><span class="move-modal-selected-text"></span> <button type="button" class="move-modal-confirm">Confirm move</button> <button type="button" class="move-modal-clear">Clear</button></div>';
+        echo '<div class="move-modal-to-forum">';
+        echo '<p class="move-modal-or">Or move this post (and its replies) to another forum:</p>';
+        echo '<div class="move-modal-forum-row">';
+        echo '<select class="move-modal-forum-select" aria-label="Target forum"><option value="">— Select forum —</option></select>';
+        echo '<button type="button" class="move-modal-move-to-forum-btn">Move to forum</button>';
+        echo '</div>';
+        echo '</div>';
         echo '<div class="move-modal-actions"><button type="button" class="move-modal-cancel">Cancel</button></div>';
         echo '</div></div>';
     }
@@ -214,8 +222,8 @@ function displayPostDetails($id) {
         if ($body_result->num_rows > 0) {
             $body_row = $body_result->fetch_assoc();
             $raw = $body_row['body'];
-            if (!mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'UTF-8', 'ISO-8859-1');
-            $body = safe_post_html($raw);
+            if (!mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'ISO-8859-1');
+            $body = post_body_with_embeds($raw);
             echo "<div class=\"post-body\">{$body}</div>";
         }
 
@@ -883,6 +891,21 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
       modal.querySelector('.move-modal-selected').hidden = true;
       modal.removeAttribute('data-selected-id');
       modal.removeAttribute('data-selected-subject');
+      var forumSelect = modal.querySelector('.move-modal-forum-select');
+      if (forumSelect && !forumSelect._populated) {
+        forumSelect._populated = true;
+        fetch('api/forums.php').then(function(r) { return r.json(); }).then(function(data) {
+          if (data.forums && data.forums.length) {
+            forumSelect.innerHTML = '<option value="">— Select forum —</option>';
+            data.forums.forEach(function(f) {
+              var opt = document.createElement('option');
+              opt.value = f.id;
+              opt.textContent = f.title;
+              forumSelect.appendChild(opt);
+            });
+          }
+        });
+      }
       modal.hidden = false;
       return;
     }
@@ -985,6 +1008,27 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
         var sid = moveModal.getAttribute('data-selected-id');
         if (!sid) return;
         doMove(parseInt(sid, 10));
+        return;
+      }
+      if (e.target.classList.contains('move-modal-move-to-forum-btn')) {
+        var fid = moveModal.querySelector('.move-modal-forum-select').value;
+        if (!fid) { alert('Select a forum first.'); return; }
+        var postId = moveModal.getAttribute('data-post-id');
+        if (!postId) return;
+        var btn = e.target;
+        btn.disabled = true;
+        var fd = new FormData();
+        fd.append('id', postId);
+        fd.append('target_forum_id', fid);
+        fetch('api/move_post_to_forum.php', { method: 'POST', body: fd })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.error) { alert(data.error); return; }
+            moveModal.hidden = true;
+            location.reload();
+          })
+          .catch(function() { alert('Move to forum failed.'); })
+          .then(function() { btn.disabled = false; });
         return;
       }
     });

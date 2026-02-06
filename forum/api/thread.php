@@ -2,6 +2,7 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once(dirname(__DIR__) . "/config.php");
 require_once(dirname(__DIR__) . "/safe_html.php");
+require_once(dirname(__DIR__) . "/embed_helper.php");
 $root = dirname(dirname(__DIR__));
 if (!isset($GLOBALS['db'])) {
     $mainDbFile = $root . '/includes/db.php';
@@ -162,7 +163,7 @@ $out['replies'] = [];
 if ($br->num_rows > 0) {
     $raw = ensure_utf8($br->fetch_assoc()['body']);
     $out['body'] = $raw;
-    $out['body_html'] = safe_post_html($raw);
+    $out['body_html'] = post_body_with_embeds($raw);
 }
 foreach ($replies as $reply) {
     $out['replies'][] = row_to_post($reply, $avatars);

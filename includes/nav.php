@@ -213,8 +213,14 @@ $basePath = rtrim($basePath, '/');
 if ($basePath !== '') {
     $basePath .= '/';
 }
-?>
 
+// Draft (and similar) pages use their own CSS; prevent horizontal scrollbar flash when nav is included there
+$navRequestUri = $_SERVER['REQUEST_URI'] ?? '';
+$isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
+?>
+<?php if ($isDraftOrStandaloneSubpage): ?>
+<style>html,body{overflow-x:hidden;max-width:100%;}</style>
+<?php endif; ?>
 
 <nav class="nav-menu">
     <div class="nav-brand">
@@ -282,6 +288,7 @@ if ($basePath !== '') {
             <div class="dropdown-content">
                 <div class="dropdown-section">
                     <h4>Community</h4>
+                    <a href="<?= $basePath ?>forum" class="dropdown-link">Forum</a>                    
                     <a href="<?= $basePath ?>discord.php" class="dropdown-link">Discord</a>
                     <a href="<?= $basePath ?>chat.php" class="dropdown-link">Chat</a>
                 </div>

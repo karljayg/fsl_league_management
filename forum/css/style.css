@@ -773,6 +773,19 @@ button.forum-header-link:hover {
   font-size: 0.9rem;
 }
 
+.post-embeds {
+  margin-top: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.post-embeds iframe {
+  max-width: 100%;
+  border: 0;
+  border-radius: 4px;
+}
+
 .reply-inline-body > .post-body:first-child {
   margin-top: 0;
 }
@@ -1041,6 +1054,23 @@ button.forum-header-link:hover {
 .move-modal-selected .move-modal-clear:hover {
   color: var(--accent-cyan);
   border-color: var(--accent-cyan);
+}
+
+.move-modal-to-forum {
+  margin-top: 1rem;
+}
+.move-modal-forum-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.move-modal-forum-select {
+  min-width: 12rem;
+  padding: 0.35rem 0.5rem;
+}
+.move-modal-move-to-forum-btn {
+  padding: 0.35rem 0.75rem;
 }
 
 .move-modal-actions {
