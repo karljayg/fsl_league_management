@@ -15,13 +15,63 @@ $conn = new mysqli(DB_HOST, DB_USER, DB_PASSWORD, DB_NAME);
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
+
+// Open Graph / Discord / link preview: fetch post when postid is in URL
+$og_title = null;
+$og_description = null;
+$og_url = null;
+$post_id_param = isset($_GET['postid']) ? max(0, (int) $_GET['postid']) : 0;
+if ($post_id_param > 0) {
+    $stmt = $conn->prepare("SELECT ft.subject, ft.author, ft.date FROM forumthreads ft WHERE ft.id = ?");
+    if ($stmt) {
+        $stmt->bind_param("i", $post_id_param);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $res->num_rows > 0) {
+            $row = $res->fetch_assoc();
+            $og_title = trim($row['subject']) !== '' ? $row['subject'] : 'Forum post #' . $post_id_param;
+            $og_title = $og_title . ' — ' . htmlspecialchars($row['author'], ENT_QUOTES, 'UTF-8');
+            $body_stmt = $conn->prepare("SELECT body FROM forumbodies WHERE id = ?");
+            if ($body_stmt) {
+                $body_stmt->bind_param("i", $post_id_param);
+                $body_stmt->execute();
+                $body_res = $body_stmt->get_result();
+                if ($body_res && $body_res->num_rows > 0) {
+                    $raw = $body_res->fetch_assoc()['body'];
+                    $plain = trim(strip_tags($raw));
+                    $plain = preg_replace('/\s+/', ' ', $plain);
+                    $og_description = mb_substr($plain, 0, 200);
+                    if (mb_strlen($plain) > 200) $og_description .= '…';
+                }
+            }
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'psistorm.com';
+            $uri = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : ('/fsl/forum/index.php?postid=' . $post_id_param);
+            $og_url = $scheme . '://' . $host . $uri;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Forum</title>
+<link rel="icon" href="../images/favicon.png" type="image/png">
+<title><?php echo $og_title !== null ? htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8') . ' — Forum' : 'Forum'; ?></title>
+<?php if ($og_title !== null && $og_url !== null): ?>
+<meta property="og:type" content="article">
+<meta property="og:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
+<?php if ($og_description !== null && $og_description !== ''): ?>
+<meta property="og:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
+<?php endif; ?>
+<meta property="og:url" content="<?php echo htmlspecialchars($og_url, ENT_QUOTES, 'UTF-8'); ?>">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="<?php echo htmlspecialchars($og_title, ENT_QUOTES, 'UTF-8'); ?>">
+<?php if ($og_description !== null && $og_description !== ''): ?>
+<meta name="twitter:description" content="<?php echo htmlspecialchars($og_description, ENT_QUOTES, 'UTF-8'); ?>">
+<?php endif; ?>
+<?php endif; ?>
 <link rel="stylesheet" href="css/style.css?v=<?php echo filemtime(__DIR__ . '/css/style.css'); ?>">
 <?php include __DIR__ . '/forum_theme_init.php'; ?>
 </head>

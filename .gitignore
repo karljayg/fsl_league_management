@@ -4,6 +4,12 @@ config.local.php
 .env
 *.env
 
+# Composer (do not commit vendor)
+vendor/
+
+# Local/data folder
+data/
+
 # Cache files
 cache/*
 !cache/.gitkeep

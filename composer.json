@@ -1,0 +1,11 @@
+{
+    "name": "psistorm/fsl",
+    "description": "FSL site",
+    "require": {
+        "embed/embed": "^4.0",
+        "nyholm/psr7": "^1.2"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

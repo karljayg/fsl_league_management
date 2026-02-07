@@ -1,0 +1,14 @@
+{
+    "codeS": {
+        "minRank": 1,
+        "maxRank": 20
+    },
+    "codeA": {
+        "minRank": 21,
+        "maxRank": 38
+    },
+    "codeB": {
+        "minRank": 39,
+        "maxRank": 46
+    }
+}

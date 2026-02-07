@@ -71,28 +71,28 @@
     },
     {
         "rank": 15,
-        "name": "LittleReaper",
-        "race": "P"
-    },
-    {
-        "rank": 16,
         "name": "DLSMizel",
         "race": "T"
     },
     {
-        "rank": 17,
+        "rank": 16,
         "name": "SirMalagant",
         "race": "P"
     },
     {
-        "rank": 18,
+        "rank": 17,
         "name": "Warbunnies",
         "race": "P"
     },
     {
-        "rank": 19,
+        "rank": 18,
         "name": "HurtnTime",
         "race": "T"
+    },
+    {
+        "rank": 19,
+        "name": "LittleReaper",
+        "race": "P"
     },
     {
         "rank": 20,
@@ -161,23 +161,23 @@
     },
     {
         "rank": 33,
+        "name": "judgefae",
+        "race": "Z"
+    },
+    {
+        "rank": 34,
         "name": "ChienPwn",
         "race": "R"
     },
     {
-        "rank": 34,
+        "rank": 35,
         "name": "Nachoz",
         "race": "R"
     },
     {
-        "rank": 35,
+        "rank": 36,
         "name": "Klem",
         "race": "T"
-    },
-    {
-        "rank": 36,
-        "name": "judgefae",
-        "race": "Z"
     },
     {
         "rank": 37,
@@ -186,28 +186,28 @@
     },
     {
         "rank": 38,
+        "name": "SgtABC",
+        "race": "Z"
+    },
+    {
+        "rank": 39,
         "name": "Fenrir",
         "race": "T"
     },
     {
-        "rank": 39,
+        "rank": 40,
         "name": "pacha",
         "race": "T"
     },
     {
-        "rank": 40,
+        "rank": 41,
         "name": "MonkeyShaman",
         "race": "R"
     },
     {
-        "rank": 41,
+        "rank": 42,
         "name": "WindShadow",
         "race": "P"
-    },
-    {
-        "rank": 42,
-        "name": "SgtABC",
-        "race": "Z"
     },
     {
         "rank": 43,

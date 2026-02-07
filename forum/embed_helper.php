@@ -113,25 +113,32 @@ function post_body_with_embeds($raw, $maxEmbeds = 3) {
         // Embed failed (e.g. no PSR-17); fall through to URL fallbacks
     }
     // Fallbacks when Embed not available or returned no iframe: build iframe from known URL patterns
+    $maxFallbackEmbeds = 3;
     if ($embeds === []) {
         foreach ($urls as $url) {
-            // YouTube (?v=ID or &v=ID or /embed/ID or youtu.be/ID)
-            if (preg_match('#(?:youtube\.com/watch\?.*?v=|youtube\.com/embed/|youtu\.be/)([a-zA-Z0-9_-]{10,})#i', $url, $mv)) {
+            if (count($embeds) >= $maxFallbackEmbeds) break;
+            // YouTube playlist
+            if (preg_match('#youtube\.com/playlist\?.*?list=([a-zA-Z0-9_-]+)#i', $url, $mv)) {
+                $embeds[] = '<iframe src="https://www.youtube.com/embed/videoseries?list=' . htmlspecialchars($mv[1], ENT_QUOTES, 'UTF-8') . '" width="560" height="315" frameborder="0" allowfullscreen loading="lazy"></iframe>';
+                continue;
+            }
+            // YouTube video: watch?v=, /embed/, /live/, youtu.be/
+            if (preg_match('#(?:youtube\.com/watch\?.*?v=|youtube\.com/embed/|youtube\.com/live/|youtu\.be/)([a-zA-Z0-9_-]{10,})#i', $url, $mv)) {
                 $embeds[] = '<iframe src="https://www.youtube.com/embed/' . htmlspecialchars($mv[1], ENT_QUOTES, 'UTF-8') . '" width="560" height="315" frameborder="0" allowfullscreen loading="lazy"></iframe>';
-                break;
+                continue;
             }
             // Instagram /p/CODE or /reel/CODE
             if (preg_match('#instagram\.com/(p|reel)/([a-zA-Z0-9_-]+)#i', $url, $mv)) {
                 $type = strtolower($mv[1]);
                 $code = $mv[2];
                 $embeds[] = '<iframe src="https://www.instagram.com/' . $type . '/' . htmlspecialchars($code, ENT_QUOTES, 'UTF-8') . '/embed/" width="400" height="480" frameborder="0" loading="lazy"></iframe>';
-                break;
+                continue;
             }
             // X / Twitter status
             if (preg_match('#(?:x\.com|twitter\.com)/\w+/status/(\d+)#i', $url, $mv)) {
                 $tid = $mv[1];
                 $embeds[] = '<iframe src="https://platform.twitter.com/embed/index.html?dnt=true&amp;id=' . htmlspecialchars($tid, ENT_QUOTES, 'UTF-8') . '" width="550" height="350" frameborder="0" loading="lazy"></iframe>';
-                break;
+                continue;
             }
         }
     }

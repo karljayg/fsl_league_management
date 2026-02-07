@@ -19,12 +19,15 @@ require_once 'includes/team_logo.php';
 define('CACHE_FILE', __DIR__ . '/cache/fsl_schedule.json');
 define('CACHE_TTL', 900); // 15 minutes
 
-// Check for valid cached data
+// Bypass cache when ?nocache=1 to force data from current DB (useful for local dev)
+$forceDb = isset($_GET['nocache']) && $_GET['nocache'] === '1';
+
+// Check for valid cached data (skip if forcing DB)
 $cachedData = null;
 $cacheStatus = '';
 $cacheTime = '';
 
-if (file_exists(CACHE_FILE)) {
+if (!$forceDb && file_exists(CACHE_FILE)) {
     $cacheTime = date('Y-m-d H:i:s', filemtime(CACHE_FILE));
     $cacheAge = time() - filemtime(CACHE_FILE);
     
@@ -40,7 +43,7 @@ if ($cachedData === null) {
     require_once 'includes/season_utils.php';
 
     try {
-        // Connect to database
+        // Connect to database (uses config: includes/db.php -> config.php)
         $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -129,18 +132,19 @@ if ($cachedData === null) {
         }
     }
 
-        // Save to cache
         $cachedData = [
             'currentSeason' => $currentSeason,
             'schedule' => $season9Schedule,
             'matchMap' => $scheduleMatchMap,
             'matchDetails' => $allMatchDetails
         ];
-        
-        if (!is_dir(dirname(CACHE_FILE))) {
-            mkdir(dirname(CACHE_FILE), 0755, true);
+        // Write to cache only when not forcing DB (nocache=1), so local dev doesn't overwrite cache
+        if (!$forceDb) {
+            if (!is_dir(dirname(CACHE_FILE))) {
+                mkdir(dirname(CACHE_FILE), 0755, true);
+            }
+            file_put_contents(CACHE_FILE, json_encode($cachedData));
         }
-        file_put_contents(CACHE_FILE, json_encode($cachedData));
         $cacheStatus = "DB_LIVE (cache refreshed: " . date('Y-m-d H:i:s') . ")";
         
     } catch (PDOException $e) {

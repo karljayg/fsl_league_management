@@ -9,6 +9,7 @@ require_once __DIR__ . "/config.php";
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="../images/favicon.png" type="image/png">
 <title>Orphaned Posts - Forum</title>
 <link rel="stylesheet" href="css/style.css?v=<?php echo filemtime(__DIR__ . '/css/style.css'); ?>">
 <?php include __DIR__ . '/forum_theme_init.php'; ?>
