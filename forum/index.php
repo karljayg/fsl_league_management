@@ -141,10 +141,10 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
     $offset = ($page - 1) * $limit;
     $has_site_user_id = true;
     if ($show_all) {
-        $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
+        $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = ft.id AND r.parent != -1) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
+            $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = ft.id AND r.parent != -1) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
             $stmt = $conn->prepare($sql);
             $has_site_user_id = false;
         }
@@ -154,10 +154,10 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
         $stmt_c = $conn->prepare("SELECT COUNT(*) AS total FROM forumthreads WHERE parent = -1");
         $stmt_c->execute();
     } else {
-        $sql = "SELECT id, date, author, subject, site_user_id, hits, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
+        $sql = "SELECT id, date, author, subject, site_user_id, hits, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = forumthreads.id AND r.parent != -1) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            $sql = "SELECT id, date, author, subject, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
+            $sql = "SELECT id, date, author, subject, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = forumthreads.id AND r.parent != -1) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
             $stmt = $conn->prepare($sql);
             $has_site_user_id = false;
         }
