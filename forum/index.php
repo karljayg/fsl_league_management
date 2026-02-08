@@ -78,14 +78,15 @@ if ($post_id_param > 0) {
 <body>
 
 <?php
-function renderPagination($page, $totalPages, $suffix = '', $forum = 'all') {
+function renderPagination($page, $totalPages, $suffix = '', $forum = 'all', $sort = 'topics') {
     if ($totalPages < 2) return '';
     $q = ($forum === 'all' || ($forum !== 1 && $forum > 1)) ? '&forum=' . $forum : '';
+    if ($sort === 'replies') $q .= '&sort=replies';
     $currentPage = max(1, min($page, $totalPages));
     $prevPage = $currentPage > 1 ? $currentPage - 1 : null;
     $nextPage = $currentPage < $totalPages ? $currentPage + 1 : null;
     $idPage = 'pagination-page' . $suffix;
-    $out = '<nav class="pagination" aria-label="Thread list pages" data-page="' . (int)$currentPage . '" data-total="' . (int)$totalPages . '" data-forum="' . $forum . '">';
+    $out = '<nav class="pagination" aria-label="Thread list pages" data-page="' . (int)$currentPage . '" data-total="' . (int)$totalPages . '" data-forum="' . htmlspecialchars($forum, ENT_QUOTES, 'UTF-8') . '" data-sort="' . htmlspecialchars($sort, ENT_QUOTES, 'UTF-8') . '">';
     $out .= '<span class="pagination-label">Page ' . (int)$currentPage . ' of ' . (int)$totalPages . '</span>';
     $out .= '<div class="pagination-controls">';
     if ($currentPage <= 1) {
@@ -100,6 +101,7 @@ function renderPagination($page, $totalPages, $suffix = '', $forum = 'all') {
     }
     $out .= '<form class="pagination-go" method="get" action="index.php" data-pagination-form="">';
     if ($forum !== 1 && $forum !== '') $out .= '<input type="hidden" name="forum" value="' . htmlspecialchars($forum, ENT_QUOTES, 'UTF-8') . '">';
+    if ($sort === 'replies') $out .= '<input type="hidden" name="sort" value="replies">';
     $out .= '<label for="' . $idPage . '">Go to</label>';
     $out .= '<input type="number" id="' . $idPage . '" name="page" class="pagination-page-input" min="1" max="' . (int)$totalPages . '" value="' . (int)$currentPage . '" aria-label="Page number">';
     $out .= '<button type="submit" class="pagination-go-btn">Go</button>';
@@ -118,7 +120,7 @@ function renderPagination($page, $totalPages, $suffix = '', $forum = 'all') {
     return $out;
 }
 
-function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
+function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 'topics') {
     global $conn;
 
     $current_forum = $forum;
@@ -129,12 +131,21 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         $current_forum = $forum;
     }
 
+    $order_by = ($sort === 'replies')
+        ? '(SELECT COALESCE(MAX(r.date), ft.date) FROM forumthreads r WHERE r.parent = ft.id) DESC'
+        : 'ft.date DESC';
+    $order_by_single = ($sort === 'replies')
+        ? '(SELECT COALESCE(MAX(r.date), forumthreads.date) FROM forumthreads r WHERE r.parent = forumthreads.id) DESC'
+        : 'date DESC';
+
     $offset = ($page - 1) * $limit;
     $has_site_user_id = true;
     if ($show_all) {
-        $stmt = $conn->prepare("SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY ft.date DESC LIMIT ?, ?");
+        $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
+        $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            $stmt = $conn->prepare("SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY ft.date DESC LIMIT ?, ?");
+            $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
+            $stmt = $conn->prepare($sql);
             $has_site_user_id = false;
         }
         if ($stmt) $stmt->bind_param("ii", $offset, $limit);
@@ -143,9 +154,11 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         $stmt_c = $conn->prepare("SELECT COUNT(*) AS total FROM forumthreads WHERE parent = -1");
         $stmt_c->execute();
     } else {
-        $stmt = $conn->prepare("SELECT id, date, author, subject, site_user_id, hits, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY date DESC LIMIT ?, ?");
+        $sql = "SELECT id, date, author, subject, site_user_id, hits, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
+        $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            $stmt = $conn->prepare("SELECT id, date, author, subject, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY date DESC LIMIT ?, ?");
+            $sql = "SELECT id, date, author, subject, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
+            $stmt = $conn->prepare($sql);
             $has_site_user_id = false;
         }
         if ($stmt) $stmt->bind_param("iii", $forum, $offset, $limit);
@@ -162,7 +175,7 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         include("header.php");
         $expand_id = isset($_GET['expand']) ? max(0, (int) $_GET['expand']) : 0;
         $post_id = isset($_GET['postid']) ? max(0, (int) $_GET['postid']) : 0;
-        echo '<main class="forum-main" data-initial-page="' . (int)$page . '" data-expand-id="' . $expand_id . '" data-post-id="' . $post_id . '" data-forum="' . htmlspecialchars($current_forum, ENT_QUOTES, 'UTF-8') . '"><div class="forum-main-inner">';
+        echo '<main class="forum-main" data-initial-page="' . (int)$page . '" data-expand-id="' . $expand_id . '" data-post-id="' . $post_id . '" data-forum="' . htmlspecialchars($current_forum, ENT_QUOTES, 'UTF-8') . '" data-sort="' . htmlspecialchars($sort, ENT_QUOTES, 'UTF-8') . '"><div class="forum-main-inner">';
     }
 
     if ($result && $result->num_rows > 0) {
@@ -187,7 +200,7 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         $avatars = forum_get_user_avatars($user_ids, $author_by_id);
         global $basePath;
         $profileBase = (isset($basePath) ? $basePath : '../');
-        echo renderPagination($page, $totalPages, '-top', $current_forum);
+        echo renderPagination($page, $totalPages, '-top', $current_forum, $sort);
         echo '<ul class="thread-list">';
         foreach ($rows as $row) {
             $subj = htmlspecialchars($row['subject'], ENT_QUOTES, 'UTF-8');
@@ -216,7 +229,7 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
             echo "<div class=\"thread-inline\" hidden></div></li>";
         }
         echo '</ul>';
-        echo renderPagination($page, $totalPages, '-bottom', $current_forum);
+        echo renderPagination($page, $totalPages, '-bottom', $current_forum, $sort);
     } else {
         echo '<p class="forum-empty">0 results</p>';
     }
@@ -304,14 +317,15 @@ function displayPostDetails($id) {
 $page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
 $limit = 30;
 $forum = isset($_GET['forum']) ? ($_GET['forum'] === 'all' ? 'all' : max(1, (int) $_GET['forum'])) : 'all';
+$sort = (isset($_GET['sort']) && $_GET['sort'] === 'replies') ? 'replies' : 'topics';
 
 if (isset($_GET['ajax'])) {
-    displayThreads($page, $limit, true, $forum);
+    displayThreads($page, $limit, true, $forum, $sort);
     $conn->close();
     exit;
 }
 
-displayThreads($page, $limit, false, $forum);
+displayThreads($page, $limit, false, $forum, $sort);
 
 $conn->close();
 ?>
@@ -752,8 +766,10 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
     if (!inner) return;
     var main = document.querySelector('.forum-main');
     var forum = (main && main.getAttribute('data-forum')) || 'all';
+    var sort = (main && main.getAttribute('data-sort')) || 'topics';
     var q = 'page=' + encodeURIComponent(page) + '&ajax=1';
     if (forum !== '1') q += '&forum=' + encodeURIComponent(forum);
+    if (sort === 'replies') q += '&sort=replies';
     inner.innerHTML = '<div class="thread-inline-loading" style="padding:2rem;text-align:center">Loading…</div>';
     fetch('index.php?' + q)
       .then(function(r) { return r.text(); })
@@ -762,6 +778,7 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
         initThreadList(inner);
         var url = 'index.php?page=' + page;
         if (forum !== '1') url += '&forum=' + forum;
+        if (sort === 'replies') url += '&sort=replies';
         history.pushState({ page: page }, '', url);
       })
       .catch(function() {
@@ -831,7 +848,9 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
         var currentForum = mainEl.getAttribute('data-forum') || '1';
         var forumParam = (info.forum != null && info.forum !== '') ? String(info.forum) : '1';
         var forumQ = '&forum=' + encodeURIComponent(forumParam);
-        var replaceUrl = 'index.php?page=' + info.page + forumQ + '&postid=' + postId + '&expand=' + info.threadId;
+        var sortParam = mainEl.getAttribute('data-sort');
+        var sortQ = (sortParam === 'replies') ? '&sort=replies' : '';
+        var replaceUrl = 'index.php?page=' + info.page + forumQ + sortQ + '&postid=' + postId + '&expand=' + info.threadId;
         if (String(info.page) !== String(initialPage) || String(forumParam) !== String(currentForum)) {
           location.replace(replaceUrl);
           return;
@@ -859,8 +878,10 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
   if (mainEl && mainEl.getAttribute('data-initial-page')) {
     var initialPage = mainEl.getAttribute('data-initial-page');
     var forumParam = mainEl.getAttribute('data-forum');
+    var sortParam = mainEl.getAttribute('data-sort');
     var url = 'index.php?page=' + initialPage;
     if (forumParam && forumParam !== '1') url += '&forum=' + forumParam;
+    if (sortParam === 'replies') url += '&sort=replies';
     if (expandId && expandId !== '0') url += '&expand=' + expandId;
     if (postId && postId !== '0') url += '&postid=' + postId;
     history.replaceState({ page: initialPage }, '', url);

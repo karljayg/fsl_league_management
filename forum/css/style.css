@@ -161,6 +161,17 @@ button.forum-header-link:hover {
   outline: none;
 }
 
+.forum-sort-toggle {
+  font-size: 0.9rem;
+  color: var(--accent-cyan);
+  text-decoration: none;
+}
+
+.forum-sort-toggle:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
 .forum-theme-label {
   display: inline-flex;
   align-items: center;

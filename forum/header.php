@@ -53,6 +53,14 @@ if (empty($forums)) {
   <a href="orphaned.php" class="forum-header-link">Orphaned Posts</a>
   <a href="orphaned_bodies.php" class="forum-header-link">Orphaned Bodies</a>
   <?php endif; ?>
+  <?php if (isset($sort)): ?>
+  <?php
+    $other_sort = ($sort === 'replies') ? 'topics' : 'replies';
+    $sort_url = 'index.php?sort=' . $other_sort . ((isset($current_forum) && $current_forum !== 'all' && $current_forum !== 1) ? '&forum=' . (int)$current_forum : '');
+    $sort_label = ($sort === 'replies') ? 'Replies' : 'Topic';
+  ?>
+  Sort:<a href="<?php echo htmlspecialchars($sort_url, ENT_QUOTES, 'UTF-8'); ?>" class="forum-sort-toggle" title="Click to sort by <?php echo $other_sort === 'replies' ? 'latest reply' : 'topic'; ?> date"><?php echo htmlspecialchars($sort_label, ENT_QUOTES, 'UTF-8'); ?></a>
+  <?php endif; ?>
   <label class="forum-theme-label">
     <span class="forum-theme-label-text">Theme</span>
     <select id="theme-select" class="forum-theme-select" title="Theme" aria-label="Theme">
@@ -142,7 +150,12 @@ window.forumAvatarUrl = <?php echo json_encode($forum_avatar_url); ?>;
   document.body.addEventListener('change', function(e) {
     if (e.target.id === 'forum-select') {
       var v = e.target.value;
-      window.location.href = 'index.php' + (v !== '1' ? '?forum=' + encodeURIComponent(v) : '');
+      var main = document.querySelector('.forum-main');
+      var sort = main && main.getAttribute('data-sort');
+      var params = [];
+      if (v !== '1') params.push('forum=' + encodeURIComponent(v));
+      if (sort === 'replies') params.push('sort=replies');
+      window.location.href = 'index.php' + (params.length ? '?' + params.join('&') : '');
     }
   });
   var addBtn = document.getElementById('forum-add-btn');
