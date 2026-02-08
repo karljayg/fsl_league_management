@@ -132,9 +132,9 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
     $offset = ($page - 1) * $limit;
     $has_site_user_id = true;
     if ($show_all) {
-        $stmt = $conn->prepare("SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY ft.date DESC LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY ft.date DESC LIMIT ?, ?");
         if (!$stmt) {
-            $stmt = $conn->prepare("SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY ft.date DESC LIMIT ?, ?");
+            $stmt = $conn->prepare("SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = ft.id) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY ft.date DESC LIMIT ?, ?");
             $has_site_user_id = false;
         }
         if ($stmt) $stmt->bind_param("ii", $offset, $limit);
@@ -143,9 +143,9 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         $stmt_c = $conn->prepare("SELECT COUNT(*) AS total FROM forumthreads WHERE parent = -1");
         $stmt_c->execute();
     } else {
-        $stmt = $conn->prepare("SELECT id, date, author, subject, site_user_id, hits FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY date DESC LIMIT ?, ?");
+        $stmt = $conn->prepare("SELECT id, date, author, subject, site_user_id, hits, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY date DESC LIMIT ?, ?");
         if (!$stmt) {
-            $stmt = $conn->prepare("SELECT id, date, author, subject FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY date DESC LIMIT ?, ?");
+            $stmt = $conn->prepare("SELECT id, date, author, subject, (SELECT COUNT(*) FROM forumthreads r WHERE r.parent = forumthreads.id) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY date DESC LIMIT ?, ?");
             $has_site_user_id = false;
         }
         if ($stmt) $stmt->bind_param("iii", $forum, $offset, $limit);
@@ -170,6 +170,7 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
         while ($row = $result->fetch_assoc()) {
             if (!$has_site_user_id) $row['site_user_id'] = null;
             if (!array_key_exists('hits', $row)) $row['hits'] = 0;
+            if (!array_key_exists('reply_count', $row)) $row['reply_count'] = 0;
             $rows[] = $row;
         }
         $user_ids = [];
@@ -207,10 +208,11 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all') {
             }
             $forumLabel = $show_all && !empty($row['forum_title']) ? ' <span class="thread-forum-label">' . htmlspecialchars($row['forum_title'], ENT_QUOTES, 'UTF-8') . '</span>' : '';
             $hits = isset($row['hits']) ? (int) $row['hits'] : 0;
+            $replyCount = isset($row['reply_count']) ? (int) $row['reply_count'] : 0;
             echo "<li class=\"thread-item\" data-id=\"{$tid}\">";
             echo "<div class=\"thread-item-head\"><button type=\"button\" class=\"thread-expand-btn\" aria-expanded=\"false\" title=\"Expand\">▶</button>";
             echo "<span class=\"thread-link\">{$subj}{$forumLabel}</span>";
-            echo "<span class=\"thread-meta\">by {$authorHtml} on {$date} <span class=\"thread-hits\">hits: {$hits}</span></span></div>";
+            echo "<span class=\"thread-meta\">by {$authorHtml} on {$date} <strong class=\"thread-replies-label\">Replies:</strong> {$replyCount} <span class=\"thread-hits\">hits: {$hits}</span></span></div>";
             echo "<div class=\"thread-inline\" hidden></div></li>";
         }
         echo '</ul>';
@@ -345,7 +347,9 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
   }
   function bodyToHtml(body) {
     if (!body) return '';
-    return esc(decodeNumericEntities(body)).replace(/\n/g, '<br>');
+    var s = esc(decodeNumericEntities(body));
+    s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    return s.replace(/\n/g, '<br>');
   }
 
   function renderRepliesList(replies, container, nestClass) {
@@ -568,6 +572,19 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
       editBtn.title = 'Edit post';
       editBtn.textContent = 'Edit';
       editBtn.setAttribute('data-post-id', data.id);
+      editBtn.addEventListener('click', function(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var f = wrap.querySelector('.post-edit-form');
+        if (!f) return;
+        var raw = wrap.querySelector('.post-body-raw');
+        var tit = wrap.querySelector('.post-title');
+        f.querySelector('.post-edit-subject').value = tit ? tit.textContent : '';
+        f.querySelector('.post-edit-body').value = raw ? raw.value : '';
+        f.hidden = false;
+        var firstInput = f.querySelector('.post-edit-subject');
+        if (firstInput) firstInput.focus();
+      });
       header.appendChild(editBtn);
       var deleteBtn = document.createElement('button');
       deleteBtn.type = 'button';
@@ -870,19 +887,6 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
       } else {
         prompt('Copy this link:', url);
       }
-      return;
-    }
-    var editBtn = e.target.closest('.post-edit');
-    if (editBtn) {
-      e.preventDefault();
-      var wrap = editBtn.closest('.thread-inline-body, .reply-inline-body');
-      if (!wrap) return;
-      var form = wrap.querySelector('.post-edit-form');
-      var rawBody = wrap.querySelector('.post-body-raw');
-      var titleEl = wrap.querySelector('.post-title');
-      form.querySelector('.post-edit-subject').value = titleEl ? titleEl.textContent : '';
-      form.querySelector('.post-edit-body').value = rawBody ? rawBody.value : '';
-      form.hidden = false;
       return;
     }
     var cancelBtn = e.target.closest('.post-edit-cancel');

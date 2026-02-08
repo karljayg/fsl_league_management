@@ -65,5 +65,10 @@ function safe_post_html($body) {
     // Only allow safe img src: http, https (no data: or javascript:)
     $s = preg_replace('/src\s*=\s*["\']\s*(?!https?:\/\/)[^"\']*["\']/i', 'src=""', $s);
     $s = add_target_blank_to_links($s);
-    return nl2br($s, false);
+    // Normalize line endings then replace with <br> (do not keep newlines: .post-body has white-space:pre-wrap so \n would show as second line break)
+    $s = preg_replace('/\r\n|\r|\n/', "\n", $s);
+    $s = str_replace("\n", '<br>', $s);
+    // Avoid double spacing: remove <br> between block end and next block start (e.g. </p><br><p>)
+    $s = preg_replace('#</(p|div|blockquote)>\s*<br\s*/?>\s*#i', '</$1>', $s);
+    return $s;
 }

@@ -422,7 +422,8 @@ button.forum-header-link:hover {
 
 /* Main content */
 .forum-main {
-  max-width: 900px;
+  width: 80%;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 1.5rem;
 }
@@ -836,6 +837,10 @@ button.forum-header-link:hover {
   border: 1px solid var(--border-subtle);
   border-radius: 4px;
   background: var(--bg-subtle, rgba(255,255,255,0.03));
+}
+
+.post-edit-form[hidden] {
+  display: none;
 }
 
 .post-edit-form .post-edit-label {
