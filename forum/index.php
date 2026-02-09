@@ -188,12 +188,19 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
         }
         $user_ids = [];
         $author_by_id = [];
+        $avatars_by_author = [];
         foreach ($rows as $r) {
             $v = isset($r['site_user_id']) ? $r['site_user_id'] : null;
             if ($v !== null && $v !== '' && (int) $v >= 0) {
                 $uid = (int) $v;
                 $user_ids[] = $uid;
                 $author_by_id[$uid] = isset($r['author']) ? $r['author'] : '';
+                if ($uid === 0 && !empty(trim($r['author'] ?? ''))) {
+                    $lookup = forum_lookup_user_by_author($r['author']);
+                    if ($lookup !== null && !empty($lookup['avatar_url'])) {
+                        $avatars_by_author[trim($r['author'])] = $lookup['avatar_url'];
+                    }
+                }
             }
         }
         $user_ids = array_unique($user_ids);
@@ -212,8 +219,13 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
             if ($sid !== null) {
                 $profileUrl = $profileBase . 'profile.php?username=' . rawurlencode($row['author']);
                 $avatarHtml = '';
-                if (!empty($avatars[$sid]['avatar_url'])) {
+                $au = null;
+                if ($sid === 0 && !empty(trim($row['author'] ?? '')) && isset($avatars_by_author[trim($row['author'])])) {
+                    $au = $avatars_by_author[trim($row['author'])];
+                } elseif (!empty($avatars[$sid]['avatar_url'])) {
                     $au = $avatars[$sid]['avatar_url'];
+                }
+                if ($au) {
                     $src = (strpos($au, 'http') === 0) ? $au : ($profileBase . $au);
                     $avatarHtml = '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="" class="forum-author-avatar">';
                 }

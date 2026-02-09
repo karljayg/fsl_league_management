@@ -40,18 +40,27 @@ function ensure_utf8($str) {
     return $str;
 }
 
-function row_to_post($row, $avatars) {
+function row_to_post($row, $avatars, $avatars_by_author = []) {
     $sid = isset($row['site_user_id']) && $row['site_user_id'] !== '' && $row['site_user_id'] !== null ? (int) $row['site_user_id'] : null;
+    $author = ensure_utf8($row['author'] ?? '');
     $p = [
         'id' => (int) $row['id'],
         'subject' => ensure_utf8($row['subject']),
-        'author' => ensure_utf8($row['author']),
+        'author' => $author,
         'date' => $row['date']
     ];
     if (isset($row['hits'])) $p['hits'] = (int) $row['hits'];
     if ($sid !== null) {
         $p['site_user_id'] = $sid;
-        if (!empty($avatars[$sid]['avatar_url'])) $p['avatar_url'] = $avatars[$sid]['avatar_url'];
+        $avatar_url = null;
+        if ($sid === 0) {
+            if ($author !== '' && isset($avatars_by_author[$author])) {
+                $avatar_url = $avatars_by_author[$author];
+            }
+        } elseif (!empty($avatars[$sid]['avatar_url'])) {
+            $avatar_url = $avatars[$sid]['avatar_url'];
+        }
+        if ($avatar_url) $p['avatar_url'] = $avatar_url;
     }
     return $p;
 }
@@ -95,13 +104,19 @@ if (!array_key_exists('hits', $row)) $row['hits'] = 0;
 
 $user_ids = [];
 $author_by_id = [];
+$avatars_by_author = [];
 $main_post_lookup = null;
 $sid0 = isset($row['site_user_id']) && $row['site_user_id'] !== '' && $row['site_user_id'] !== null ? (int) $row['site_user_id'] : null;
-if ($sid0 === null && !empty(trim($row['author'] ?? ''))) {
+if (!empty(trim($row['author'] ?? ''))) {
     $main_post_lookup = forum_lookup_user_by_author($row['author']);
     if ($main_post_lookup !== null) {
-        $sid0 = $main_post_lookup['id'];
-        $row['site_user_id'] = $sid0;
+        if ($sid0 === null) {
+            $sid0 = $main_post_lookup['id'];
+            $row['site_user_id'] = $sid0;
+        }
+        if ($sid0 === 0 && !empty($main_post_lookup['avatar_url'])) {
+            $avatars_by_author[trim($row['author'])] = $main_post_lookup['avatar_url'];
+        }
     }
 }
 if ($sid0 !== null) {
@@ -133,6 +148,14 @@ while ($reply = $rres->fetch_assoc()) {
             $rsid = $rlookup['id'];
             $reply['site_user_id'] = $rsid;
             $reply_lookups[count($replies)] = $rlookup;
+            if ($rsid === 0 && isset($rlookup['avatar_url'])) {
+                $avatars_by_author[trim($reply['author'])] = $rlookup['avatar_url'];
+            }
+        }
+    } elseif ($rsid === 0 && !empty(trim($reply['author'] ?? ''))) {
+        $rlookup = forum_lookup_user_by_author($reply['author']);
+        if ($rlookup !== null && isset($rlookup['avatar_url'])) {
+            $avatars_by_author[trim($reply['author'])] = $rlookup['avatar_url'];
         }
     }
     if ($rsid !== null) {
@@ -145,9 +168,13 @@ while ($reply = $rres->fetch_assoc()) {
 $conn->query("UPDATE forumthreads SET hits = hits + 1 WHERE id = " . (int) $id);
 
 $avatars = forum_get_user_avatars(array_unique($user_ids), $author_by_id);
-if ($main_post_lookup !== null && isset($main_post_lookup['avatar_url']) && $main_post_lookup['avatar_url'] !== null && $sid0 !== null) {
-    if (!isset($avatars[$sid0])) $avatars[$sid0] = ['avatar_url' => null];
-    $avatars[$sid0]['avatar_url'] = $main_post_lookup['avatar_url'];
+if ($main_post_lookup !== null && isset($main_post_lookup['avatar_url']) && $main_post_lookup['avatar_url'] !== null) {
+    $main_author = trim($row['author'] ?? '');
+    if ($main_author !== '') $avatars_by_author[$main_author] = $main_post_lookup['avatar_url'];
+    if ($sid0 !== null) {
+        if (!isset($avatars[$sid0])) $avatars[$sid0] = ['avatar_url' => null];
+        $avatars[$sid0]['avatar_url'] = $main_post_lookup['avatar_url'];
+    }
 }
 foreach ($reply_lookups as $idx => $rlookup) {
     $rid = isset($replies[$idx]['site_user_id']) ? (int) $replies[$idx]['site_user_id'] : null;
@@ -157,7 +184,7 @@ foreach ($reply_lookups as $idx => $rlookup) {
     }
 }
 
-$out = row_to_post($row, $avatars);
+$out = row_to_post($row, $avatars, $avatars_by_author);
 $out['body'] = '';
 $out['replies'] = [];
 if ($br->num_rows > 0) {
@@ -166,7 +193,7 @@ if ($br->num_rows > 0) {
     $out['body_html'] = post_body_with_embeds($raw);
 }
 foreach ($replies as $reply) {
-    $out['replies'][] = row_to_post($reply, $avatars);
+    $out['replies'][] = row_to_post($reply, $avatars, $avatars_by_author);
 }
 
 $conn->close();

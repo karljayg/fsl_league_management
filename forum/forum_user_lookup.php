@@ -13,11 +13,12 @@ function forum_get_user_avatars($user_ids, $author_by_id = []) {
     $out = [];
     $db = _forum_main_db();
     if (!$db) return $out;
-    if ($user_ids !== []) {
+    $ids_for_lookup = array_filter($user_ids, function ($id) { return $id > 0; });
+    if ($ids_for_lookup !== []) {
         try {
-            $placeholders = implode(',', array_fill(0, count($user_ids), '?'));
+            $placeholders = implode(',', array_fill(0, count($ids_for_lookup), '?'));
             $stmt = $db->prepare("SELECT id, avatar_url FROM users WHERE id IN ($placeholders)");
-            $stmt->execute(array_values($user_ids));
+            $stmt->execute(array_values($ids_for_lookup));
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $url = isset($row['avatar_url']) && $row['avatar_url'] !== '' ? $row['avatar_url'] : null;
                 $out[(int) $row['id']] = ['avatar_url' => $url];

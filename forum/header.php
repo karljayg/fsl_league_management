@@ -88,7 +88,8 @@ $forum_avatar_url = '';
 if ($forum_logged_in && isset($_SESSION['user_id'])) {
     require_once __DIR__ . '/forum_user_lookup.php';
     $uid = (int) $_SESSION['user_id'];
-    $avatars = forum_get_user_avatars([$uid]);
+    $author_by_id = ($forum_username !== '') ? [$uid => $forum_username] : [];
+    $avatars = forum_get_user_avatars([$uid], $author_by_id);
     if (!empty($avatars[$uid]['avatar_url'])) {
         $au = $avatars[$uid]['avatar_url'];
         $forum_avatar_url = (strpos($au, 'http') === 0) ? $au : ($forum_profile_base . $au);
