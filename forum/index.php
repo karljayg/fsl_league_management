@@ -301,7 +301,19 @@ function displayPostDetails($id) {
             $raw = $body_row['body'];
             if (!mb_check_encoding($raw, 'UTF-8')) $raw = mb_convert_encoding($raw, 'ISO-8859-1');
             $body = post_body_with_embeds($raw);
-            echo "<div class=\"post-body\">{$body}</div>";
+            $teaser_len = defined('FORUM_POST_TEASER_LENGTH') ? (int) FORUM_POST_TEASER_LENGTH : 200;
+            $raw_len = mb_strlen($raw);
+            if ($raw_len > $teaser_len) {
+                $teaser_chars = $teaser_len - 1;
+                $teaser = nl2br(htmlspecialchars(mb_substr($raw, 0, $teaser_chars), ENT_QUOTES, 'UTF-8'));
+                echo "<div class=\"post-body post-body--teaser\">";
+                echo "<span class=\"post-body-teaser\">{$teaser}...</span>";
+                echo "<div class=\"post-body-full\" hidden>{$body}</div>";
+                echo "<div class=\"post-body-toggle-row\"><a href=\"#\" class=\"post-body-more-link\">More</a></div>";
+                echo "</div>";
+            } else {
+                echo "<div class=\"post-body\">{$body}</div>";
+            }
         }
 
         // Fetch and display replies
@@ -344,6 +356,7 @@ $conn->close();
 
 <script>
 var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
+var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (int) FORUM_POST_TEASER_LENGTH : 200; ?>;
 (function() {
   function esc(s) {
     var div = document.createElement('div');
@@ -376,6 +389,29 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
     var s = esc(decodeNumericEntities(body));
     s = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     return s.replace(/\n/g, '<br>');
+  }
+
+  /** Set post body content; if raw text length > forumPostTeaserLength, show first N-1 chars + More link. */
+  function setPostBodyContent(bodyEl, rawText, fullHtml) {
+    var empty = '<span class="post-body-placeholder">(no text)</span>';
+    var threshold = (typeof forumPostTeaserLength !== 'undefined' && forumPostTeaserLength > 0) ? forumPostTeaserLength : 200;
+    bodyEl.classList.remove('post-body--teaser', 'post-body--empty');
+    if (!rawText && !fullHtml) {
+      bodyEl.classList.add('post-body--empty');
+      bodyEl.innerHTML = empty;
+      return;
+    }
+    var raw = rawText || '';
+    var full = fullHtml != null ? fullHtml : (raw ? bodyToHtml(raw) : '') || '';
+    if (raw.length > threshold) {
+      bodyEl.classList.add('post-body--teaser');
+      var teaserChars = threshold - 1;
+      var teaserHtml = bodyToHtml(raw.substring(0, teaserChars));
+      bodyEl.innerHTML = '<span class="post-body-teaser">' + teaserHtml + '...</span><div class="post-body-full" hidden></div><div class="post-body-toggle-row"><a href="#" class="post-body-more-link">More</a></div>';
+      bodyEl.querySelector('.post-body-full').innerHTML = full;
+    } else {
+      bodyEl.innerHTML = full || empty;
+    }
   }
 
   function renderRepliesList(replies, container, nestClass) {
@@ -630,7 +666,7 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
     wrap.appendChild(header);
     var body = document.createElement('div');
     body.className = 'post-body' + (data.body || data.body_html ? '' : ' post-body--empty');
-    body.innerHTML = (data.body_html != null ? data.body_html : (data.body ? bodyToHtml(data.body) : '')) || '<span class="post-body-placeholder">(no text)</span>';
+    setPostBodyContent(body, data.body || '', data.body_html != null ? data.body_html : null);
     wrap.appendChild(body);
     var editForm = document.createElement('div');
     editForm.className = 'post-edit-form';
@@ -903,6 +939,27 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
   });
 
   document.body.addEventListener('click', function(e) {
+    var moreLink = e.target.closest('.post-body-more-link');
+    if (moreLink) {
+      e.preventDefault();
+      var postBody = moreLink.closest('.post-body');
+      if (!postBody) return;
+      var teaser = postBody.querySelector('.post-body-teaser');
+      var full = postBody.querySelector('.post-body-full');
+      if (teaser && full) {
+        if (full.hidden) {
+          teaser.hidden = true;
+          full.hidden = false;
+          moreLink.textContent = 'Less';
+        } else {
+          teaser.hidden = false;
+          full.hidden = true;
+          moreLink.textContent = 'More';
+          postBody.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
+      }
+      return;
+    }
     var btn = e.target.closest('.post-copy-link');
     if (btn) {
       e.preventDefault();
@@ -954,8 +1011,7 @@ var hasForumAdmin = <?php echo ($hasForumAdmin ? 'true' : 'false'); ?>;
           if (rawEl) rawEl.value = body;
           if (bodyEl) {
             var displayHtml = (data.body_html != null ? data.body_html : (body ? bodyToHtml(body) : '')) || '';
-            bodyEl.className = 'post-body' + (displayHtml ? '' : ' post-body--empty');
-            bodyEl.innerHTML = displayHtml || '<span class="post-body-placeholder">(no text)</span>';
+            setPostBodyContent(bodyEl, body, data.body_html != null ? data.body_html : null);
           }
           form.hidden = true;
         })
