@@ -472,7 +472,32 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
   function getCookie(name) {
     var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.*+?^${}()|[\]\\])/g, '\\$1') + '=([^;]*)'));
     return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  var FORUM_VISITED_KEY = 'forum-visited-ids';
+  var FORUM_VISITED_MAX = 300;
+
+  function getForumVisitedIds() {
+    try {
+      var raw = sessionStorage.getItem(FORUM_VISITED_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
     }
+  }
+
+  function markForumVisited(id) {
+    if (!id) return;
+    var ids = getForumVisitedIds();
+    var s = String(id);
+    var i = ids.indexOf(s);
+    if (i >= 0) ids.splice(i, 1);
+    ids.push(s);
+    if (ids.length > FORUM_VISITED_MAX) ids = ids.slice(-FORUM_VISITED_MAX);
+    try {
+      sessionStorage.setItem(FORUM_VISITED_KEY, JSON.stringify(ids));
+    } catch (e) {}
+  }
 
   function addReplyForm(wrap, parentId, parentSubject) {
     var replyBtn = document.createElement('button');
@@ -481,8 +506,6 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     replyBtn.textContent = 'Reply';
     replyBtn.setAttribute('data-parent-id', parentId);
     wrap.appendChild(replyBtn);
-    var defaultSubject = parentSubject ? ('Re: ' + (parentSubject.length > 40 ? parentSubject.slice(0, 37) + '...' : parentSubject)) : '';
-    if (defaultSubject.length > 50) defaultSubject = defaultSubject.slice(0, 47) + '...';
     var formWrap = document.createElement('div');
     formWrap.className = 'reply-form-wrap';
     formWrap.hidden = true;
@@ -500,7 +523,6 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     } else {
       authorInput.value = (window.forumGetAuthorForForm && window.forumGetAuthorForForm()) || getCookie('forum_author') || '';
     }
-    subjectInput.placeholder = defaultSubject ? 'e.g. ' + defaultSubject : 'Enter a subject';
     replyBtn.addEventListener('click', function() {
       (window.forumMaybeShowFirstPostWelcome || function() { return Promise.resolve(); })()
         .then(function() {
@@ -756,6 +778,9 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
         if (skipBody) inlineEl.setAttribute('data-skip-body', '1');
         else inlineEl.removeAttribute('data-skip-body');
         bindReplyButtons(inlineEl);
+        markForumVisited(id);
+        var visitedEl = isReply ? inlineEl.closest('.reply-row') : document.querySelector('.thread-item[data-id="' + id + '"]');
+        if (visitedEl) visitedEl.classList.add(isReply ? 'reply-row--visited' : 'thread-item--visited');
         if (!isReply && btn) updateExpandCollapseLabel(btn.closest('.thread-item'), true);
         if (isReply) {
           var replyRow = inlineEl.closest('.reply-row');
@@ -806,6 +831,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
 
   function initThreadList(container) {
     container = container || document;
+    var visitedIds = getForumVisitedIds();
     container.querySelectorAll('.thread-item').forEach(function(item) {
       if (item._headBound) return;
       item._headBound = true;
@@ -813,6 +839,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       var btn = item.querySelector('.thread-expand-btn');
       var link = head && head.querySelector('.thread-link');
       if (!head) return;
+      if (visitedIds.indexOf(item.getAttribute('data-id')) >= 0) item.classList.add('thread-item--visited');
       updateExpandCollapseLabel(item, false);
       if (link) {
         link.style.cursor = 'pointer';
@@ -872,9 +899,12 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
 
   function bindReplyRowClick(container) {
     if (!container) return;
+    var visitedIds = getForumVisitedIds();
     container.querySelectorAll('.reply-row .reply-subject').forEach(function(subj) {
       if (subj._clickBound) return;
       subj._clickBound = true;
+      var row = subj.closest('.reply-row');
+      if (row && visitedIds.indexOf(row.getAttribute('data-id')) >= 0) row.classList.add('reply-row--visited');
       subj.style.cursor = 'pointer';
       subj.addEventListener('click', function(e) {
         e.preventDefault();
