@@ -50,6 +50,7 @@ function row_to_post($row, $avatars, $avatars_by_author = []) {
         'date' => $row['date']
     ];
     if (isset($row['hits'])) $p['hits'] = (int) $row['hits'];
+    if (!empty($row['NT'])) $p['nt'] = true;
     if ($sid !== null) {
         $p['site_user_id'] = $sid;
         $avatar_url = null;
@@ -66,9 +67,9 @@ function row_to_post($row, $avatars, $avatars_by_author = []) {
 }
 
 function fetch_reply_tree($conn, $parent_id, $has_site_user_id, &$user_ids, &$author_by_id, &$avatars_by_author) {
-    $r = $conn->prepare($has_site_user_id ? "SELECT id, subject, author, date, site_user_id, hits FROM forumthreads WHERE parent = ? ORDER BY date ASC" : "SELECT id, subject, author, date, hits FROM forumthreads WHERE parent = ? ORDER BY date ASC");
+    $r = $conn->prepare($has_site_user_id ? "SELECT id, subject, author, date, site_user_id, hits, NT FROM forumthreads WHERE parent = ? ORDER BY date ASC" : "SELECT id, subject, author, date, hits, NT FROM forumthreads WHERE parent = ? ORDER BY date ASC");
     if (!$r) {
-        $r = $conn->prepare("SELECT id, subject, author, date FROM forumthreads WHERE parent = ? ORDER BY date ASC");
+        $r = $conn->prepare("SELECT id, subject, author, date, NT FROM forumthreads WHERE parent = ? ORDER BY date ASC");
     }
     $r->bind_param("i", $parent_id);
     $r->execute();
@@ -125,11 +126,11 @@ if ($conn->connect_error) {
     exit;
 }
 
-$stmt = $conn->prepare("SELECT ft.id, ft.subject, ft.author, ft.date, ft.site_user_id, ft.hits, ft.parent, fb.body FROM forumthreads ft LEFT JOIN forumbodies fb ON ft.id = fb.id WHERE ft.id = ?");
+$stmt = $conn->prepare("SELECT ft.id, ft.subject, ft.author, ft.date, ft.site_user_id, ft.hits, ft.parent, ft.NT, fb.body FROM forumthreads ft LEFT JOIN forumbodies fb ON ft.id = fb.id WHERE ft.id = ?");
 if (!$stmt) {
-    $stmt = $conn->prepare("SELECT ft.id, ft.subject, ft.author, ft.date, ft.hits, ft.parent, fb.body FROM forumthreads ft LEFT JOIN forumbodies fb ON ft.id = fb.id WHERE ft.id = ?");
+    $stmt = $conn->prepare("SELECT ft.id, ft.subject, ft.author, ft.date, ft.hits, ft.parent, ft.NT, fb.body FROM forumthreads ft LEFT JOIN forumbodies fb ON ft.id = fb.id WHERE ft.id = ?");
     if (!$stmt) {
-        $stmt = $conn->prepare("SELECT ft.id, ft.subject, ft.author, ft.date, ft.parent, fb.body FROM forumthreads ft LEFT JOIN forumbodies fb ON ft.id = fb.id WHERE ft.id = ?");
+        $stmt = $conn->prepare("SELECT ft.id, ft.subject, ft.author, ft.date, ft.parent, ft.NT, fb.body FROM forumthreads ft LEFT JOIN forumbodies fb ON ft.id = fb.id WHERE ft.id = ?");
         $has_site_user_id = false;
     } else {
         $has_site_user_id = false;
@@ -239,6 +240,7 @@ if (!$is_topic) {
 $out = row_to_post($row, $avatars, $avatars_by_author);
 $out['body'] = '';
 $out['replies'] = [];
+$out['nt'] = !empty($row['NT']) || (trim($row['body'] ?? '') === '');
 if (!empty($row['body'])) {
     $raw = ensure_utf8($row['body']);
     $out['body'] = $raw;

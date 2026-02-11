@@ -82,10 +82,9 @@ if ($is_new_topic) {
     $forum_id = (int) ($parent['forum'] ?: 1);
     if ($forum_id < 1) $forum_id = 1;
     if ($subject === '') {
-        $subject = 'Re: ' . substr($parent['subject'], 0, 40);
-        if (strlen($subject) > 50) {
-            $subject = substr($subject, 0, 47) . '...';
-        }
+        echo json_encode(['error' => 'Subject is required']);
+        $conn->close();
+        exit;
     }
     $stmt = $conn->prepare("INSERT INTO forumthreads (date, mainthread, parent, author, subject, host, last, forum, NT, hits, registered, site_user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?)");
     $stmt->bind_param("siissssiii", $now, $mainthread, $parent_id, $author, $subject, $ip, $now, $forum_id, $registered, $site_user_id);

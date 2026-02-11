@@ -13,6 +13,8 @@
   --border-subtle: rgba(255, 255, 255, 0.12);
   --btn-text-on-accent: #1a1a24;
   --link-hover: #fff;
+  --expand-btn-bg: #555562;
+  --expand-btn-color: #000000;
 }
 
 [data-theme="dark"] {
@@ -28,6 +30,8 @@
   --border-subtle: rgba(255, 255, 255, 0.08);
   --btn-text-on-accent: #0d0d14;
   --link-hover: #fff;
+  --expand-btn-bg: #252535;
+  --expand-btn-color: #00d4ff;
 }
 
 [data-theme="light"] {
@@ -43,6 +47,8 @@
   --border-subtle: rgba(0, 0, 0, 0.1);
   --btn-text-on-accent: #ffffff;
   --link-hover: #004499;
+  --expand-btn-bg: #eaeaea;
+  --expand-btn-color: #0066aa;
 }
 
 * {
@@ -531,7 +537,7 @@ button.forum-header-link:hover {
 
 .thread-item-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.6rem;
   padding: 1rem 1.25rem;
   flex-wrap: wrap;
@@ -540,26 +546,24 @@ button.forum-header-link:hover {
 .thread-expand-btn,
 .reply-expand-btn {
   flex-shrink: 0;
-  background: transparent;
+  background: var(--expand-btn-bg);
   border: none;
-  color: var(--accent-cyan);
+  color: var(--expand-btn-color);
   cursor: pointer;
-  padding: 0.4rem 0.5rem;
-  font-size: 0.85rem;
+  padding: 0.2rem 0.25rem;
   line-height: 1;
-  border-radius: 4px;
-  transition: color 0.15s, transform 0.15s;
-  margin: -0.2rem 0;
+  border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
 }
 
 .thread-expand-btn:hover,
 .reply-expand-btn:hover {
   color: var(--link-hover);
-}
-
-.thread-expand-btn[aria-expanded="true"],
-.reply-expand-btn[aria-expanded="true"] {
-  transform: rotate(90deg);
 }
 
 .thread-link {
@@ -734,6 +738,11 @@ button.forum-header-link:hover {
   font-size: 0.9rem;
 }
 
+.thread-inline-tree {
+  margin: 0;
+  padding: 0;
+}
+
 .replies-list {
   margin-top: 0.25rem;
 }
@@ -818,7 +827,7 @@ button.forum-header-link:hover {
 .reply-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.5rem;
   background: var(--bg-card);
@@ -829,6 +838,10 @@ button.forum-header-link:hover {
 
 .reply-row .reply-expand-btn {
   flex-shrink: 0;
+}
+
+.reply-row .reply-expand-btn--no-children {
+  pointer-events: none;
 }
 
 .reply-row .reply-subject {

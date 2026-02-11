@@ -141,10 +141,10 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
     $offset = ($page - 1) * $limit;
     $has_site_user_id = true;
     if ($show_all) {
-        $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = ft.id AND r.parent != -1) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
+        $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.site_user_id, ft.hits, ft.NT, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = ft.id AND r.parent != -1) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = ft.id AND r.parent != -1) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
+            $sql = "SELECT ft.id, ft.date, ft.author, ft.subject, ft.forum, ft.NT, f.title AS forum_title, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = ft.id AND r.parent != -1) AS reply_count FROM forumthreads ft LEFT JOIN forums f ON ft.forum = f.id WHERE ft.parent = -1 ORDER BY {$order_by} LIMIT ?, ?";
             $stmt = $conn->prepare($sql);
             $has_site_user_id = false;
         }
@@ -154,10 +154,10 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
         $stmt_c = $conn->prepare("SELECT COUNT(*) AS total FROM forumthreads WHERE parent = -1");
         $stmt_c->execute();
     } else {
-        $sql = "SELECT id, date, author, subject, site_user_id, hits, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = forumthreads.id AND r.parent != -1) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
+        $sql = "SELECT id, date, author, subject, site_user_id, hits, NT, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = forumthreads.id AND r.parent != -1) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            $sql = "SELECT id, date, author, subject, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = forumthreads.id AND r.parent != -1) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
+            $sql = "SELECT id, date, author, subject, NT, (SELECT COUNT(*) FROM forumthreads r WHERE r.mainthread = forumthreads.id AND r.parent != -1) AS reply_count FROM forumthreads WHERE parent = -1 AND forum = ? ORDER BY {$order_by_single} LIMIT ?, ?";
             $stmt = $conn->prepare($sql);
             $has_site_user_id = false;
         }
@@ -235,7 +235,7 @@ function displayThreads($page, $limit, $ajax = false, $forum = 'all', $sort = 't
             $hits = isset($row['hits']) ? (int) $row['hits'] : 0;
             $replyCount = isset($row['reply_count']) ? (int) $row['reply_count'] : 0;
             echo "<li class=\"thread-item\" data-id=\"{$tid}\">";
-            echo "<div class=\"thread-item-head\"><button type=\"button\" class=\"thread-expand-btn\" aria-expanded=\"false\" title=\"Expand\">▶</button>";
+            echo "<div class=\"thread-item-head\"><button type=\"button\" class=\"thread-expand-btn\" aria-expanded=\"false\" title=\"Expand\">\u{2795}</button>";
             echo "<span class=\"thread-link\">{$subj}{$forumLabel}</span>";
             echo "<span class=\"thread-meta\">by {$authorHtml} on {$date} <strong class=\"thread-replies-label\">Replies:</strong> {$replyCount} <span class=\"thread-hits\">hits: {$hits}</span></span></div>";
             echo "<div class=\"thread-inline\" hidden></div></li>";
@@ -414,6 +414,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     }
   }
 
+  /* ➕ = collapsed, ➖ = expanded. Topic open = all reply levels expanded. */
   function renderRepliesList(replies, container, nestClass) {
     if (!replies.length) return;
     var heading = document.createElement('div');
@@ -429,9 +430,6 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'reply-expand-btn';
-      btn.setAttribute('aria-expanded', 'false');
-      btn.title = 'Expand';
-      btn.textContent = '▶';
       var subj = document.createElement('span');
       subj.className = 'reply-subject';
       subj.textContent = r.subject;
@@ -450,6 +448,22 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       row.appendChild(subj);
       row.appendChild(meta);
       row.appendChild(inline);
+      var nestedReplies = r.replies && r.replies.length ? r.replies : [];
+      if (nestedReplies.length) {
+        var nestedList = document.createElement('div');
+        nestedList.className = 'replies-list reply-nest';
+        nestedList.hidden = false;
+        renderRepliesList(nestedReplies, nestedList, 'reply-nest');
+        row.appendChild(nestedList);
+        btn.setAttribute('aria-expanded', 'true');
+        btn.title = 'Collapse';
+        btn.textContent = '\u2796';
+      } else {
+        btn.classList.add('reply-expand-btn--no-children');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.title = 'Expand';
+        btn.textContent = '\u2795';
+      }
       list.appendChild(row);
     });
     container.appendChild(list);
@@ -472,7 +486,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     var formWrap = document.createElement('div');
     formWrap.className = 'reply-form-wrap';
     formWrap.hidden = true;
-    formWrap.innerHTML = '<form class="reply-form"><label class="reply-author-label">Name <input type="text" name="author" class="reply-author" maxlength="50" required></label><label>Subject <input type="text" name="subject" class="reply-subject-input" maxlength="50" placeholder="Leave blank for Re: parent title"></label><label>Message <textarea name="body" class="reply-body" rows="4"></textarea></label><button type="submit" class="reply-submit">Post</button> <button type="button" class="reply-cancel">Cancel</button></form>';
+    formWrap.innerHTML = '<form class="reply-form"><label class="reply-author-label">Name <input type="text" name="author" class="reply-author" maxlength="50" required></label><label>Subject <input type="text" name="subject" class="reply-subject-input" maxlength="50" required placeholder="Enter a subject"></label><label>Message <textarea name="body" class="reply-body" rows="4"></textarea></label><button type="submit" class="reply-submit">Post</button> <button type="button" class="reply-cancel">Cancel</button></form>';
     wrap.appendChild(formWrap);
     var authorLabel = formWrap.querySelector('.reply-author-label');
     var authorInput = formWrap.querySelector('.reply-author');
@@ -486,7 +500,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     } else {
       authorInput.value = (window.forumGetAuthorForForm && window.forumGetAuthorForForm()) || getCookie('forum_author') || '';
     }
-    subjectInput.placeholder = defaultSubject ? 'Default: ' + defaultSubject : 'Leave blank for Re: parent title';
+    subjectInput.placeholder = defaultSubject ? 'e.g. ' + defaultSubject : 'Enter a subject';
     replyBtn.addEventListener('click', function() {
       (window.forumMaybeShowFirstPostWelcome || function() { return Promise.resolve(); })()
         .then(function() {
@@ -498,9 +512,8 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
                 authorInput.value = (window.forumGetAuthorForForm && window.forumGetAuthorForForm()) || getCookie('forum_author') || '';
               }
             }
-            if (!subjectInput.value) subjectInput.value = defaultSubject;
-            var authorTextInput = formWrap.querySelector('.reply-author[type="text"]');
-            (authorTextInput || subjectInput).focus();
+            subjectInput.value = '';
+            subjectInput.focus();
           }
         })
         .catch(function() {});
@@ -508,9 +521,24 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     formWrap.querySelector('.reply-cancel').addEventListener('click', function() { formWrap.hidden = true; });
     formWrap.querySelector('.reply-form').addEventListener('submit', function(e) {
       e.preventDefault();
+      var subjectVal = formWrap.querySelector('.reply-subject-input').value.trim();
+      if (!subjectVal) {
+        alert('Subject is required.');
+        formWrap.querySelector('.reply-subject-input').focus();
+        return;
+      }
+      var authorInput = formWrap.querySelector('.reply-author[type="text"]');
+      if (authorInput) {
+        var authorVal = (authorInput.value || '').trim();
+        if (!authorVal) {
+          alert('Name is required.');
+          authorInput.focus();
+          return;
+        }
+      }
       var fd = new FormData(this);
       fd.append('parent_id', parentId);
-      if (formWrap.querySelector('.reply-subject-input').value.trim()) fd.append('subject', formWrap.querySelector('.reply-subject-input').value.trim());
+      fd.append('subject', subjectVal);
       var submitBtn = formWrap.querySelector('.reply-submit');
       submitBtn.disabled = true;
       fetch('api/post.php', { method: 'POST', body: fd })
@@ -519,8 +547,12 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
           if (res.error) { alert(res.error); submitBtn.disabled = false; return; }
           formWrap.hidden = true;
           formWrap.querySelector('.reply-body').value = '';
-          formWrap.querySelector('.reply-subject-input').value = defaultSubject;
+          formWrap.querySelector('.reply-subject-input').value = '';
           var list = wrap.querySelector('.replies-list');
+          if (!list) {
+            var replyRow = wrap.closest('.reply-row');
+            list = replyRow ? replyRow.querySelector('.replies-list') : null;
+          }
           if (!list) {
             var heading = document.createElement('div');
             heading.className = 'replies-heading';
@@ -535,10 +567,10 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
           row.setAttribute('data-id', res.id);
           var btn = document.createElement('button');
           btn.type = 'button';
-          btn.className = 'reply-expand-btn';
+          btn.className = 'reply-expand-btn reply-expand-btn--no-children';
           btn.setAttribute('aria-expanded', 'false');
           btn.title = 'Expand';
-          btn.textContent = '▶';
+          btn.textContent = '\u2795';
           var subj = document.createElement('span');
           subj.className = 'reply-subject';
           subj.textContent = res.subject;
@@ -570,30 +602,37 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     btn.addEventListener('click', function() {
       var replyRow = inlineEl.closest('.reply-row');
       if (replyRow) {
-        var rowBtn = replyRow.querySelector('.reply-expand-btn');
-        var rowInline = replyRow.querySelector('.reply-inline');
-        if (rowBtn && rowInline) {
-          rowInline.hidden = true;
-          rowBtn.setAttribute('aria-expanded', 'false');
-        }
+        inlineEl.hidden = true;
       } else {
         var item = inlineEl.closest('.thread-item');
-        if (item) toggleThread(item);
+        if (item) collapseThread(item);
       }
     });
     container.appendChild(btn);
   }
 
+  /* Thread list: ➕ = closed, ➖ = open. Single place that sets topic button. */
   function updateExpandCollapseLabel(item, expanded) {
     var btn = item && item.querySelector('.thread-expand-btn');
     if (!btn) return;
-    btn.textContent = expanded ? '\u25BC' : '\u25B6';
+    btn.textContent = expanded ? '\u2796' : '\u2795';
     btn.title = expanded ? 'Collapse' : 'Expand';
     btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
   }
 
-  function fillInline(inlineEl, data, isReply) {
+  function fillInline(inlineEl, data, isReply, options) {
+    options = options || {};
+    var skipReplies = options.skipReplies === true;
+    var skipBody = options.skipBody === true && !isReply;
     inlineEl.innerHTML = '';
+    if (skipBody) {
+      var treeWrap = document.createElement('div');
+      treeWrap.className = 'thread-inline-tree';
+      treeWrap.setAttribute('data-post-id', data.id);
+      renderRepliesList(data.replies || [], treeWrap, 'reply-nest');
+      inlineEl.appendChild(treeWrap);
+      return;
+    }
     var wrap = document.createElement('div');
     wrap.className = isReply ? 'reply-inline-body' : 'thread-inline-body';
     wrap.setAttribute('data-post-id', data.id);
@@ -680,16 +719,26 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     addCollapseBtn(collapseRow, inlineEl);
     wrap.appendChild(collapseRow);
     addReplyForm(wrap, data.id, data.subject);
-    renderRepliesList(data.replies || [], wrap, 'reply-nest');
+    if (!skipReplies) {
+      renderRepliesList(data.replies || [], wrap, 'reply-nest');
+    }
     inlineEl.appendChild(wrap);
   }
 
-  function loadThread(id, inlineEl, isReply, btn) {
-    if (inlineEl.hasAttribute('data-loaded')) {
+  function loadThread(id, inlineEl, isReply, btn, options) {
+    options = options || {};
+    var skipBody = options.skipBody === true && !isReply;
+    var alreadyLoaded = inlineEl.hasAttribute('data-loaded');
+    var needBodyUpgrade = alreadyLoaded && inlineEl.getAttribute('data-skip-body') === '1' && !skipBody;
+    if (alreadyLoaded && !needBodyUpgrade) {
       inlineEl.hidden = !inlineEl.hidden;
       var item = btn && btn.closest('.thread-item');
       if (btn && item) updateExpandCollapseLabel(item, !inlineEl.hidden);
       return Promise.resolve();
+    }
+    if (needBodyUpgrade) {
+      inlineEl.removeAttribute('data-loaded');
+      inlineEl.removeAttribute('data-skip-body');
     }
     inlineEl.innerHTML = '<div class="thread-inline-loading">Loading…</div>';
     inlineEl.hidden = false;
@@ -702,28 +751,57 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
           return;
         }
         inlineEl.innerHTML = '';
-        fillInline(inlineEl, data, isReply);
+        fillInline(inlineEl, data, isReply, options);
         inlineEl.setAttribute('data-loaded', '1');
+        if (skipBody) inlineEl.setAttribute('data-skip-body', '1');
+        else inlineEl.removeAttribute('data-skip-body');
         bindReplyButtons(inlineEl);
         if (!isReply && btn) updateExpandCollapseLabel(btn.closest('.thread-item'), true);
+        if (isReply) {
+          var replyRow = inlineEl.closest('.reply-row');
+          if (replyRow) updateReplyRowArrow(replyRow);
+        }
       })
       .catch(function() {
         inlineEl.innerHTML = '<div class="thread-inline-loading">Load failed.</div>';
       });
   }
 
-  function toggleThread(item) {
+  /* Topic: arrow = expand/collapse structure only (no body). Title = show body. */
+  function collapseThread(item) {
+    var inline = item && item.querySelector('.thread-inline');
+    if (!inline) return;
+    inline.hidden = true;
+    updateExpandCollapseLabel(item, false);
+  }
+
+  function expandThreadStructure(item) {
     var btn = item.querySelector('.thread-expand-btn');
     var inline = item.querySelector('.thread-inline');
     var id = item.getAttribute('data-id');
     if (!inline || !id) return;
     var open = btn.getAttribute('aria-expanded') === 'true';
     if (open) {
-      inline.hidden = true;
-      updateExpandCollapseLabel(item, false);
+      collapseThread(item);
     } else {
-      loadThread(id, inline, false, btn);
+      loadThread(id, inline, false, btn, { skipBody: true });
     }
+  }
+
+  function showThreadBody(item) {
+    var btn = item.querySelector('.thread-expand-btn');
+    var inline = item.querySelector('.thread-inline');
+    var id = item.getAttribute('data-id');
+    if (!inline || !id) return;
+    var alreadyFull = inline.hasAttribute('data-loaded') && inline.getAttribute('data-skip-body') !== '1';
+    if (alreadyFull) {
+      inline.hidden = !inline.hidden;
+      updateExpandCollapseLabel(item, !inline.hidden);
+      return;
+    }
+    inline.hidden = false;
+    updateExpandCollapseLabel(item, true);
+    loadThread(id, inline, false, btn, { skipBody: false });
   }
 
   function initThreadList(container) {
@@ -733,14 +811,17 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       item._headBound = true;
       var head = item.querySelector('.thread-item-head');
       var btn = item.querySelector('.thread-expand-btn');
+      var link = head && head.querySelector('.thread-link');
       if (!head) return;
       updateExpandCollapseLabel(item, false);
-      head.addEventListener('click', function(e) {
-        if (e.target === btn || btn.contains(e.target)) return;
-        e.preventDefault();
-        toggleThread(item);
-      });
-      head.style.cursor = 'pointer';
+      if (link) {
+        link.style.cursor = 'pointer';
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          showThreadBody(item);
+        });
+      }
     });
     container.querySelectorAll('.thread-expand-btn').forEach(function(btn) {
       if (btn._expandBound) return;
@@ -751,37 +832,62 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       if (!inline || !id) return;
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        toggleThread(item);
+        expandThreadStructure(item);
       });
     });
   }
 
-  function toggleReplyRow(row) {
+  /* Reply: arrow = expand/collapse child list only (no body). Title = show body. Arrow symbol reflects open (down) when body or child list is visible. */
+  function updateReplyRowArrow(row) {
+    var btn = row && row.querySelector('.reply-expand-btn');
+    if (!btn) return;
+    var inline = row.querySelector('.reply-inline');
+    var list = row.querySelector('.replies-list');
+    var bodyVisible = inline && inline.hasAttribute('data-loaded') && !inline.hidden;
+    var listVisible = list && !list.hidden;
+    var expanded = bodyVisible || listVisible;
+    btn.textContent = expanded ? '\u2796' : '\u2795';
+    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    btn.title = expanded ? 'Collapse' : 'Expand';
+  }
+
+  function loadReplyBody(row) {
     var btn = row.querySelector('.reply-expand-btn');
     var inline = row.querySelector('.reply-inline');
     var id = row.getAttribute('data-id');
     if (!inline || !id) return;
-    var open = btn.getAttribute('aria-expanded') === 'true';
-    if (open) {
-      inline.hidden = true;
-      btn.setAttribute('aria-expanded', 'false');
-    } else {
-      loadThread(id, inline, true, btn);
-    }
+    var hasNestedTree = row.querySelector('.replies-list .reply-row');
+    var opts = hasNestedTree ? { skipReplies: true } : {};
+    loadThread(id, inline, true, btn, opts);
+  }
+
+  function toggleReplySubtree(row) {
+    var btn = row.querySelector('.reply-expand-btn');
+    var list = row.querySelector('.replies-list');
+    if (!list || !btn || btn.classList.contains('reply-expand-btn--no-children')) return;
+    var expanded = !list.hidden;
+    list.hidden = expanded;
+    updateReplyRowArrow(row);
   }
 
   function bindReplyRowClick(container) {
     if (!container) return;
-    container.querySelectorAll('.reply-row').forEach(function(row) {
-      if (row._clickBound) return;
-      row._clickBound = true;
-      row.style.cursor = 'pointer';
-      row.addEventListener('click', function(e) {
-        if (e.target.classList.contains('reply-expand-btn')) return;
-        var thisInline = row.querySelector('.reply-inline');
-        if (thisInline && thisInline.contains(e.target)) return;
+    container.querySelectorAll('.reply-row .reply-subject').forEach(function(subj) {
+      if (subj._clickBound) return;
+      subj._clickBound = true;
+      subj.style.cursor = 'pointer';
+      subj.addEventListener('click', function(e) {
         e.preventDefault();
-        toggleReplyRow(row);
+        e.stopPropagation();
+        var row = subj.closest('.reply-row');
+        if (!row) return;
+        var inline = row.querySelector('.reply-inline');
+        if (inline && inline.hasAttribute('data-loaded')) {
+          inline.hidden = !inline.hidden;
+          updateReplyRowArrow(row);
+          return;
+        }
+        loadReplyBody(row);
       });
     });
   }
@@ -792,18 +898,16 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       if (btn._bound) return;
       btn._bound = true;
       var row = btn.closest('.reply-row');
-      var inline = row && row.querySelector('.reply-inline');
-      var id = row && row.getAttribute('data-id');
-      if (!inline || !id) return;
+      if (!row) return;
+      if (btn.classList.contains('reply-expand-btn--no-children')) {
+        btn.addEventListener('click', function(e) { e.stopPropagation(); });
+        return;
+      }
+      var list = row.querySelector('.replies-list');
+      if (!list) return;
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        var open = btn.getAttribute('aria-expanded') === 'true';
-        if (open) {
-          inline.hidden = true;
-          btn.setAttribute('aria-expanded', 'false');
-        } else {
-          loadThread(id, inline, true, btn);
-        }
+        toggleReplySubtree(row);
       });
     });
     bindReplyRowClick(container);
@@ -870,7 +974,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
     var inline = row.querySelector('.reply-inline');
     var btn = row.querySelector('.reply-expand-btn');
     if (!inline || !btn) return Promise.resolve();
-    return loadThread(id, inline, true, btn).then(function() {
+    return loadThread(id, inline, true, btn, { skipReplies: true }).then(function() {
       return expandPath(ids.slice(1));
     });
   }
@@ -911,7 +1015,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
         var inline = item && item.querySelector('.thread-inline');
         var btn = item && item.querySelector('.thread-expand-btn');
         if (item && inline && btn) {
-          loadThread(info.threadId, inline, false, btn).then(function() {
+          loadThread(info.threadId, inline, false, btn, { skipBody: false }).then(function() {
             return expandPath(info.path.slice(1));
           }).then(function() {
             scrollToAndHighlight(postId);
@@ -920,7 +1024,7 @@ var forumPostTeaserLength = <?php echo defined('FORUM_POST_TEASER_LENGTH') ? (in
       });
   } else if (expandId && expandId !== '0') {
     var item = document.querySelector('.thread-item[data-id="' + expandId + '"]');
-    if (item) toggleThread(item);
+    if (item) expandThreadStructure(item);
   }
 
   if (mainEl && mainEl.getAttribute('data-initial-page')) {
