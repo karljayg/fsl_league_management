@@ -242,6 +242,37 @@ if (!$playerNotFound) {
 $mapWinRate = $totalMapsW + $totalMapsL > 0 ? round(($totalMapsW / ($totalMapsW + $totalMapsL)) * 100, 1) : 0;
 $setWinRate = $totalSetsW + $totalSetsL > 0 ? round(($totalSetsW / ($totalSetsW + $totalSetsL)) * 100, 1) : 0;
 
+// Division, Rank, Group from rankings.json + rankings_config.json
+$displayDivision = null;
+$playerRank = null;
+$playerGroup = null;
+if (!$playerNotFound && !empty($playerInfo[0])) {
+    $displayDivision = $playerInfo[0]['Division'] ?? null;
+    $rankingsPath = __DIR__ . '/rankings/rankings.json';
+    $configPath = __DIR__ . '/rankings/rankings_config.json';
+    if (file_exists($rankingsPath) && file_exists($configPath)) {
+        $rankings = json_decode(file_get_contents($rankingsPath), true);
+        $config = json_decode(file_get_contents($configPath), true);
+        if (is_array($rankings) && is_array($config)) {
+            foreach ($rankings as $rankEntry) {
+                if (isset($rankEntry['name']) && strcasecmp(trim($rankEntry['name']), $playerInfo[0]['Real_Name']) === 0) {
+                    $rank = (int)($rankEntry['rank'] ?? 0);
+                    $playerRank = $rank;
+                    $playerGroup = (int) ceil($rank / 4);
+                    foreach (['codeS' => 'S', 'codeA' => 'A', 'codeB' => 'B'] as $code => $letter) {
+                        $r = $config[$code] ?? null;
+                        if ($r && $rank >= (int)$r['minRank'] && $rank <= (int)$r['maxRank']) {
+                            $displayDivision = $letter;
+                            break 2;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // Set page title
 $pageTitle = $playerNotFound ? "Player Not Found" : "Player Profile - " . htmlspecialchars($playerName);
 
@@ -406,6 +437,16 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
         return nl2br(trim($cleaned));
     }
 }
+
+function getRaceIconFromCode($raceCode) {
+    switch ($raceCode) {
+        case 'T': return 'images/terran_icon.png';
+        case 'P': return 'images/protoss_icon.png';
+        case 'Z': return 'images/zerg_icon.png';
+        case 'R': return 'images/random_icon.png';
+        default: return '';
+    }
+}
 ?>
 
 <div class="container mt-4">
@@ -522,25 +563,55 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                         <?php endif; ?>
                     </span>
                 </div>
-                <div class="info-item">
-                    <label>Division:</label>
-                    <span><?= !empty($playerInfo[0]['Division']) ? 'Code ' . htmlspecialchars($playerInfo[0]['Division']) : 'N/A' ?></span>
+                <div class="info-item stats-row">
+                    <div class="stats-row-division">
+                        <div class="info-item">
+                            <label>Division:</label>
+                            <span><?= !empty($displayDivision) ? 'Code ' . htmlspecialchars($displayDivision) : 'N/A' ?></span>
+                        </div>
+                        <?php if ($playerRank !== null): ?>
+                        <div class="info-item">
+                            <label>Rank:</label>
+                            <span><?= $playerRank ?></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Group:</label>
+                            <span>G<?= $playerGroup ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <div class="info-item">
+                            <?php if (!empty($playerInfo[0]['Status'])): ?>
+                            <label>Status:</label>
+                            <span><?= htmlspecialchars($playerInfo[0]['Status']) ?></span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="stats-row-race">
+                        <div class="info-item">
+                        <label>Race:</label>
+                        <span>
+                            <?php
+                            $raceCode = $playerInfo[0]['Race'] ?? null;
+                            if ($raceCode && ($iconPath = getRaceIconFromCode($raceCode))): ?>
+                                <img src="<?= htmlspecialchars($iconPath) ?>" alt="<?= htmlspecialchars($raceCode) ?>" class="race-icon" title="<?= htmlspecialchars($raceCode) ?>">
+                            <?php else: ?>
+                                <?= htmlspecialchars($raceCode ?? 'N/A') ?>
+                            <?php endif; ?>
+                        </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <label>Race:</label>
-                    <span><?= htmlspecialchars($playerInfo[0]['Race'] ?? 'N/A') ?></span>
-                </div>
-                <div class="info-item">
-                    <label>Total Maps:</label>
-                    <span><?= $totalMapsW ?>-<?= $totalMapsL ?> (<?= $mapWinRate ?>%)</span>
-                </div>
-                <div class="info-item">
-                    <label>Total Sets:</label>
-                    <span><?= $totalSetsW ?>-<?= $totalSetsL ?> (<?= $setWinRate ?>%)</span>
-                </div>
-                <div class="info-item">
-                    <label>Status:</label>
-                    <span><?= htmlspecialchars($playerInfo[0]['Status']) ?></span>
+                <div class="info-item stats-row">
+                    <div class="info-item">
+                        <label>Total Games (maps):</label>
+                        <span><?= $totalMapsW ?>-<?= $totalMapsL ?> (<?= $mapWinRate ?>%)</span>
+                        <span class="maps-sets-sep">
+                    </div>
+                    <div class="info-item">
+                        </span>
+                        <label>Total Sets:</label>
+                        <span><?= $totalSetsW ?>-<?= $totalSetsL ?> (<?= $setWinRate ?>%)</span>
+                    </div>
                 </div>
                 <div class="championship-container">
                     <?php if (!empty($playerInfo[0]['Championship_Record']) && $playerInfo[0]['Championship_Record'] !== 'None' && $playerInfo[0]['Championship_Record'] !== 'null'): ?>
@@ -706,6 +777,9 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                             <a href="view_match.php?id=<?= htmlspecialchars($match['fsl_match_id']) ?>" class="match-id-link">
                                 #<?= htmlspecialchars($match['fsl_match_id']) ?>
                             </a>
+                            <?php if (!empty($match['notes'])): ?>
+                            <div class="match-notes-subtitle"><?= htmlspecialchars($match['notes']) ?></div>
+                            <?php endif; ?>
                         </div>
                         <div class="match-content">
                             <?php
@@ -730,7 +804,15 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                                 <a href="view_player.php?name=<?= urlencode($playerMatchInfo['name']) ?>" class="player-link">
                                     <span class="name"><?= htmlspecialchars($playerMatchInfo['name']) ?></span>
                                 </a>
-                                <span class="race"><?= htmlspecialchars($playerMatchInfo['race']) ?></span>
+                                <span class="race">
+                                    <?php
+                                    $mRace = $playerMatchInfo['race'] ?? null;
+                                    if ($mRace && ($mIcon = getRaceIconFromCode($mRace))): ?>
+                                        <img src="<?= htmlspecialchars($mIcon) ?>" alt="<?= htmlspecialchars($mRace) ?>" class="race-icon" title="<?= htmlspecialchars($mRace) ?>">
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($mRace ?? '') ?>
+                                    <?php endif; ?>
+                                </span>
                             </div>
                             <div class="score">
                                 <?= $playerMatchInfo['score'] ?>-<?= $opponentInfo['score'] ?>
@@ -739,7 +821,15 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
                                 <a href="view_player.php?name=<?= urlencode($opponentInfo['name']) ?>" class="player-link">
                                     <span class="name"><?= htmlspecialchars($opponentInfo['name']) ?></span>
                                 </a>
-                                <span class="race"><?= htmlspecialchars($opponentInfo['race']) ?></span>
+                                <span class="race">
+                                    <?php
+                                    $oRace = $opponentInfo['race'] ?? null;
+                                    if ($oRace && ($oIcon = getRaceIconFromCode($oRace))): ?>
+                                        <img src="<?= htmlspecialchars($oIcon) ?>" alt="<?= htmlspecialchars($oRace) ?>" class="race-icon" title="<?= htmlspecialchars($oRace) ?>">
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($oRace ?? '') ?>
+                                    <?php endif; ?>
+                                </span>
                             </div>
                         </div>
                         <div class="match-footer">
@@ -1029,11 +1119,61 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
         grid-column: 1 / -1;
     }
 
+    .stats-row {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .stats-row-division,
+    .stats-row-race,
+    .stats-row-maps {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .stats-row-division label,
+    .stats-row-race label,
+    .stats-row-maps label {
+        display: inline;
+        margin-bottom: 0;
+        margin-right: 4px;
+    }
+
+    .stats-row-race {
+        flex-shrink: 0;
+    }
+
+    .stats-row-maps {
+        flex: 1;
+        min-width: 0;
+    }
+
     .team-display {
         display: flex;
         align-items: center;
         gap: 12px;
         flex-wrap: wrap;
+    }
+
+    .div-status-sep {
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: normal;
+    }
+
+    .maps-sets-sep {
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: normal;
+    }
+
+    .race-icon {
+        width: 24px;
+        height: 24px;
+        vertical-align: middle;
     }
 
     .player-team-logo {
@@ -1067,8 +1207,19 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
         background: rgba(0, 0, 0, 0.3);
         padding: 10px;
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
+        gap: 4px;
+    }
+
+    .match-notes-subtitle {
+        width: 100%;
+        font-size: 0.8em;
+        opacity: 0.85;
+        color: #b0b0b0;
+        margin-top: 4px;
+        line-height: 1.3;
     }
 
     .match-content {
@@ -1152,6 +1303,11 @@ function formatTeamsHistory($jsonData, $currentTeamId = null) {
         display: block;
         font-size: 0.9em;
         opacity: 0.8;
+    }
+
+    .match-card .race-icon {
+        width: 20px;
+        height: 20px;
     }
 
     .match-id-link {
