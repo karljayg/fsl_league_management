@@ -110,9 +110,24 @@ include_once __DIR__ . '/includes/header.php';
     .lineup-planner .team-select-section .vs-divider { padding-top: 0; }
 }
 .lineup-slots { margin-top: 1rem; }
-.lineup-slot { display: grid; grid-template-columns: 2.25rem minmax(0,1fr) auto minmax(0,1fr) auto; gap: 0.75rem; align-items: center; padding: 0.75rem 1rem 0.75rem 1.25rem; margin-bottom: 0.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; position: relative; overflow: hidden; transition: background 0.2s; }
+.lineup-slot { display: grid; grid-template-columns: 2rem 2.25rem 2.5rem minmax(0,1fr) auto minmax(0,1fr) auto; gap: 0.75rem; align-items: center; padding: 0.75rem 1rem 0.75rem 1rem; margin-bottom: 0.5rem; background: rgba(0, 0, 0, 0.2); border-radius: 8px; position: relative; overflow: hidden; transition: background 0.2s; }
 .lineup-slot:hover { background: rgba(108, 92, 231, 0.12); }
+.lineup-slot .slot-drag-handle { cursor: grab; color: #666; padding: 0.25rem; user-select: none; }
+.lineup-slot .slot-drag-handle:active { cursor: grabbing; }
+.lineup-slot.dragging { opacity: 0.6; }
+.lineup-slot.drag-over { outline: 2px dashed rgba(108, 92, 231, 0.6); outline-offset: 2px; }
+.lineup-slot .slot-type-wrap { width: 2.5rem; min-width: 2.5rem; overflow: hidden; display: block; }
+.lineup-slot .slot-type-wrap .slot-type { width: 100%; min-width: 0; max-width: none; padding: 0.35rem 0.1rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(108, 92, 231, 0.4); color: #fff; border-radius: 6px; font-size: 0.75rem; box-sizing: border-box; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.15rem center; background-size: 0.5rem; padding-right: 1rem; }
 .lineup-slot .slot-num { color: #888; font-weight: 600; font-family: 'Rajdhani', sans-serif; }
+.lineup-slot .slot-1v1 { display: contents; }
+.lineup-slot .slot-2v2 { display: none; grid-column: 4 / 7; grid-template-columns: subgrid; align-items: center; gap: 0.5rem; }
+.lineup-slot.slot-type-2v2 { grid-template-rows: auto auto; }
+.lineup-slot.slot-type-2v2 .slot-1v1 { display: none; }
+.lineup-slot.slot-type-2v2 .slot-2v2 { display: grid; }
+.lineup-slot .slot-2v2 .team-pair { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.lineup-slot .slot-2v2 .team-pair select { max-width: 160px; }
+.lineup-slot .differential-warning { grid-column: 1 / -1; grid-row: 2; font-size: 0.85rem; color: #f0ad4e; margin-top: 0.25rem; display: none; }
+.lineup-slot.slot-type-2v2 .differential-warning.is-visible { display: block; }
 .lineup-slot .player-cell { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
 .lineup-slot select { width: 100%; max-width: 200px; padding: 0.45rem 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(108, 92, 231, 0.4); color: #fff; border-radius: 6px; font-family: 'Exo 2', sans-serif; }
 .lineup-slot .player-info { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; min-height: 28px; }
@@ -141,12 +156,15 @@ include_once __DIR__ . '/includes/header.php';
 .lineup-planner .btn-outline-light { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: #e0e0e0; }
 .lineup-planner .btn-outline-light:hover { background: rgba(255,255,255,0.1); color: #fff; }
 @media (max-width: 768px) {
-    .lineup-slot { grid-template-columns: 2rem 1fr auto; grid-template-rows: auto auto; gap: 0.5rem; }
+    .lineup-slot { grid-template-columns: 1.75rem 1.75rem 2rem 1fr auto; grid-template-rows: auto auto; gap: 0.5rem; }
     .lineup-slot .slot-num { grid-row: 1 / -1; align-self: center; }
-    .lineup-slot .player-a-wrap { grid-column: 2; grid-row: 1; }
-    .lineup-slot .vs { grid-column: 3; grid-row: 1; }
-    .lineup-slot .player-b-wrap { grid-column: 2; grid-row: 2; }
-    .lineup-slot .slot-reset { grid-column: 3; grid-row: 2; align-self: start; }
+    .lineup-slot .slot-type-wrap { grid-row: 1 / -1; align-self: center; }
+    .lineup-slot .slot-1v1 { grid-column: 4 / 6; }
+    .lineup-slot .player-a-wrap { grid-column: 4; grid-row: 1; }
+    .lineup-slot .vs { grid-column: 5; grid-row: 1; }
+    .lineup-slot .player-b-wrap { grid-column: 4; grid-row: 2; }
+    .lineup-slot .slot-2v2 { grid-column: 4 / 6; }
+    .lineup-slot .slot-reset { grid-column: 5; grid-row: 2; align-self: start; }
     .lineup-slot select { max-width: none; }
 }
 </style>
@@ -210,21 +228,46 @@ include_once __DIR__ . '/includes/header.php';
             <?php for ($i = 1; $i <= 6; $i++): ?>
             <div class="lineup-slot" data-slot="<?= $i ?>">
                 <div class="skill-band" data-slot-band="<?= $i ?>"></div>
+                <span class="slot-drag-handle" draggable="true" title="Drag to reorder" aria-label="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
                 <span class="slot-num"><?= $i ?>.</span>
-                <div class="player-a-wrap player-cell">
-                    <select class="player-a" data-slot="<?= $i ?>" aria-label="Team A player slot <?= $i ?>">
-                        <option value="">— Team A —</option>
+                <div class="slot-type-wrap">
+                    <select class="slot-type" data-slot="<?= $i ?>" aria-label="Line type slot <?= $i ?>">
+                        <option value="1vs1" selected>1vs1</option>
+                        <option value="2v2">2v2</option>
                     </select>
-                    <div class="player-info player-a-info" data-slot="<?= $i ?>"></div>
                 </div>
-                <span class="vs">vs</span>
-                <div class="player-b-wrap player-cell">
-                    <select class="player-b" data-slot="<?= $i ?>" aria-label="Team B player slot <?= $i ?>">
-                        <option value="">— Team B —</option>
-                    </select>
-                    <div class="player-info player-b-info" data-slot="<?= $i ?>"></div>
+                <div class="slot-1v1">
+                    <div class="player-a-wrap player-cell">
+                        <select class="player-a" data-slot="<?= $i ?>" aria-label="Team A player slot <?= $i ?>">
+                            <option value="">— Team A —</option>
+                        </select>
+                        <div class="player-info player-a-info" data-slot="<?= $i ?>"></div>
+                    </div>
+                    <span class="vs">vs</span>
+                    <div class="player-b-wrap player-cell">
+                        <select class="player-b" data-slot="<?= $i ?>" aria-label="Team B player slot <?= $i ?>">
+                            <option value="">— Team B —</option>
+                        </select>
+                        <div class="player-info player-b-info" data-slot="<?= $i ?>"></div>
+                    </div>
+                </div>
+                <div class="slot-2v2">
+                    <div class="team-pair team-a-pair">
+                        <select class="player-a1" data-slot="<?= $i ?>" aria-label="Team A player 1 slot <?= $i ?>"><option value="">— A1 —</option></select>
+                        <div class="player-info player-a1-info" data-slot="<?= $i ?>"></div>
+                        <select class="player-a2" data-slot="<?= $i ?>" aria-label="Team A player 2 slot <?= $i ?>"><option value="">— A2 —</option></select>
+                        <div class="player-info player-a2-info" data-slot="<?= $i ?>"></div>
+                    </div>
+                    <span class="vs">vs</span>
+                    <div class="team-pair team-b-pair">
+                        <select class="player-b1" data-slot="<?= $i ?>" aria-label="Team B player 1 slot <?= $i ?>"><option value="">— B1 —</option></select>
+                        <div class="player-info player-b1-info" data-slot="<?= $i ?>"></div>
+                        <select class="player-b2" data-slot="<?= $i ?>" aria-label="Team B player 2 slot <?= $i ?>"><option value="">— B2 —</option></select>
+                        <div class="player-info player-b2-info" data-slot="<?= $i ?>"></div>
+                    </div>
                 </div>
                 <button type="button" class="slot-reset" data-slot="<?= $i ?>" title="Clear this line">Reset</button>
+                <div class="differential-warning" data-slot="<?= $i ?>" role="status"></div>
             </div>
             <?php endfor; ?>
         </div>
@@ -293,6 +336,25 @@ include_once __DIR__ . '/includes/header.php';
         return teams[teamKey] || [];
     }
 
+    /** Build player options sorted by rank ascending, label "(rank) Name - G{group}" */
+    function formatPlayerOptions(playerNames) {
+        const ppg = parseInt(playersPerGroupEl.value, 10) || 4;
+        return (playerNames || []).map(function(name) {
+            var p = getPlayer(name);
+            var rank = p ? p.rank : null;
+            var group = rank != null ? groupForRank(rank, ppg) : null;
+            var displayLabel = rank != null ? '(' + rank + ') ' + name + ' - G' + group : name;
+            return { name: name, displayLabel: displayLabel };
+        }).sort(function(a, b) {
+            var rA = rankForName(a.name);
+            var rB = rankForName(b.name);
+            if (rA == null && rB == null) return (a.name || '').localeCompare(b.name || '');
+            if (rA == null) return 1;
+            if (rB == null) return -1;
+            return rA - rB;
+        });
+    }
+
     function fillSelect(select, options, valueAttr, labelAttr, emptyLabel) {
         const current = select.value;
         select.innerHTML = '';
@@ -328,9 +390,19 @@ include_once __DIR__ . '/includes/header.php';
         return document.querySelector('.lineup-slot[data-slot="' + slotIndex + '"]');
     }
 
+    function getSlotType(row) {
+        const sel = row ? row.querySelector('.slot-type') : null;
+        return (sel && sel.value === '2v2') ? '2v2' : '1vs1';
+    }
+
     function updateSlot(slotIndex) {
         const row = getSlotRow(slotIndex);
         if (!row) return;
+        const is2v2 = getSlotType(row) === '2v2';
+        if (is2v2) {
+            updateSlot2v2(slotIndex, row);
+            return;
+        }
         const selA = row.querySelector('.player-a');
         const selB = row.querySelector('.player-b');
         const teamAPlayers = getPlayers(teamAEl.value);
@@ -343,13 +415,97 @@ include_once __DIR__ . '/includes/header.php';
         if (playerA) optionsB = allowedOpponents(playerA, teamBPlayers);
         const curA = selA ? selA.value : '';
         const curB = selB ? selB.value : '';
-        fillSelect(selA, optionsA, null, null, '— Team A —');
-        fillSelect(selB, optionsB, null, null, '— Team B —');
+        fillSelect(selA, formatPlayerOptions(optionsA), 'name', 'displayLabel', '— Team A —');
+        fillSelect(selB, formatPlayerOptions(optionsB), 'name', 'displayLabel', '— Team B —');
         if (optionsA.indexOf(curA) !== -1) selA.value = curA;
         else if (curA) selA.value = '';
         if (optionsB.indexOf(curB) !== -1) selB.value = curB;
         else if (curB) selB.value = '';
         updatePlayerInfo(slotIndex);
+    }
+
+    function updateSlot2v2(slotIndex, row) {
+        const teamAPlayers = getPlayers(teamAEl.value);
+        const teamBPlayers = getPlayers(teamBEl.value);
+        const optsA = formatPlayerOptions(teamAPlayers);
+        const optsB = formatPlayerOptions(teamBPlayers);
+        ['a1', 'a2', 'b1', 'b2'].forEach(function(key) {
+            const sel = row.querySelector('.player-' + key);
+            if (!sel) return;
+            const cur = sel.value;
+            fillSelect(sel, key.indexOf('a') === 0 ? optsA : optsB, 'name', 'displayLabel', key.indexOf('a') === 0 ? '— A' + key.slice(-1) + ' —' : '— B' + key.slice(-1) + ' —');
+            if ((key.indexOf('a') === 0 ? teamAPlayers : teamBPlayers).indexOf(cur) !== -1) sel.value = cur;
+            else if (cur) sel.value = '';
+        });
+        updatePlayerInfo2v2(slotIndex, row);
+        updateDifferentialWarning(row);
+    }
+
+    function updateDifferentialWarning(row) {
+        const warnEl = row.querySelector('.differential-warning');
+        if (!warnEl) return;
+        const a1 = row.querySelector('.player-a1');
+        const a2 = row.querySelector('.player-a2');
+        const b1 = row.querySelector('.player-b1');
+        const b2 = row.querySelector('.player-b2');
+        const hasA = (a1 && a1.value) || (a2 && a2.value);
+        const hasB = (b1 && b1.value) || (b2 && b2.value);
+        if (!hasA || !hasB) {
+            warnEl.textContent = '';
+            warnEl.classList.remove('is-visible');
+            return;
+        }
+        const ppg = parseInt(playersPerGroupEl.value, 10) || 4;
+        const g = function(name) {
+            if (!name) return null;
+            var p = getPlayer(name);
+            return p ? groupForRank(p.rank, ppg) : null;
+        };
+        const ga1 = a1 && a1.value ? g(a1.value) : null;
+        const ga2 = a2 && a2.value ? g(a2.value) : null;
+        const gb1 = b1 && b1.value ? g(b1.value) : null;
+        const gb2 = b2 && b2.value ? g(b2.value) : null;
+        const sumA = (ga1 != null ? ga1 : 0) + (ga2 != null ? ga2 : 0);
+        const sumB = (gb1 != null ? gb1 : 0) + (gb2 != null ? gb2 : 0);
+        const diff = Math.abs(sumA - sumB);
+        if (diff >= 3) {
+            warnEl.textContent = 'Note: the skill differential based on groups is ' + diff + '.';
+            warnEl.classList.add('is-visible');
+        } else {
+            warnEl.textContent = '';
+            warnEl.classList.remove('is-visible');
+        }
+    }
+
+    function updatePlayerInfo2v2(slotIndex, row) {
+        var ppg = parseInt(playersPerGroupEl.value, 10) || 4;
+        ['a1', 'a2', 'b1', 'b2'].forEach(function(key) {
+            var sel = row.querySelector('.player-' + key);
+            var infoEl = row.querySelector('.player-' + key + '-info');
+            if (!infoEl) return;
+            infoEl.innerHTML = '';
+            var name = sel ? sel.value : '';
+            var player = getPlayer(name);
+            if (!player) return;
+            var rank = player.rank;
+            var group = groupForRank(rank, ppg);
+            var race = player.race || 'R';
+            var icon = raceIcons[race] || raceIcons['R'] || 'random_icon.png';
+            infoEl.innerHTML = '<span class="rank-badge">' + rank + '</span><img src="images/' + icon + '" alt="" class="race-icon" title="' + race + '"><span class="group-badge">G' + group + '</span>';
+        });
+        var band = row.querySelector('.skill-band');
+        if (band) {
+            var sels = [row.querySelector('.player-a1'), row.querySelector('.player-a2'), row.querySelector('.player-b1'), row.querySelector('.player-b2')];
+            var g = null;
+            sels.forEach(function(sel) {
+                if (sel && sel.value) {
+                    var p = getPlayer(sel.value);
+                    if (p) { var gg = groupForRank(p.rank, ppg); if (gg) g = g == null ? gg : Math.min(g, gg); }
+                }
+            });
+            band.className = 'skill-band' + (g ? ' g' + g : '');
+            band.style.display = g ? 'block' : 'none';
+        }
     }
 
     function updatePlayerInfo(slotIndex) {
@@ -387,12 +543,22 @@ include_once __DIR__ . '/includes/header.php';
     function refillAllSlots() {
         const teamAPlayers = getPlayers(teamAEl.value);
         const teamBPlayers = getPlayers(teamBEl.value);
+        const optsA = formatPlayerOptions(teamAPlayers);
+        const optsB = formatPlayerOptions(teamBPlayers);
         document.querySelectorAll('.lineup-slot').forEach(function(row) {
             const slotIndex = parseInt(row.getAttribute('data-slot'), 10);
-            const selA = row.querySelector('.player-a');
-            const selB = row.querySelector('.player-b');
-            fillSelect(selA, teamAPlayers, null, null, '— Team A —');
-            fillSelect(selB, teamBPlayers, null, null, '— Team B —');
+            if (getSlotType(row) === '2v2') {
+                ['a1', 'a2', 'b1', 'b2'].forEach(function(key) {
+                    const sel = row.querySelector('.player-' + key);
+                    if (sel) fillSelect(sel, key.indexOf('a') === 0 ? optsA : optsB, 'name', 'displayLabel', key.indexOf('a') === 0 ? '— A' + key.slice(-1) + ' —' : '— B' + key.slice(-1) + ' —');
+                });
+                updateSlot2v2(slotIndex, row);
+            } else {
+                const selA = row.querySelector('.player-a');
+                const selB = row.querySelector('.player-b');
+                fillSelect(selA, optsA, 'name', 'displayLabel', '— Team A —');
+                fillSelect(selB, optsB, 'name', 'displayLabel', '— Team B —');
+            }
         });
         [1,2,3,4,5,6].forEach(updateSlot);
     }
@@ -447,18 +613,107 @@ include_once __DIR__ . '/includes/header.php';
         });
     });
 
+    document.querySelectorAll('.slot-type').forEach(function(sel) {
+        sel.addEventListener('change', function() {
+            const slotIndex = parseInt(sel.getAttribute('data-slot'), 10);
+            const row = getSlotRow(slotIndex);
+            if (!row) return;
+            row.classList.toggle('slot-type-2v2', sel.value === '2v2');
+            if (sel.value === '2v2') {
+                const teamAPlayers = getPlayers(teamAEl.value);
+                const teamBPlayers = getPlayers(teamBEl.value);
+                ['a1', 'a2', 'b1', 'b2'].forEach(function(key) {
+                    const s = row.querySelector('.player-' + key);
+                    if (s) fillSelect(s, formatPlayerOptions(key.indexOf('a') === 0 ? teamAPlayers : teamBPlayers), 'name', 'displayLabel', key.indexOf('a') === 0 ? '— A' + key.slice(-1) + ' —' : '— B' + key.slice(-1) + ' —');
+                });
+                row.querySelector('.player-a').value = '';
+                row.querySelector('.player-b').value = '';
+            }
+            updateSlot(slotIndex);
+        });
+    });
+
+    document.querySelectorAll('.lineup-slots').forEach(function(container) {
+        container.addEventListener('change', function(e) {
+            var t = e.target;
+            if (t.matches('.player-a1, .player-a2, .player-b1, .player-b2')) {
+                var row = t.closest('.lineup-slot');
+                if (row && getSlotType(row) === '2v2') {
+                    var slotIndex = parseInt(row.getAttribute('data-slot'), 10);
+                    updateSlot2v2(slotIndex, row);
+                }
+            }
+        });
+    });
+
     document.querySelectorAll('.slot-reset').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const slotIndex = parseInt(btn.getAttribute('data-slot'), 10);
             const row = getSlotRow(slotIndex);
             if (!row) return;
-            const selA = row.querySelector('.player-a');
-            const selB = row.querySelector('.player-b');
-            if (selA) selA.value = '';
-            if (selB) selB.value = '';
-            updateSlot(slotIndex);
+            if (getSlotType(row) === '2v2') {
+                ['a1', 'a2', 'b1', 'b2'].forEach(function(key) {
+                    const s = row.querySelector('.player-' + key);
+                    if (s) s.value = '';
+                });
+                updateSlot2v2(slotIndex, row);
+            } else {
+                const selA = row.querySelector('.player-a');
+                const selB = row.querySelector('.player-b');
+                if (selA) selA.value = '';
+                if (selB) selB.value = '';
+                updateSlot(slotIndex);
+            }
         });
     });
+
+    (function initDragDrop() {
+        var slotsContainer = document.getElementById('lineupSlots');
+        if (!slotsContainer) return;
+        var dragged = null;
+        slotsContainer.addEventListener('dragstart', function(e) {
+            if (!e.target.closest('.slot-drag-handle')) return;
+            var row = e.target.closest('.lineup-slot');
+            if (!row) return;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', row.getAttribute('data-slot'));
+            dragged = row;
+            row.classList.add('dragging');
+        });
+        slotsContainer.addEventListener('dragend', function(e) {
+            if (dragged) dragged.classList.remove('dragging');
+            slotsContainer.querySelectorAll('.lineup-slot.drag-over').forEach(function(r) { r.classList.remove('drag-over'); });
+            dragged = null;
+        });
+        slotsContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            var row = e.target.closest('.lineup-slot');
+            if (row && dragged && row !== dragged) row.classList.add('drag-over');
+        });
+        slotsContainer.addEventListener('dragleave', function(e) {
+            var row = e.target.closest('.lineup-slot');
+            if (row) row.classList.remove('drag-over');
+        });
+        slotsContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            var row = e.target.closest('.lineup-slot');
+            if (!row || !dragged || row === dragged) return;
+            row.classList.remove('drag-over');
+            var next = row.nextElementSibling;
+            if (next && next.classList.contains('lineup-slot')) dragged.parentNode.insertBefore(dragged, next);
+            else dragged.parentNode.appendChild(dragged);
+            var slots = slotsContainer.querySelectorAll('.lineup-slot');
+            slots.forEach(function(s, i) {
+                var idx = i + 1;
+                s.setAttribute('data-slot', idx);
+                var numEl = s.querySelector('.slot-num');
+                if (numEl) numEl.textContent = idx + '.';
+                s.querySelectorAll('[data-slot]').forEach(function(el) { el.setAttribute('data-slot', idx); });
+            });
+            dragged = null;
+        });
+    })();
 
     function buildLineupParams(extra) {
         const teamA = teamAEl.value;
@@ -469,11 +724,18 @@ include_once __DIR__ . '/includes/header.php';
         const date = document.getElementById('lineupDate').value;
         const slots = [];
         document.querySelectorAll('.lineup-slot').forEach(function(row) {
-            const sa = row.querySelector('.player-a');
-            const sb = row.querySelector('.player-b');
-            const a = sa ? sa.value : '';
-            const b = sb ? sb.value : '';
-            if (a || b) slots.push({ playerA: a, playerB: b });
+            const type = getSlotType(row);
+            if (type === '2v2') {
+                const a1 = (row.querySelector('.player-a1') || {}).value || '';
+                const a2 = (row.querySelector('.player-a2') || {}).value || '';
+                const b1 = (row.querySelector('.player-b1') || {}).value || '';
+                const b2 = (row.querySelector('.player-b2') || {}).value || '';
+                if (a1 || a2 || b1 || b2) slots.push({ type: '2v2', playerA1: a1, playerA2: a2, playerB1: b1, playerB2: b2 });
+            } else {
+                const a = (row.querySelector('.player-a') || {}).value || '';
+                const b = (row.querySelector('.player-b') || {}).value || '';
+                if (a || b) slots.push({ type: '1vs1', playerA: a, playerB: b });
+            }
         });
         var p = {
             teamA: teamA,

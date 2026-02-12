@@ -108,13 +108,81 @@ try {
     $stmt->execute(['currentSeason' => $currentSeason]);
     $seasonRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Organize season records by team name
+    // Season sets/maps (games) from fsl_matches for current season
+    $seasonMapsSetsQuery = "
+        SELECT 
+            t.Team_ID,
+            t.Team_Name,
+            COALESCE(SUM(CASE WHEN fm.winner_team_id = t.Team_ID THEN 1 ELSE 0 END), 0) as sets_w,
+            COALESCE(SUM(CASE WHEN fm.loser_team_id = t.Team_ID THEN 1 ELSE 0 END), 0) as sets_l,
+            COALESCE(SUM(CASE WHEN fm.winner_team_id = t.Team_ID THEN fm.map_win WHEN fm.loser_team_id = t.Team_ID THEN fm.map_loss ELSE 0 END), 0) as maps_w,
+            COALESCE(SUM(CASE WHEN fm.winner_team_id = t.Team_ID THEN fm.map_loss WHEN fm.loser_team_id = t.Team_ID THEN fm.map_win ELSE 0 END), 0) as maps_l
+        FROM Teams t
+        LEFT JOIN fsl_matches fm ON (fm.winner_team_id = t.Team_ID OR fm.loser_team_id = t.Team_ID) AND fm.season = :currentSeason
+        GROUP BY t.Team_ID, t.Team_Name
+    ";
+    $stmt = $db->prepare($seasonMapsSetsQuery);
+    $stmt->execute(['currentSeason' => $currentSeason]);
+    $seasonMapsSets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $mapsSetsByTeamId = [];
+    foreach ($seasonMapsSets as $row) {
+        $mapsSetsByTeamId[(int)$row['Team_ID']] = [
+            'sets_w' => (int)($row['sets_w'] ?? 0),
+            'sets_l' => (int)($row['sets_l'] ?? 0),
+            'maps_w' => (int)($row['maps_w'] ?? 0),
+            'maps_l' => (int)($row['maps_l'] ?? 0),
+        ];
+    }
+
+    // Organize season records by team name (include games/sets)
     $teamRecords = [];
     foreach ($seasonRecords as $record) {
+        $tid = (int)($record['Team_ID'] ?? 0);
+        $ms = $mapsSetsByTeamId[$tid] ?? ['sets_w' => 0, 'sets_l' => 0, 'maps_w' => 0, 'maps_l' => 0];
         $teamRecords[$record['Team_Name']] = [
             'wins' => $record['wins'] ?? 0,
-            'losses' => $record['losses'] ?? 0
+            'losses' => $record['losses'] ?? 0,
+            'sets_w' => $ms['sets_w'],
+            'sets_l' => $ms['sets_l'],
+            'maps_w' => $ms['maps_w'],
+            'maps_l' => $ms['maps_l'],
         ];
+    }
+
+    // Rankings: name -> rank; rank -> group (S/A/B) from config
+    $rankingsPath = __DIR__ . '/rankings/rankings.json';
+    $rankingsConfigPath = __DIR__ . '/rankings/rankings_config.json';
+    $playerRank = [];
+    $playerGroup = [];
+    $playerGroupNum = [];
+    if (is_readable($rankingsPath)) {
+        $rankingsList = json_decode(file_get_contents($rankingsPath), true);
+        if (is_array($rankingsList)) {
+            $config = [];
+            if (is_readable($rankingsConfigPath)) {
+                $config = json_decode(file_get_contents($rankingsConfigPath), true) ?: [];
+            }
+            $codeToLevel = ['codeS' => 'S', 'codeA' => 'A', 'codeB' => 'B'];
+            $codeToGroupNum = ['codeS' => 1, 'codeA' => 2, 'codeB' => 3];
+            foreach ($rankingsList as $entry) {
+                $name = $entry['name'] ?? '';
+                $rank = isset($entry['rank']) ? (int)$entry['rank'] : null;
+                if ($name !== '') {
+                    $playerRank[$name] = $rank;
+                    $group = '';
+                    $gNum = null;
+                    foreach ($config as $code => $rng) {
+                        if (isset($rng['minRank'], $rng['maxRank']) && $rank !== null && $rank >= $rng['minRank'] && $rank <= $rng['maxRank']) {
+                            $group = $codeToLevel[$code] ?? $code;
+                            $gNum = $codeToGroupNum[$code] ?? null;
+                            break;
+                        }
+                    }
+                    $playerGroup[$name] = $group;
+                    $playerGroupNum[$name] = $gNum;
+                }
+            }
+        }
     }
     
 } catch (PDOException $e) {
@@ -286,6 +354,18 @@ include_once 'includes/header.php';
       color: #00d4ff;
       text-shadow: 0 0 5px #00d4ff;
     }
+    .group-badge {
+      font-size: 0.7rem;
+      color: #6c5ce7;
+      background: rgba(108, 92, 231, 0.25);
+      padding: 0.1rem 0.35rem;
+      border-radius: 6px;
+      margin-left: 0.25rem;
+    }
+    .rank-cell {
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -293,13 +373,39 @@ include_once 'includes/header.php';
     <h1>FSL Team Roster</h1>
 
     <?php
-    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason) {
+    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason, $playerRank, $playerGroup, $playerGroupNum) {
         $teamLogo = getTeamLogo($teamName);
-        $wins = $teamRecords[$teamName]['wins'] ?? 0;
-        $losses = $teamRecords[$teamName]['losses'] ?? 0;
+        $rec = $teamRecords[$teamName] ?? [];
+        $wins = $rec['wins'] ?? 0;
+        $losses = $rec['losses'] ?? 0;
+        $setsW = $rec['sets_w'] ?? 0;
+        $setsL = $rec['sets_l'] ?? 0;
+        $mapsW = $rec['maps_w'] ?? 0;
+        $mapsL = $rec['maps_l'] ?? 0;
         $first = $teams[$teamName][0] ?? null;
         $captainId = $first['Captain_ID'] ?? null;
         $coCaptainId = $first['Co_Captain_ID'] ?? null;
+        // Sort: Captain first, Co-captain second, then by rank/group ascending (best first)
+        usort($players, function ($a, $b) use ($playerRank, $playerGroupNum, $captainId, $coCaptainId) {
+            $aid = (int)($a['Player_ID'] ?? 0);
+            $bid = (int)($b['Player_ID'] ?? 0);
+            $aOrder = ($aid === (int)$captainId) ? 1 : (($aid === (int)$coCaptainId) ? 2 : 3);
+            $bOrder = ($bid === (int)$captainId) ? 1 : (($bid === (int)$coCaptainId) ? 2 : 3);
+            if ($aOrder !== $bOrder) {
+                return $aOrder <=> $bOrder;
+            }
+            if ($aOrder !== 3) {
+                return 0;
+            }
+            $ra = $playerRank[$a['Player_Name']] ?? PHP_INT_MAX;
+            $rb = $playerRank[$b['Player_Name']] ?? PHP_INT_MAX;
+            if ($ra !== $rb) {
+                return $ra <=> $rb;
+            }
+            $ga = $playerGroupNum[$a['Player_Name']] ?? PHP_INT_MAX;
+            $gb = $playerGroupNum[$b['Player_Name']] ?? PHP_INT_MAX;
+            return $ga <=> $gb;
+        });
         ?>
       <div class="team">
         <?php if ($teamLogo): ?>
@@ -313,20 +419,32 @@ include_once 'includes/header.php';
         <div style="text-align: center; margin-bottom: 5px; color: #b0b0b0; font-size: 0.9em;">
           <?= count($players) ?> player<?= count($players) === 1 ? '' : 's' ?>
         </div>
-        <div style="text-align: center; margin-bottom: 15px; color: #00d4ff;">
+        <div style="text-align: center; margin-bottom: 8px; color: #00d4ff;">
           <strong><a href="fsl_schedule.php" style="color:rgb(46, 111, 124); text-decoration: none;">Season <?= $currentSeason ?>: <font size="+2" color="#00d4ff"><?= $wins ?> - <?= $losses ?></font></a></strong>
+        </div>
+        <div style="text-align: center; margin-bottom: 15px; color: #b0b0b0; font-size: 0.85em;">
+          <?= $mapsW ?>-<?= $mapsL ?> games, <?= $setsW ?>-<?= $setsL ?> sets
         </div>
         <table>
           <thead>
             <tr>
+              <th>Rank</th>
               <th>Player</th>
               <th>Race</th>
-              <th>Level</th>
             </tr>
           </thead>
           <tbody>
             <?php foreach ($players as $player): ?>
+            <?php
+            $rank = $playerRank[$player['Player_Name']] ?? null;
+            $group = $playerGroup[$player['Player_Name']] ?? '';
+            $gNum = $playerGroupNum[$player['Player_Name']] ?? null;
+            $rankLabel = ($rank !== null && $group !== '' && $gNum !== null)
+                ? htmlspecialchars($group) . ' G' . (int)$gNum . ' #' . (int)$rank
+                : ($rank !== null ? '#' . (int)$rank : '—');
+            ?>
             <tr>
+              <td class="rank-cell"><?= $rankLabel ?></td>
               <td><a href="view_player.php?name=<?= urlencode($player['Player_Name']) ?>" class="player-link" title="<?= $player['Player_ID'] == $captainId ? 'Captain' : ($player['Player_ID'] == $coCaptainId ? 'Co-captain' : '') ?>">
                   <?= htmlspecialchars($player['Player_Name']) ?>
                   <?php if ($player['Player_ID'] == $captainId): ?>
@@ -352,9 +470,6 @@ include_once 'includes/header.php';
                 <?php else: ?>
                     N/A
                 <?php endif; ?>
-              </td>
-              <td class="division-<?= htmlspecialchars($player['Division'] ?? '') ?>">
-                <?= htmlspecialchars($player['Division'] ?? 'N/A') ?>
               </td>
             </tr>
             <?php endforeach; ?>

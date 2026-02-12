@@ -7,6 +7,7 @@
 ob_start();
 session_start();
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/team_logo.php';
 
 $rankingsFile = __DIR__ . '/rankings.json';
 $configFile = __DIR__ . '/rankings_config.json';
@@ -126,6 +127,65 @@ if (file_exists($rankingsFile)) {
     $rankings = json_decode(file_get_contents($rankingsFile), true) ?? [];
 }
 
+// Season and all-time W-L (sets) per player for display
+$playerRecords = [];
+$currentSeason = null;
+try {
+    $row = $db->query("SELECT MAX(season) as s FROM fsl_matches")->fetch(PDO::FETCH_ASSOC);
+    $currentSeason = $row && isset($row['s']) ? (int) $row['s'] : null;
+} catch (PDOException $e) {
+    // leave $currentSeason null
+}
+if (!empty($rankings) && $currentSeason !== null) {
+    $names = array_unique(array_filter(array_map(function ($p) { return trim((string)($p['name'] ?? '')); }, $rankings)));
+    if (!empty($names)) {
+        $placeholders = implode(',', array_fill(0, count($names), '?'));
+        $stmt = $db->prepare("SELECT Player_ID, Real_Name FROM Players WHERE Real_Name IN ($placeholders)");
+        $stmt->execute(array_values($names));
+        $nameToPid = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $nameToPid[trim($row['Real_Name'])] = (int) $row['Player_ID'];
+            $nameToPid[strtolower(trim($row['Real_Name']))] = (int) $row['Player_ID'];
+        }
+        foreach ($names as $name) {
+            $pid = $nameToPid[$name] ?? $nameToPid[strtolower($name)] ?? null;
+            if ($pid === null) continue;
+            $playerRecords[$name] = [
+                'season_sw' => 0, 'season_sl' => 0, 'season_mw' => 0, 'season_ml' => 0,
+                'alltime_sw' => 0, 'alltime_sl' => 0, 'alltime_mw' => 0, 'alltime_ml' => 0
+            ];
+            $stmt = $db->prepare("
+                SELECT
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sets_w,
+                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sets_l,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as maps_w,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as maps_l
+                FROM fsl_matches WHERE season = ? AND (winner_player_id = ? OR loser_player_id = ?)
+            ");
+            $stmt->execute([$pid, $pid, $pid, $pid, $currentSeason, $pid, $pid]);
+            $r = $stmt->fetch(PDO::FETCH_ASSOC);
+            $playerRecords[$name]['season_sw'] = (int)($r['sets_w'] ?? 0);
+            $playerRecords[$name]['season_sl'] = (int)($r['sets_l'] ?? 0);
+            $playerRecords[$name]['season_mw'] = (int)($r['maps_w'] ?? 0);
+            $playerRecords[$name]['season_ml'] = (int)($r['maps_l'] ?? 0);
+            $stmt = $db->prepare("
+                SELECT
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sets_w,
+                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sets_l,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as maps_w,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as maps_l
+                FROM fsl_matches WHERE winner_player_id = ? OR loser_player_id = ?
+            ");
+            $stmt->execute([$pid, $pid, $pid, $pid, $pid, $pid]);
+            $r = $stmt->fetch(PDO::FETCH_ASSOC);
+            $playerRecords[$name]['alltime_sw'] = (int)($r['sets_w'] ?? 0);
+            $playerRecords[$name]['alltime_sl'] = (int)($r['sets_l'] ?? 0);
+            $playerRecords[$name]['alltime_mw'] = (int)($r['maps_w'] ?? 0);
+            $playerRecords[$name]['alltime_ml'] = (int)($r['maps_l'] ?? 0);
+        }
+    }
+}
+
 // Load code tier config (Code S, A, B rank ranges)
 $totalPlayers = count($rankings);
 $third = max(1, (int) ceil($totalPlayers / 3));
@@ -149,10 +209,35 @@ if (file_exists($configFile)) {
 
 $raceIcons = [
     'T' => 'terran_icon.png',
-    'P' => 'protoss_icon.png', 
+    'P' => 'protoss_icon.png',
     'Z' => 'zerg_icon.png',
     'R' => 'random_icon.png'
 ];
+
+// Team logo per player (by ranking name)
+$playerTeamLogo = [];
+if (!empty($rankings)) {
+    $names = array_unique(array_filter(array_map(function ($p) { return trim((string)($p['name'] ?? '')); }, $rankings)));
+    if (!empty($names)) {
+        $placeholders = implode(',', array_fill(0, count($names), '?'));
+        $stmt = $db->prepare("SELECT p.Real_Name, t.Team_Name FROM Players p JOIN Teams t ON p.Team_ID = t.Team_ID WHERE p.Real_Name IN ($placeholders)");
+        $stmt->execute(array_values($names));
+        $nameToTeam = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $nameToTeam[trim($row['Real_Name'])] = trim($row['Team_Name']);
+            $nameToTeam[strtolower(trim($row['Real_Name']))] = trim($row['Team_Name']);
+        }
+        foreach ($names as $name) {
+            $teamName = $nameToTeam[$name] ?? $nameToTeam[strtolower($name)] ?? null;
+            if ($teamName) {
+                $logo = getTeamLogo($teamName, '256px');
+                if ($logo) {
+                    $playerTeamLogo[$name] = $logo;
+                }
+            }
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -173,12 +258,19 @@ $raceIcons = [
         }
         
         .rankings-container {
-            max-width: 800px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
             padding: 2rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .rankings-header {
+            width: 100%;
             text-align: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
@@ -203,21 +295,28 @@ $raceIcons = [
         }
         
         .rankings-list {
+            width: max-content;
+            max-width: 100%;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             padding: 1rem;
+        }
+        .rankings-rows {
+            min-width: 0;
+            padding-left: var(--rankings-row-pad, 0.25rem);
         }
         
         .player-row {
             display: flex;
             align-items: center;
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 0.75rem;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.35rem;
             transition: all 0.2s ease;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
+            box-sizing: border-box;
         }
         
         .player-row:hover {
@@ -258,26 +357,28 @@ $raceIcons = [
         }
         
         .rank-badge {
-            width: 40px;
-            height: 40px;
+            width: 26px;
+            height: 26px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #6c5ce7, #a29bfe);
             border-radius: 50%;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.1rem;
+            font-size: 0.75rem;
             font-weight: 700;
             color: #fff;
-            margin-right: 1rem;
+            margin-right: 0.5rem;
             flex-shrink: 0;
         }
         
         .player-name {
             font-family: 'Exo 2', sans-serif;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
             flex: 1;
+            min-width: 0;
+            max-width: 180px;
         }
         
         .player-name a {
@@ -307,23 +408,159 @@ $raceIcons = [
         }
         
         .race-icon {
-            width: 28px;
-            height: 28px;
-            margin-right: 1rem;
+            width: 22px;
+            height: 22px;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
         }
-        
+
+        /* Right side: Group, Team, All (sets + games stacked) */
+        .player-row-right {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 0;
+        }
         .group-badge {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: #6c5ce7;
             background: rgba(108, 92, 231, 0.2);
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            margin-right: 0.5rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            width: 2rem;
+            text-align: center;
+            flex-shrink: 0;
         }
-        
+        .player-row .team-logo-cell {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 0.5rem;
+        }
+        .player-row .team-logo-cell img {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid rgba(108, 92, 231, 0.3);
+        }
+        /* Season and All-time: each column has label then games, sets */
+        .player-records-block {
+            display: flex;
+            gap: 0.75rem;
+            margin-left: 0.5rem;
+            font-size: 0.7rem;
+            color: #888;
+            flex-shrink: 0;
+        }
+        .player-records-col {
+            text-align: left;
+            min-width: 3.5rem;
+        }
+        .player-records-col .record-col-label {
+            display: block;
+            color: #666;
+            font-size: 0.65rem;
+            margin-bottom: 0.1rem;
+        }
+        .player-records-block .record-line {
+            display: block;
+            white-space: nowrap;
+        }
+        .player-records-block .record-num {
+            color: #b8b8b8;
+            font-weight: 600;
+        }
+
+        /* Header: inside .rankings-list-content so strip is to its left; padding matches .rankings-rows */
+        .rankings-list-header {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.75rem 0.25rem var(--rankings-row-pad, 0.25rem);
+            margin-bottom: 0;
+            color: #666;
+            font-size: 0.7rem;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            box-sizing: border-box;
+        }
+        .rankings-list-header .drag-handle-header {
+            width: 24px;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        .rankings-list-header .rank-badge-header {
+            width: 26px;
+            min-width: 26px;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 0.65rem;
+        }
+        .rankings-list-header .race-icon-header {
+            width: 22px;
+            min-width: 22px;
+            height: 22px;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+            text-align: center;
+            font-size: 0.65rem;
+        }
+        .rankings-list-header .player-name-header {
+            flex: 1;
+            min-width: 0;
+            max-width: 180px;
+        }
+        .rankings-list-header .group-badge-header {
+            width: 2rem;
+            flex-shrink: 0;
+        }
+        .rankings-list-header .team-logo-header {
+            width: 28px;
+            margin-left: 0.5rem;
+            flex-shrink: 0;
+        }
+        .rankings-list-header .player-records-block {
+            margin-left: 0.5rem;
+            gap: 0.75rem;
+        }
+        .rankings-list-header .player-records-block .player-records-col {
+            min-width: 3.5rem;
+        }
+        .rankings-list-header .record-sublabel {
+            color: #555;
+            font-size: 0.6rem;
+        }
+
+        @media (max-width: 768px) {
+            .rankings-container { padding: 0.75rem; }
+            .rankings-list { padding: 0.5rem; }
+            .player-row { padding: 0.4rem 0.5rem; margin-bottom: 0.25rem; }
+            .rank-badge { width: 22px; height: 22px; font-size: 0.65rem; margin-right: 0.35rem; }
+            .race-icon { width: 18px; height: 18px; margin-right: 0.35rem; }
+            .player-name { font-size: 0.9rem; }
+            .group-badge { width: 1.75rem; font-size: 0.65rem; padding: 0.1rem 0.25rem; }
+            .player-row .team-logo-cell { width: 24px; height: 24px; margin-left: 0.35rem; }
+            .player-row .team-logo-cell img { width: 20px; height: 20px; }
+            .player-records-block { font-size: 0.65rem; margin-left: 0.35rem; gap: 0.5rem; }
+            .player-records-col { min-width: 2.75rem; }
+            .player-records-col .record-col-label { font-size: 0.6rem; }
+            .rankings-list-header { padding: 0.35rem 0.5rem 0.25rem var(--rankings-row-pad, 0.25rem); font-size: 0.65rem; }
+            .rankings-list-header .rank-badge-header { width: 22px; margin-right: 0.35rem; }
+            .rankings-list-header .race-icon-header { width: 18px; margin-right: 0.35rem; }
+            .rankings-list-header .group-badge-header { width: 1.75rem; }
+            .rankings-list-header .team-logo-header { width: 24px; margin-left: 0.35rem; }
+            .rankings-list-header .player-records-block { margin-left: 0.35rem; gap: 0.5rem; }
+            .rankings-list-header .player-records-block .player-records-col { min-width: 2.75rem; }
+            .move-buttons { display: none; }
+        }
+
         .move-buttons {
             display: flex;
             gap: 0.25rem;
+            flex-shrink: 0;
         }
         
         .move-btn {
@@ -355,13 +592,21 @@ $raceIcons = [
             padding: 0 0.5rem;
             color: #555;
             margin-right: 0.5rem;
+            width: 24px;
+            flex-shrink: 0;
+            display: inline-block;
+            box-sizing: border-box;
         }
+        /* View mode: drag-handle keeps 24px so columns align; hidden via visibility. Edit mode: #rankingsList.edit-mode shows it. */
+        .drag-handle.edit-only { visibility: hidden; }
+        #rankingsList.edit-mode .drag-handle.edit-only { visibility: visible; }
         
         .drag-handle:active {
             cursor: grabbing;
         }
         
         .edit-mode-toggle {
+            width: 100%;
             text-align: center;
             margin-bottom: 1rem;
         }
@@ -386,11 +631,23 @@ $raceIcons = [
             display: flex;
             gap: 0;
             align-items: stretch;
+            min-height: 0;
         }
-        
+
+        .rankings-list-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            --rankings-row-pad: 0.25rem;
+        }
+
         .code-tier-strip {
+            flex: 0 0 28px;
             width: 28px;
             min-width: 28px;
+            align-self: stretch;
+            min-height: 100%;
             border-radius: 8px 0 0 8px;
             overflow: hidden;
             display: flex;
@@ -491,13 +748,6 @@ $raceIcons = [
         }
         
         
-        @media (max-width: 768px) {
-            .rankings-container { padding: 1rem; }
-            .player-row { padding: 0.5rem; }
-            .rank-badge { width: 32px; height: 32px; font-size: 0.9rem; }
-            .player-name { font-size: 1rem; }
-            .move-buttons { display: none; }
-        }
     </style>
 </head>
 <body>
@@ -530,14 +780,35 @@ $raceIcons = [
             else $bRows++;
         }
         ?>
-        <div class="rankings-with-indicator">
-            <div class="code-tier-strip" title="Code S: #<?= $codeTiers['codeS']['minRank'] ?>–<?= $codeTiers['codeS']['maxRank'] ?> · Code A: #<?= $codeTiers['codeA']['minRank'] ?>–<?= $codeTiers['codeA']['maxRank'] ?> · Code B: #<?= $codeTiers['codeB']['minRank'] ?>–<?= $codeTiers['codeB']['maxRank'] ?>">
-                <div class="code-zone code-s" style="flex: <?= $sRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>S</span></div>
-                <div class="code-zone code-a" style="flex: <?= $aRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>A</span></div>
-                <div class="code-zone code-b" style="flex: <?= $bRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>B</span></div>
-            </div>
-        <div class="rankings-list" id="rankingsList">
-            <?php 
+        <div class="rankings-list">
+            <!-- Layout: strip then header+rows so strip is left of both -->
+            <div class="rankings-with-indicator">
+                <div class="code-tier-strip" title="Code S: #<?= $codeTiers['codeS']['minRank'] ?>–<?= $codeTiers['codeS']['maxRank'] ?> · Code A: #<?= $codeTiers['codeA']['minRank'] ?>–<?= $codeTiers['codeA']['maxRank'] ?> · Code B: #<?= $codeTiers['codeB']['minRank'] ?>–<?= $codeTiers['codeB']['maxRank'] ?>">
+                    <div class="code-zone code-s" style="flex: <?= $sRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>S</span></div>
+                    <div class="code-zone code-a" style="flex: <?= $aRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>A</span></div>
+                    <div class="code-zone code-b" style="flex: <?= $bRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>B</span></div>
+                </div>
+                <div class="rankings-list-content">
+                    <div class="rankings-list-header" data-layout="strip-left-of-header">
+                        <?php if ($canEdit): ?><span class="drag-handle-header"></span><?php endif; ?>
+                        <span class="rank-badge-header">Rank</span>
+                        <span class="race-icon-header">Race</span>
+                        <span class="player-name-header">Player</span>
+                        <span class="group-badge-header">G</span>
+                        <span class="team-logo-header">Team</span>
+                        <div class="player-records-block header-records">
+                            <div class="player-records-col">
+                                <span class="record-col-label">Season:</span>
+                                <span class="record-line record-sublabel">games, sets</span>
+                            </div>
+                            <div class="player-records-col">
+                                <span class="record-col-label">All-time:</span>
+                                <span class="record-line record-sublabel">games, sets</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="rankings-rows" id="rankingsList">
+            <?php
             foreach ($rankings as $index => $player): 
                 $rank = (int) $player['rank'];
                 $group = (int) ceil($rank / 4);
@@ -547,14 +818,42 @@ $raceIcons = [
                 <div class="player-row" data-index="<?= $index ?>" data-code="<?= $code ?>" draggable="false">
                     <div class="skill-band g<?= $group ?>"></div>
                     <?php if ($canEdit): ?>
-                    <span class="drag-handle edit-only" style="display: none;"><i class="fas fa-grip-vertical"></i></span>
+                    <span class="drag-handle edit-only"><i class="fas fa-grip-vertical"></i></span>
                     <?php endif; ?>
                     <span class="rank-badge"><?= $player['rank'] ?></span>
                     <img src="../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
                     <span class="player-name" data-index="<?= $index ?>">
                         <a href="../view_player.php?name=<?= urlencode($player['name']) ?>" class="player-name-link"><?= htmlspecialchars($player['name']) ?></a>
                     </span>
-                    <span class="group-badge">G<?= $group ?></span>
+                    <div class="player-row-right">
+                        <span class="group-badge">G<?= $group ?></span>
+                        <div class="team-logo-cell">
+                            <?php
+                            $pname = isset($player['name']) ? trim($player['name']) : '';
+                            $logo = $pname ? ($playerTeamLogo[$pname] ?? $playerTeamLogo[strtolower($pname)] ?? null) : null;
+                            if ($logo):
+                            ?><img src="../<?= htmlspecialchars($logo) ?>" alt=""><?php endif; ?>
+                        </div>
+                        <?php
+                        $rec = isset($player['name']) ? ($playerRecords[trim($player['name'])] ?? $playerRecords[strtolower(trim($player['name']))] ?? null) : null;
+                        $rec = $rec ?? [
+                            'season_sw' => 0, 'season_sl' => 0, 'season_mw' => 0, 'season_ml' => 0,
+                            'alltime_sw' => 0, 'alltime_sl' => 0, 'alltime_mw' => 0, 'alltime_ml' => 0
+                        ];
+                        ?>
+                        <div class="player-records-block" title="Season and all-time: games (W-L), sets (W-L)">
+                            <div class="player-records-col">
+                                <span class="record-col-label">Season:</span>
+                                <span class="record-line"><span class="record-num"><?= $rec['season_mw'] ?>-<?= $rec['season_ml'] ?></span></span>
+                                <span class="record-line"><span class="record-num"><?= $rec['season_sw'] ?>-<?= $rec['season_sl'] ?></span></span>
+                            </div>
+                            <div class="player-records-col">
+                                <span class="record-col-label">All-time:</span>
+                                <span class="record-line"><span class="record-num"><?= $rec['alltime_mw'] ?>-<?= $rec['alltime_ml'] ?></span></span>
+                                <span class="record-line"><span class="record-num"><?= $rec['alltime_sw'] ?>-<?= $rec['alltime_sl'] ?></span></span>
+                            </div>
+                        </div>
+                    </div>
                     <?php if ($canEdit): ?>
                     <div class="move-buttons edit-only" style="display: none;">
                         <button class="move-btn move-up" data-index="<?= $index ?>" <?= $index === 0 ? 'disabled' : '' ?>>
@@ -567,7 +866,9 @@ $raceIcons = [
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
-        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -614,13 +915,18 @@ $raceIcons = [
         function toggleEditMode() {
             editMode = !editMode;
             const btn = document.getElementById('editModeBtn');
+            const listEl = document.getElementById('rankingsList');
             const editElements = document.querySelectorAll('.edit-only');
             const rows = document.querySelectorAll('.player-row');
             
             if (editMode) {
                 btn.innerHTML = '<i class="fas fa-eye"></i> View Mode';
                 btn.style.background = 'linear-gradient(135deg, #00b894, #55efc4)';
-                editElements.forEach(el => { el.style.display = el.classList.contains('move-buttons') ? 'flex' : 'inline-block'; });
+                listEl.classList.add('edit-mode');
+                editElements.forEach(el => {
+                    if (el.classList.contains('move-buttons')) el.style.display = 'flex';
+                    else { el.style.removeProperty('display'); el.style.removeProperty('visibility'); }
+                });
                 rows.forEach(row => {
                     row.draggable = true;
                     row.addEventListener('dragstart', handleDragStart);
@@ -634,7 +940,10 @@ $raceIcons = [
             } else {
                 btn.innerHTML = '<i class="fas fa-edit"></i> Enable Edit Mode';
                 btn.style.background = 'linear-gradient(135deg, #6c5ce7, #a29bfe)';
-                editElements.forEach(el => el.style.display = 'none');
+                listEl.classList.remove('edit-mode');
+                editElements.forEach(el => {
+                    if (el.classList.contains('move-buttons')) el.style.display = 'none';
+                });
                 rows.forEach(row => {
                     row.draggable = false;
                     row.removeEventListener('dragstart', handleDragStart);

@@ -79,10 +79,18 @@ try {
 
     $playerNames = [];
     foreach ($slots as $s) {
-        $a = isset($s['playerA']) ? trim((string) $s['playerA']) : '';
-        $b = isset($s['playerB']) ? trim((string) $s['playerB']) : '';
-        if ($a !== '') $playerNames[$a] = true;
-        if ($b !== '') $playerNames[$b] = true;
+        $type = isset($s['type']) ? trim((string) $s['type']) : '1vs1';
+        if ($type === '2v2') {
+            foreach (['playerA1', 'playerA2', 'playerB1', 'playerB2'] as $key) {
+                $name = isset($s[$key]) ? trim((string) $s[$key]) : '';
+                if ($name !== '') $playerNames[$name] = true;
+            }
+        } else {
+            $a = isset($s['playerA']) ? trim((string) $s['playerA']) : '';
+            $b = isset($s['playerB']) ? trim((string) $s['playerB']) : '';
+            if ($a !== '') $playerNames[$a] = true;
+            if ($b !== '') $playerNames[$b] = true;
+        }
     }
     $playerNames = array_keys($playerNames);
     if (!empty($playerNames)) {
@@ -239,6 +247,7 @@ if ($outputHtml) {
         .lineup-pdf-meta { font-size: 0.85rem; color: #888; margin-top: 0.5rem; }
         .lineup-table .player-record { font-size: 0.75rem; color: #888; margin-top: 0.15rem; }
         .lineup-table .player-record .record-num { color: #fff; }
+        .lineup-table .line-type-tag { font-size: 0.7rem; color: #00b894; margin-left: 0.35rem; }
         .lineup-pdf-table-wrap { background: rgba(0, 0, 0, 0.25); border-radius: 10px; overflow: hidden; border: 1px solid rgba(108, 92, 231, 0.2); }
         table.lineup-table { width: 100%; border-collapse: collapse; }
         .lineup-table th, .lineup-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.08); }
@@ -335,18 +344,64 @@ if ($outputHtml) {
             <?php
             $i = 1;
             foreach ($slots as $s):
-                $a = isset($s['playerA']) ? trim((string) $s['playerA']) : '';
-                $b = isset($s['playerB']) ? trim((string) $s['playerB']) : '';
-                $playerA = getPlayerForPdf($a, $nameToPlayer);
-                $playerB = getPlayerForPdf($b, $nameToPlayer);
-                $groupA = $playerA ? groupForRankPdf($playerA['rank'], $playersPerGroup) : null;
-                $groupB = $playerB ? groupForRankPdf($playerB['rank'], $playersPerGroup) : null;
-                $rowGroup = $groupA ?: $groupB;
-                $rowClass = $rowGroup ? ' pdf-row-g' . $rowGroup : '';
-                $displayA = $a !== '' ? $a : '—';
-                $displayB = $b !== '' ? $b : '—';
-                $iconA = $playerA && isset($raceIcons[$playerA['race']]) ? $raceIcons[$playerA['race']] : 'random_icon.png';
-                $iconB = $playerB && isset($raceIcons[$playerB['race']]) ? $raceIcons[$playerB['race']] : 'random_icon.png';
+                $type = isset($s['type']) ? trim((string) $s['type']) : '1vs1';
+                $is2v2 = ($type === '2v2');
+                if ($is2v2):
+                    $a1 = isset($s['playerA1']) ? trim((string) $s['playerA1']) : '';
+                    $a2 = isset($s['playerA2']) ? trim((string) $s['playerA2']) : '';
+                    $b1 = isset($s['playerB1']) ? trim((string) $s['playerB1']) : '';
+                    $b2 = isset($s['playerB2']) ? trim((string) $s['playerB2']) : '';
+                    $pA1 = getPlayerForPdf($a1, $nameToPlayer);
+                    $pA2 = getPlayerForPdf($a2, $nameToPlayer);
+                    $pB1 = getPlayerForPdf($b1, $nameToPlayer);
+                    $pB2 = getPlayerForPdf($b2, $nameToPlayer);
+                    $gA1 = $pA1 ? groupForRankPdf($pA1['rank'], $playersPerGroup) : null;
+                    $gA2 = $pA2 ? groupForRankPdf($pA2['rank'], $playersPerGroup) : null;
+                    $gB1 = $pB1 ? groupForRankPdf($pB1['rank'], $playersPerGroup) : null;
+                    $gB2 = $pB2 ? groupForRankPdf($pB2['rank'], $playersPerGroup) : null;
+                    $rowGroup = $gA1 ?: $gA2 ?: $gB1 ?: $gB2;
+                    $rowClass = $rowGroup ? ' pdf-row-g' . $rowGroup : '';
+                    $namesA = array_filter([$a1, $a2]);
+                    $namesB = array_filter([$b1, $b2]);
+                    $displayA = count($namesA) ? implode(' & ', $namesA) : '—';
+                    $displayB = count($namesB) ? implode(' & ', $namesB) : '—';
+            ?>
+            <tr class="<?= $rowClass ?>">
+                <td class="col-slot"><?= $i ?></td>
+                <td class="player-cell">
+                    <div class="player-name"><?= htmlspecialchars($displayA) ?><?= $is2v2 ? ' <span class="line-type-tag">2v2</span>' : '' ?></div>
+                    <?php if ($pA1 || $pA2): ?>
+                    <div class="player-details">
+                        <?php if ($pA1): ?><span class="rank-badge"><?= $pA1['rank'] ?></span><img src="<?= htmlspecialchars($imgBase . 'images/' . ($raceIcons[$pA1['race']] ?? 'random_icon.png')) ?>" alt="" class="race-icon"><span class="group-badge">G<?= $gA1 ?></span><?php endif; ?>
+                        <?php if ($pA2): ?> · <span class="rank-badge"><?= $pA2['rank'] ?></span><img src="<?= htmlspecialchars($imgBase . 'images/' . ($raceIcons[$pA2['race']] ?? 'random_icon.png')) ?>" alt="" class="race-icon"><span class="group-badge">G<?= $gA2 ?></span><?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </td>
+                <td class="col-vs">vs</td>
+                <td class="player-cell">
+                    <div class="player-name"><?= htmlspecialchars($displayB) ?></div>
+                    <?php if ($pB1 || $pB2): ?>
+                    <div class="player-details">
+                        <?php if ($pB1): ?><span class="rank-badge"><?= $pB1['rank'] ?></span><img src="<?= htmlspecialchars($imgBase . 'images/' . ($raceIcons[$pB1['race']] ?? 'random_icon.png')) ?>" alt="" class="race-icon"><span class="group-badge">G<?= $gB1 ?></span><?php endif; ?>
+                        <?php if ($pB2): ?> · <span class="rank-badge"><?= $pB2['rank'] ?></span><img src="<?= htmlspecialchars($imgBase . 'images/' . ($raceIcons[$pB2['race']] ?? 'random_icon.png')) ?>" alt="" class="race-icon"><span class="group-badge">G<?= $gB2 ?></span><?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php
+                else:
+                    $a = isset($s['playerA']) ? trim((string) $s['playerA']) : '';
+                    $b = isset($s['playerB']) ? trim((string) $s['playerB']) : '';
+                    $playerA = getPlayerForPdf($a, $nameToPlayer);
+                    $playerB = getPlayerForPdf($b, $nameToPlayer);
+                    $groupA = $playerA ? groupForRankPdf($playerA['rank'], $playersPerGroup) : null;
+                    $groupB = $playerB ? groupForRankPdf($playerB['rank'], $playersPerGroup) : null;
+                    $rowGroup = $groupA ?: $groupB;
+                    $rowClass = $rowGroup ? ' pdf-row-g' . $rowGroup : '';
+                    $displayA = $a !== '' ? $a : '—';
+                    $displayB = $b !== '' ? $b : '—';
+                    $iconA = $playerA && isset($raceIcons[$playerA['race']]) ? $raceIcons[$playerA['race']] : 'random_icon.png';
+                    $iconB = $playerB && isset($raceIcons[$playerB['race']]) ? $raceIcons[$playerB['race']] : 'random_icon.png';
             ?>
             <tr class="<?= $rowClass ?>">
                 <td class="col-slot"><?= $i ?></td>
@@ -382,7 +437,7 @@ if ($outputHtml) {
                     <?php endif; ?>
                 </td>
             </tr>
-            <?php $i++; endforeach; ?>
+            <?php endif; $i++; endforeach; ?>
             <?php while ($i <= 6): ?>
             <tr>
                 <td class="col-slot"><?= $i ?></td>
