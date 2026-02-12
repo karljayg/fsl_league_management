@@ -14,11 +14,12 @@ define('TEAM_LOGO_PLACEHOLDER', 'images/team_logo_placeholder.svg');
  * @return string|null The logo path, or placeholder path if no logo, or null if no team name
  */
 function getTeamLogo($teamName, $size = '256px') {
-    if (empty($teamName)) {
+    if ($teamName === null || $teamName === '') {
         return null;
     }
-    
-    // Map of team names to their logo file names
+    $teamName = trim(preg_replace('/\s+/', ' ', (string) $teamName));
+
+    // Map of team names to their logo file names (exact keys used for lookup)
     $logoMap = [
         'Infinite Cyclists' => 'FSL_team_square_logo_Infinite_Cyclists',
         'Rages Raiders' => 'FSL_team_square_logo_Rages_Raiders',
@@ -32,8 +33,16 @@ function getTeamLogo($teamName, $size = '256px') {
         'Special Tactics' => 'FSL_team_square_logo_SpecialTactics',
         'TBD' => null,  // Placeholder display for schedule slots with NULL team_id
     ];
-    
+
     $baseName = $logoMap[$teamName] ?? null;
+    if ($baseName === null) {
+        foreach ($logoMap as $key => $val) {
+            if ($val !== null && strcasecmp($key, $teamName) === 0) {
+                $baseName = $val;
+                break;
+            }
+        }
+    }
     
     if ($baseName === null) {
         $placeholderPath = dirname(__DIR__) . '/' . TEAM_LOGO_PLACEHOLDER;

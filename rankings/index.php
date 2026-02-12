@@ -97,7 +97,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => true]);
         exit;
     }
-    
+
+    if ($action === 'update_name') {
+        $index = isset($input['index']) ? (int) $input['index'] : -1;
+        $name = isset($input['name']) ? trim((string) $input['name']) : '';
+        $rankings = json_decode(file_get_contents($rankingsFile), true);
+        if (!is_array($rankings) || $index < 0 || $index >= count($rankings)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid index']);
+            exit;
+        }
+        if ($name === '') {
+            echo json_encode(['success' => false, 'error' => 'Name cannot be empty']);
+            exit;
+        }
+        $rankings[$index]['name'] = $name;
+        file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
     echo json_encode(['success' => false, 'error' => 'Unknown action']);
     exit;
 }
@@ -269,6 +287,23 @@ $raceIcons = [
         
         .player-name a:hover {
             color: #a29bfe;
+        }
+        
+        .player-name a.edit-name-trigger {
+            cursor: text;
+        }
+        
+        .player-name input.edit-name-input {
+            width: 100%;
+            max-width: 220px;
+            padding: 0.2rem 0.4rem;
+            font-family: inherit;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: rgba(108, 92, 231, 0.2);
+            border: 1px solid rgba(108, 92, 231, 0.5);
+            border-radius: 4px;
+            color: #fff;
         }
         
         .race-icon {
@@ -516,8 +551,8 @@ $raceIcons = [
                     <?php endif; ?>
                     <span class="rank-badge"><?= $player['rank'] ?></span>
                     <img src="../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                    <span class="player-name">
-                        <a href="../view_player.php?name=<?= urlencode($player['name']) ?>"><?= htmlspecialchars($player['name']) ?></a>
+                    <span class="player-name" data-index="<?= $index ?>">
+                        <a href="../view_player.php?name=<?= urlencode($player['name']) ?>" class="player-name-link"><?= htmlspecialchars($player['name']) ?></a>
                     </span>
                     <span class="group-badge">G<?= $group ?></span>
                     <?php if ($canEdit): ?>
@@ -595,6 +630,7 @@ $raceIcons = [
                     row.addEventListener('dragleave', handleDragLeave);
                 });
                 document.getElementById('rankingsList').addEventListener('click', handleMoveButtonClick);
+                document.getElementById('rankingsList').addEventListener('click', handleNameClick);
             } else {
                 btn.innerHTML = '<i class="fas fa-edit"></i> Enable Edit Mode';
                 btn.style.background = 'linear-gradient(135deg, #6c5ce7, #a29bfe)';
@@ -608,7 +644,64 @@ $raceIcons = [
                     row.removeEventListener('dragleave', handleDragLeave);
                 });
                 document.getElementById('rankingsList').removeEventListener('click', handleMoveButtonClick);
+                document.getElementById('rankingsList').removeEventListener('click', handleNameClick);
             }
+        }
+        
+        function handleNameClick(e) {
+            if (!editMode) return;
+            const link = e.target.closest('.player-name-link');
+            if (!link) return;
+            e.preventDefault();
+            const row = link.closest('.player-row');
+            const nameSpan = row.querySelector('.player-name');
+            if (!nameSpan || nameSpan.querySelector('.edit-name-input')) return;
+            const index = parseInt(nameSpan.dataset.index, 10);
+            const currentName = link.textContent.trim();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'edit-name-input';
+            input.value = currentName;
+            input.dataset.index = index;
+            nameSpan.innerHTML = '';
+            nameSpan.appendChild(input);
+            input.focus();
+            input.select();
+            function save() {
+                if (!document.contains(input)) return;
+                const newName = input.value.trim();
+                if (newName === '') { input.value = currentName; return; }
+                if (newName === currentName) {
+                    replaceWithLink(nameSpan, index, currentName);
+                    return;
+                }
+                fetch('', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ action: 'update_name', index: index, name: newName })
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showSaveIndicator();
+                        replaceWithLink(nameSpan, index, newName);
+                    }
+                });
+            }
+            input.addEventListener('blur', save, { once: true });
+            input.addEventListener('keydown', function(ev) {
+                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+                if (ev.key === 'Escape') { replaceWithLink(nameSpan, index, currentName); }
+            });
+        }
+        
+        function replaceWithLink(nameSpan, index, name) {
+            const a = document.createElement('a');
+            a.href = '../view_player.php?name=' + encodeURIComponent(name);
+            a.className = 'player-name-link';
+            a.textContent = name;
+            nameSpan.innerHTML = '';
+            nameSpan.appendChild(a);
         }
         
         function handleMoveButtonClick(e) {
@@ -688,6 +781,8 @@ $raceIcons = [
             rows.forEach(row => list.appendChild(row));
             rows.forEach((row, i) => {
                 row.dataset.index = i;
+                const nameSpan = row.querySelector('.player-name');
+                if (nameSpan) nameSpan.dataset.index = i;
                 const rank = i + 1;
                 const group = Math.ceil(rank / 4);
                 row.querySelector('.rank-badge').textContent = rank;

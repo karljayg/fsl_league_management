@@ -248,6 +248,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link">Teams</a>
                     <a href="<?= $basePath ?>fsl_roster.php" class="dropdown-link">Players</a>
                     <a href="<?= $basePath ?>rankings" class="dropdown-link">Rankings</a>
+                    <a href="<?= $basePath ?>lineup_planner.php" class="dropdown-link">Lineup Planner</a>
                     <a href="<?= $basePath ?>fsl_matches.php" class="dropdown-link">Matches</a>
                     <a href="<?= $basePath ?>draft/public" class="dropdown-link">Draft</a>
                     <a href="<?= $basePath ?>faq.php" class="dropdown-link">FAQ</a>
@@ -265,6 +266,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         </div>
 
         <!-- Pros and Joes Dropdown -->
+        <!-- OFF FOR NOW UNTIL WE HAVE A PLACE FOR IT
         <div class="dropdown">
             <a href="<?= $basePath ?>pros_and_joes.php" class="menu-item logo-button">
                 <img src="<?= $basePath ?>images/pros_and_joes_transparent_bg_40px_67px.png" alt="Pros and Joes" class="nav-logo" width="67" height="40">
@@ -278,6 +280,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 </div>
             </div>
         </div>
+        -->
 
         <!-- Community Dropdown -->
         <div class="dropdown">
@@ -390,6 +393,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link">Schedule</a>
                 <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link">Teams</a>
                 <a href="<?= $basePath ?>fsl_roster.php" class="mobile-link">Players</a>
+                <a href="<?= $basePath ?>rankings" class="mobile-link">Rankings</a>
+                <a href="<?= $basePath ?>lineup_planner.php" class="mobile-link">Lineup Planner</a>
                 <a href="<?= $basePath ?>fsl_matches.php" class="mobile-link">Matches</a>
                 <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link">Draft</a>
                 <a href="<?= $basePath ?>faq.php" class="mobile-link">FAQ</a>
