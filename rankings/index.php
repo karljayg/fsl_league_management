@@ -12,6 +12,94 @@ require_once __DIR__ . '/../includes/team_logo.php';
 $rankingsFile = __DIR__ . '/rankings.json';
 $configFile = __DIR__ . '/rankings_config.json';
 
+/**
+ * Enrich rankings array with current season and all-time games (maps) and sets W-L from DB.
+ * Adds per player: season_gw, season_gl, season_sw, season_sl, alltime_gw, alltime_gl, alltime_sw, alltime_sl.
+ *
+ * @param array $rankings Array of {rank, name, race, ...}
+ * @param PDO $db
+ * @return array Same structure with record fields per player
+ */
+function enrich_rankings_with_records(array $rankings, PDO $db): array {
+    if (empty($rankings)) {
+        return $rankings;
+    }
+    $currentSeason = null;
+    try {
+        $row = $db->query("SELECT MAX(season) as s FROM fsl_matches")->fetch(PDO::FETCH_ASSOC);
+        $currentSeason = $row && isset($row['s']) ? (int) $row['s'] : null;
+    } catch (PDOException $e) {
+        $currentSeason = null;
+    }
+    $names = array_unique(array_filter(array_map(function ($p) { return trim((string)($p['name'] ?? '')); }, $rankings)));
+    $defaults = ['season_gw' => 0, 'season_gl' => 0, 'season_sw' => 0, 'season_sl' => 0, 'alltime_gw' => 0, 'alltime_gl' => 0, 'alltime_sw' => 0, 'alltime_sl' => 0];
+    $records = [];
+    if (empty($names) || $currentSeason === null) {
+        foreach ($rankings as $i => $p) {
+            foreach ($defaults as $k => $v) {
+                $rankings[$i][$k] = $v;
+            }
+            $rank = (int)($rankings[$i]['rank'] ?? $i + 1);
+            $rankings[$i]['group'] = (int) ceil($rank / 4);
+        }
+        return $rankings;
+    }
+    $placeholders = implode(',', array_fill(0, count($names), '?'));
+    $stmt = $db->prepare("SELECT Player_ID, Real_Name FROM Players WHERE Real_Name IN ($placeholders)");
+    $stmt->execute(array_values($names));
+    $nameToPid = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $nameToPid[trim($row['Real_Name'])] = (int) $row['Player_ID'];
+        $nameToPid[strtolower(trim($row['Real_Name']))] = (int) $row['Player_ID'];
+    }
+    foreach ($names as $name) {
+        $pid = $nameToPid[$name] ?? $nameToPid[strtolower($name)] ?? null;
+        $rec = $defaults;
+        if ($pid !== null) {
+            $stmt = $db->prepare("
+                SELECT
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sw,
+                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sl,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as gw,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as gl
+                FROM fsl_matches WHERE season = ? AND (winner_player_id = ? OR loser_player_id = ?)
+            ");
+            $stmt->execute([$pid, $pid, $pid, $pid, $currentSeason, $pid, $pid]);
+            $r = $stmt->fetch(PDO::FETCH_ASSOC);
+            $rec['season_sw'] = (int)($r['sw'] ?? 0);
+            $rec['season_sl'] = (int)($r['sl'] ?? 0);
+            $rec['season_gw'] = (int)($r['gw'] ?? 0);
+            $rec['season_gl'] = (int)($r['gl'] ?? 0);
+            $stmt = $db->prepare("
+                SELECT
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sw,
+                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sl,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as gw,
+                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as gl
+                FROM fsl_matches WHERE winner_player_id = ? OR loser_player_id = ?
+            ");
+            $stmt->execute([$pid, $pid, $pid, $pid, $pid, $pid]);
+            $r = $stmt->fetch(PDO::FETCH_ASSOC);
+            $rec['alltime_sw'] = (int)($r['sw'] ?? 0);
+            $rec['alltime_sl'] = (int)($r['sl'] ?? 0);
+            $rec['alltime_gw'] = (int)($r['gw'] ?? 0);
+            $rec['alltime_gl'] = (int)($r['gl'] ?? 0);
+        }
+        $records[$name] = $rec;
+        $records[strtolower($name)] = $rec;
+    }
+    foreach ($rankings as $i => $p) {
+        $name = trim((string)($p['name'] ?? ''));
+        $rec = $records[$name] ?? $records[strtolower($name)] ?? $defaults;
+        foreach ($defaults as $k => $v) {
+            $rankings[$i][$k] = $rec[$k];
+        }
+        $rank = (int)($rankings[$i]['rank'] ?? $i + 1);
+        $rankings[$i]['group'] = (int) ceil($rank / 4);
+    }
+    return $rankings;
+}
+
 // Check if user has edit permission
 $canEdit = false;
 if (isset($_SESSION['user_id'])) {
@@ -63,7 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             foreach ($rankings as $i => &$p) {
                 $p['rank'] = $i + 1;
             }
-            
+            unset($p);
+            $rankings = enrich_rankings_with_records($rankings, $db);
             file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
             echo json_encode(['success' => true]);
             exit;
@@ -76,6 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update') {
         $rankings = $input['rankings'] ?? [];
         if (!empty($rankings)) {
+            $rankings = enrich_rankings_with_records($rankings, $db);
             file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
             echo json_encode(['success' => true]);
             exit;
@@ -112,7 +202,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         $rankings[$index]['name'] = $name;
+        $rankings = enrich_rankings_with_records($rankings, $db);
         file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    if ($action === 'refresh_records') {
+        $rankings = json_decode(file_get_contents($rankingsFile), true);
+        if (!is_array($rankings) || empty($rankings)) {
+            echo json_encode(['success' => false, 'error' => 'No rankings to refresh']);
+            exit;
+        }
+        $rankings = enrich_rankings_with_records($rankings, $db);
+        if (file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT)) === false) {
+            echo json_encode(['success' => false, 'error' => 'Could not write rankings file']);
+            exit;
+        }
         echo json_encode(['success' => true]);
         exit;
     }
@@ -121,69 +227,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
-// Load rankings
+// Load rankings (W-L records come from JSON; DB is only used on save/refresh)
 $rankings = [];
 if (file_exists($rankingsFile)) {
     $rankings = json_decode(file_get_contents($rankingsFile), true) ?? [];
-}
-
-// Season and all-time W-L (sets) per player for display
-$playerRecords = [];
-$currentSeason = null;
-try {
-    $row = $db->query("SELECT MAX(season) as s FROM fsl_matches")->fetch(PDO::FETCH_ASSOC);
-    $currentSeason = $row && isset($row['s']) ? (int) $row['s'] : null;
-} catch (PDOException $e) {
-    // leave $currentSeason null
-}
-if (!empty($rankings) && $currentSeason !== null) {
-    $names = array_unique(array_filter(array_map(function ($p) { return trim((string)($p['name'] ?? '')); }, $rankings)));
-    if (!empty($names)) {
-        $placeholders = implode(',', array_fill(0, count($names), '?'));
-        $stmt = $db->prepare("SELECT Player_ID, Real_Name FROM Players WHERE Real_Name IN ($placeholders)");
-        $stmt->execute(array_values($names));
-        $nameToPid = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $nameToPid[trim($row['Real_Name'])] = (int) $row['Player_ID'];
-            $nameToPid[strtolower(trim($row['Real_Name']))] = (int) $row['Player_ID'];
-        }
-        foreach ($names as $name) {
-            $pid = $nameToPid[$name] ?? $nameToPid[strtolower($name)] ?? null;
-            if ($pid === null) continue;
-            $playerRecords[$name] = [
-                'season_sw' => 0, 'season_sl' => 0, 'season_mw' => 0, 'season_ml' => 0,
-                'alltime_sw' => 0, 'alltime_sl' => 0, 'alltime_mw' => 0, 'alltime_ml' => 0
-            ];
-            $stmt = $db->prepare("
-                SELECT
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sets_w,
-                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sets_l,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as maps_w,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as maps_l
-                FROM fsl_matches WHERE season = ? AND (winner_player_id = ? OR loser_player_id = ?)
-            ");
-            $stmt->execute([$pid, $pid, $pid, $pid, $currentSeason, $pid, $pid]);
-            $r = $stmt->fetch(PDO::FETCH_ASSOC);
-            $playerRecords[$name]['season_sw'] = (int)($r['sets_w'] ?? 0);
-            $playerRecords[$name]['season_sl'] = (int)($r['sets_l'] ?? 0);
-            $playerRecords[$name]['season_mw'] = (int)($r['maps_w'] ?? 0);
-            $playerRecords[$name]['season_ml'] = (int)($r['maps_l'] ?? 0);
-            $stmt = $db->prepare("
-                SELECT
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sets_w,
-                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sets_l,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as maps_w,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as maps_l
-                FROM fsl_matches WHERE winner_player_id = ? OR loser_player_id = ?
-            ");
-            $stmt->execute([$pid, $pid, $pid, $pid, $pid, $pid]);
-            $r = $stmt->fetch(PDO::FETCH_ASSOC);
-            $playerRecords[$name]['alltime_sw'] = (int)($r['sets_w'] ?? 0);
-            $playerRecords[$name]['alltime_sl'] = (int)($r['sets_l'] ?? 0);
-            $playerRecords[$name]['alltime_mw'] = (int)($r['maps_w'] ?? 0);
-            $playerRecords[$name]['alltime_ml'] = (int)($r['maps_l'] ?? 0);
-        }
-    }
 }
 
 // Load code tier config (Code S, A, B rank ranges)
@@ -759,6 +806,7 @@ if (!empty($rankings)) {
             <p>Code S · Code A · Code B
                 <?php if ($canEdit): ?>
                 <button type="button" class="code-tier-edit-btn" onclick="openCodeTierModal()" title="Edit Code tier ranges"><i class="fas fa-cog"></i> Edit ranges</button>
+                <button type="button" class="code-tier-edit-btn" onclick="refreshRecords()" title="Reload W-L from DB and save to rankings file"><i class="fas fa-sync-alt"></i> Refresh records</button>
                 <?php endif; ?>
             </p>
         </div>
@@ -794,7 +842,7 @@ if (!empty($rankings)) {
                         <span class="rank-badge-header">Rank</span>
                         <span class="race-icon-header">Race</span>
                         <span class="player-name-header">Player</span>
-                        <span class="group-badge-header">G</span>
+                        <span class="group-badge-header">Group #</span>
                         <span class="team-logo-header">Team</span>
                         <div class="player-records-block header-records">
                             <div class="player-records-col">
@@ -811,7 +859,7 @@ if (!empty($rankings)) {
             <?php
             foreach ($rankings as $index => $player): 
                 $rank = (int) $player['rank'];
-                $group = (int) ceil($rank / 4);
+                $group = isset($player['group']) ? (int) $player['group'] : (int) ceil($rank / 4);
                 $code = ($rank >= $codeTiers['codeS']['minRank'] && $rank <= $codeTiers['codeS']['maxRank']) ? 'S' : 
                     (($rank >= $codeTiers['codeA']['minRank'] && $rank <= $codeTiers['codeA']['maxRank']) ? 'A' : 'B');
             ?>
@@ -835,21 +883,22 @@ if (!empty($rankings)) {
                             ?><img src="../<?= htmlspecialchars($logo) ?>" alt=""><?php endif; ?>
                         </div>
                         <?php
-                        $rec = isset($player['name']) ? ($playerRecords[trim($player['name'])] ?? $playerRecords[strtolower(trim($player['name']))] ?? null) : null;
-                        $rec = $rec ?? [
-                            'season_sw' => 0, 'season_sl' => 0, 'season_mw' => 0, 'season_ml' => 0,
-                            'alltime_sw' => 0, 'alltime_sl' => 0, 'alltime_mw' => 0, 'alltime_ml' => 0
+                        $rec = [
+                            'season_gw' => (int)($player['season_gw'] ?? 0), 'season_gl' => (int)($player['season_gl'] ?? 0),
+                            'season_sw' => (int)($player['season_sw'] ?? 0), 'season_sl' => (int)($player['season_sl'] ?? 0),
+                            'alltime_gw' => (int)($player['alltime_gw'] ?? 0), 'alltime_gl' => (int)($player['alltime_gl'] ?? 0),
+                            'alltime_sw' => (int)($player['alltime_sw'] ?? 0), 'alltime_sl' => (int)($player['alltime_sl'] ?? 0)
                         ];
                         ?>
                         <div class="player-records-block" title="Season and all-time: games (W-L), sets (W-L)">
                             <div class="player-records-col">
                                 <span class="record-col-label">Season:</span>
-                                <span class="record-line"><span class="record-num"><?= $rec['season_mw'] ?>-<?= $rec['season_ml'] ?></span></span>
+                                <span class="record-line"><span class="record-num"><?= $rec['season_gw'] ?>-<?= $rec['season_gl'] ?></span></span>
                                 <span class="record-line"><span class="record-num"><?= $rec['season_sw'] ?>-<?= $rec['season_sl'] ?></span></span>
                             </div>
                             <div class="player-records-col">
                                 <span class="record-col-label">All-time:</span>
-                                <span class="record-line"><span class="record-num"><?= $rec['alltime_mw'] ?>-<?= $rec['alltime_ml'] ?></span></span>
+                                <span class="record-line"><span class="record-num"><?= $rec['alltime_gw'] ?>-<?= $rec['alltime_gl'] ?></span></span>
                                 <span class="record-line"><span class="record-num"><?= $rec['alltime_sw'] ?>-<?= $rec['alltime_sl'] ?></span></span>
                             </div>
                         </div>
@@ -1141,6 +1190,23 @@ if (!empty($rankings)) {
                     showSaveIndicator();
                     closeCodeTierModal();
                     location.reload();
+                }
+            });
+        }
+
+        function refreshRecords() {
+            fetch('', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ action: 'refresh_records' })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    showSaveIndicator();
+                    location.reload();
+                } else if (res.error) {
+                    alert(res.error);
                 }
             });
         }
