@@ -173,7 +173,7 @@ include_once __DIR__ . '/includes/header.php';
 <div class="lineup-planner">
     <div class="lineup-header">
         <h1>Lineup Planner</h1>
-        <p class="help-text">Select Team A and Team B to set rosters. On each line pick a player from either side first; the other dropdown then shows only allowed opponents (by group rule). Use Reset to clear a line.</p>
+        <p class="help-text">Select Team A and Team B to set rosters. On each line pick a player from either side first; the other dropdown then shows only allowed opponents (by group rule, see <a href="rankings" target="_new">rankings</a>). Use Reset to clear a line.</p>
     </div>
 
     <div class="card">
@@ -223,9 +223,9 @@ include_once __DIR__ . '/includes/header.php';
     </div>
 
     <div class="card">
-        <h5 class="mb-3">Lineup (up to 6)</h5>
+        <h5 class="mb-3">Lineup (up to 10)</h5>
         <div class="lineup-slots" id="lineupSlots">
-            <?php for ($i = 1; $i <= 6; $i++): ?>
+            <?php for ($i = 1; $i <= 10; $i++): ?>
             <div class="lineup-slot" data-slot="<?= $i ?>">
                 <div class="skill-band" data-slot-band="<?= $i ?>"></div>
                 <span class="slot-drag-handle" draggable="true" title="Drag to reorder" aria-label="Drag to reorder"><i class="fas fa-grip-vertical"></i></span>
@@ -560,7 +560,7 @@ include_once __DIR__ . '/includes/header.php';
                 fillSelect(selB, optsB, 'name', 'displayLabel', '— Team B —');
             }
         });
-        [1,2,3,4,5,6].forEach(updateSlot);
+        [1,2,3,4,5,6,7,8,9,10].forEach(updateSlot);
     }
 
     function updateTeamLogos() {
@@ -597,10 +597,10 @@ include_once __DIR__ . '/includes/header.php';
     }
     teamAEl.addEventListener('change', function() { updateTeamLogos(); refillAllSlots(); });
     teamBEl.addEventListener('change', function() { updateTeamLogos(); refillAllSlots(); });
-    ruleEl.addEventListener('input', function() { [1,2,3,4,5,6].forEach(updateSlot); });
-    ruleEl.addEventListener('change', function() { [1,2,3,4,5,6].forEach(updateSlot); });
-    playersPerGroupEl.addEventListener('input', function() { [1,2,3,4,5,6].forEach(updateSlot); });
-    playersPerGroupEl.addEventListener('change', function() { [1,2,3,4,5,6].forEach(updateSlot); });
+    ruleEl.addEventListener('input', function() { [1,2,3,4,5,6,7,8,9,10].forEach(updateSlot); });
+    ruleEl.addEventListener('change', function() { [1,2,3,4,5,6,7,8,9,10].forEach(updateSlot); });
+    playersPerGroupEl.addEventListener('input', function() { [1,2,3,4,5,6,7,8,9,10].forEach(updateSlot); });
+    playersPerGroupEl.addEventListener('change', function() { [1,2,3,4,5,6,7,8,9,10].forEach(updateSlot); });
 
     document.querySelectorAll('.player-a').forEach(function(sel) {
         sel.addEventListener('change', function() {

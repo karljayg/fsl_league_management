@@ -16,7 +16,7 @@ $slots = json_decode($slotsJson, true);
 if (!is_array($slots)) {
     $slots = [];
 }
-$slots = array_slice($slots, 0, 6);
+$slots = array_slice($slots, 0, 10);
 
 $logoA = $teamA ? getTeamLogo($teamA, '256px') : null;
 $logoB = $teamB ? getTeamLogo($teamB, '256px') : null;
@@ -438,7 +438,7 @@ if ($outputHtml) {
                 </td>
             </tr>
             <?php endif; $i++; endforeach; ?>
-            <?php while ($i <= 6): ?>
+            <?php while ($i <= 10): ?>
             <tr>
                 <td class="col-slot"><?= $i ?></td>
                 <td class="player-cell"><div class="player-name">—</div></td>
