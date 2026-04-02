@@ -294,6 +294,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <a href="<?= $basePath ?>forum" class="dropdown-link">Forum</a>                    
                     <a href="<?= $basePath ?>discord.php" class="dropdown-link">Discord</a>
                     <a href="<?= $basePath ?>chat.php" class="dropdown-link">Chat</a>
+                    <a href="<?= $basePath ?>music" class="dropdown-link">Music</a>
+                    <a href="../watch" class="dropdown-link">Watch</a>
                 </div>
             </div>
         </div>
@@ -421,6 +423,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 <h4>Community</h4>
                 <a href="<?= $basePath ?>discord.php" class="mobile-link">Discord</a>
                 <a href="<?= $basePath ?>chat.php" class="mobile-link">Chat</a>
+                <a href="<?= $basePath ?>music" class="mobile-link">Music</a>
+                <a href="../watch" class="mobile-link">Watch</a>
             </div>
 
             <!-- Admin Section -->
