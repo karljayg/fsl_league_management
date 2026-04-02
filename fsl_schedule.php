@@ -16,23 +16,31 @@ session_start();
 require_once 'includes/team_logo.php';
 
 // Cache configuration
-define('CACHE_FILE', __DIR__ . '/cache/fsl_schedule.json');
 define('CACHE_TTL', 900); // 15 minutes
 
-// Bypass cache when ?nocache=1 to force data from current DB (useful for local dev)
-$forceDb = isset($_GET['nocache']) && $_GET['nocache'] === '1';
+// Determine requested season from GET param (anchors like #week1&season9 are
+// rewritten to ?season=9#week1 by the JS snippet at the bottom of the page)
+$requestedSeason = isset($_GET['season']) ? (int) $_GET['season'] : null;
 
-// Check for valid cached data (skip if forcing DB)
+// Per-season cache file; pass null to get the "latest season" default cache
+function getCacheFile($season = null) {
+    if ($season === null) {
+        return __DIR__ . '/cache/fsl_schedule_latest.json';
+    }
+    return __DIR__ . '/cache/fsl_schedule_s' . (int)$season . '.json';
+}
+
+// Check for valid cached data
 $cachedData = null;
 $cacheStatus = '';
 $cacheTime = '';
 
-if (!$forceDb && file_exists(CACHE_FILE)) {
-    $cacheTime = date('Y-m-d H:i:s', filemtime(CACHE_FILE));
-    $cacheAge = time() - filemtime(CACHE_FILE);
-    
+$cacheFile = getCacheFile($requestedSeason);
+if (file_exists($cacheFile)) {
+    $cacheTime = date('Y-m-d H:i:s', filemtime($cacheFile));
+    $cacheAge = time() - filemtime($cacheFile);
     if ($cacheAge < CACHE_TTL) {
-        $cachedData = json_decode(file_get_contents(CACHE_FILE), true);
+        $cachedData = json_decode(file_get_contents($cacheFile), true);
         $cacheStatus = "CACHE_FRESH (age: {$cacheAge}s, created: {$cacheTime})";
     }
 }
@@ -43,11 +51,18 @@ if ($cachedData === null) {
     require_once 'includes/season_utils.php';
 
     try {
-        // Connect to database (uses config: includes/db.php -> config.php)
+        // Connect to database
         $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $currentSeason = getCurrentSeason($db);
+        $latestSeason = getCurrentSeason($db);
+        $currentSeason = ($requestedSeason !== null) ? $requestedSeason : $latestSeason;
+
+        // Which seasons have rows in fsl_schedule (these get ?season=N links)
+        $scheduledSeasons = $db->query("SELECT DISTINCT season FROM fsl_schedule ORDER BY season")
+                              ->fetchAll(PDO::FETCH_COLUMN);
+        $scheduledSeasons = array_map('intval', $scheduledSeasons);
+
     // Get current season schedule from database
     $scheduleQuery = "
         SELECT 
@@ -132,25 +147,33 @@ if ($cachedData === null) {
         }
     }
 
+        // Save to per-season cache
         $cachedData = [
-            'currentSeason' => $currentSeason,
-            'schedule' => $season9Schedule,
-            'matchMap' => $scheduleMatchMap,
-            'matchDetails' => $allMatchDetails
+            'currentSeason'   => $currentSeason,
+            'latestSeason'    => $latestSeason,
+            'scheduledSeasons'=> $scheduledSeasons,
+            'schedule'        => $season9Schedule,
+            'matchMap'        => $scheduleMatchMap,
+            'matchDetails'    => $allMatchDetails
         ];
-        // Write to cache only when not forcing DB (nocache=1), so local dev doesn't overwrite cache
-        if (!$forceDb) {
-            if (!is_dir(dirname(CACHE_FILE))) {
-                mkdir(dirname(CACHE_FILE), 0755, true);
-            }
-            file_put_contents(CACHE_FILE, json_encode($cachedData));
+
+        $cacheDir = __DIR__ . '/cache';
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+        $encoded = json_encode($cachedData);
+        file_put_contents(getCacheFile($currentSeason), $encoded);
+        // Also refresh the "latest" cache whenever we're on the current season
+        if ($currentSeason === $latestSeason) {
+            file_put_contents(getCacheFile(null), $encoded);
         }
         $cacheStatus = "DB_LIVE (cache refreshed: " . date('Y-m-d H:i:s') . ")";
         
     } catch (PDOException $e) {
-        // DB failed - try stale cache as fallback
-        if (file_exists(CACHE_FILE)) {
-            $cachedData = json_decode(file_get_contents(CACHE_FILE), true);
+        // DB failed - try stale per-season cache as fallback
+        $staleCacheFile = getCacheFile($requestedSeason);
+        if (file_exists($staleCacheFile)) {
+            $cachedData = json_decode(file_get_contents($staleCacheFile), true);
             $cacheStatus = "CACHE_STALE_FALLBACK (DB unreachable, using cache from: {$cacheTime})";
         } else {
             die("Database unavailable and no cache exists: " . $e->getMessage());
@@ -164,7 +187,15 @@ if ($cachedData !== null) {
         $scheduleMatchMap = $cachedData['matchMap'];
         $allMatchDetails = $cachedData['matchDetails'];
     }
-    $currentSeason = $cachedData['currentSeason'] ?? ($season9Schedule[0]['season'] ?? 9);
+    $currentSeason    = $cachedData['currentSeason']    ?? ($season9Schedule[0]['season'] ?? 9);
+    $latestSeason     = $cachedData['latestSeason']     ?? $currentSeason;
+    $scheduledSeasons = $cachedData['scheduledSeasons'] ?? [$currentSeason];
+}
+
+// If a specific season was requested but has no schedule data, send to matches page
+if ($requestedSeason !== null && !in_array($requestedSeason, $scheduledSeasons, true)) {
+    header("Location: fsl_matches.php?season={$requestedSeason}");
+    exit;
 }
 
 // Helper functions (use cached data instead of DB queries)
@@ -235,20 +266,64 @@ echo "<!-- Data: $cacheStatus -->\n";
 <div class="container mt-4">
     <h1>Season <?= (int) $currentSeason ?> Standings and Schedule</h1>
     
-    <!-- Week Navigation Bar -->
-    <div class="week-navigation">
-        <?php if ($nextMatchWeek !== null): ?>
-            <a href="#week<?= $nextMatchWeek ?>" class="btn-next-match">
-                Next Match
-            </a>
-        <?php endif; ?>
-        <div class="week-links">
-            <?php foreach ($season9Schedule as $match): ?>
-                <a href="#week<?= $match['week_number'] ?>" class="week-link <?= $match['status'] === 'completed' ? 'completed' : '' ?>">
-                    <?= $match['week_number'] ?>
+    <!-- Season / Week Navigation -->
+    <div class="schedule-nav">
+        <div class="schedule-nav-top">
+            <!-- Season picker -->
+            <div class="season-picker-wrap">
+                <label class="season-picker-label" for="seasonSelect">Season</label>
+                <div class="season-select-box">
+                    <select id="seasonSelect" onchange="
+                        var v = this.value;
+                        if (v) window.location.href = v;
+                    ">
+                        <?php for ($s = $latestSeason; $s >= 1; $s--): ?>
+                            <?php
+                            $hasSchedule = in_array($s, $scheduledSeasons, true);
+                            $href = $hasSchedule ? "?season={$s}" : "fsl_matches.php?season={$s}";
+                            $selected = ($s == $currentSeason) ? 'selected' : '';
+                            $label = "Season {$s}";
+                            if ($s == $latestSeason) $label .= ' (Current)';
+                            if (!$hasSchedule)       $label .= ' — Match History';
+                            ?>
+                            <option value="<?= $href ?>" <?= $selected ?>><?= $label ?></option>
+                        <?php endfor; ?>
+                    </select>
+                    <span class="select-arrow">&#9660;</span>
+                </div>
+            </div>
+
+            <?php if ($nextMatchWeek !== null): ?>
+                <a href="#week<?= $nextMatchWeek ?>" class="btn-next-match">
+                    <span class="btn-next-icon">&#9658;</span> Next Match
+                </a>
+            <?php endif; ?>
+        </div>
+
+        <!-- Week stepper -->
+        <?php if (!empty($season9Schedule)): ?>
+        <div class="week-stepper">
+            <?php foreach ($season9Schedule as $i => $match):
+                $isCompleted = $match['status'] === 'completed';
+                $isNext      = $match['week_number'] == $nextMatchWeek;
+                $stepClass   = $isCompleted ? 'done' : ($isNext ? 'next' : 'upcoming');
+            ?>
+                <?php if ($i > 0): ?>
+                    <div class="step-connector <?= $isCompleted ? 'done' : '' ?>"></div>
+                <?php endif; ?>
+                <a href="#week<?= $match['week_number'] ?>" class="step <?= $stepClass ?>" title="Week <?= $match['week_number'] ?><?= $isCompleted ? ' — Completed' : ($isNext ? ' — Next Match' : '') ?>">
+                    <div class="step-bubble">
+                        <?php if ($isCompleted): ?>
+                            <svg viewBox="0 0 12 12" width="12" height="12"><polyline points="1.5,6 4.5,9.5 10.5,2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <?php else: ?>
+                            <?= $match['week_number'] ?>
+                        <?php endif; ?>
+                    </div>
+                    <div class="step-label">Wk <?= $match['week_number'] ?></div>
                 </a>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
     </div>
     
     <div class="schedule-container">
@@ -585,6 +660,25 @@ echo "<!-- Data: $cacheStatus -->\n";
     </div>
 </div>
 
+<script>
+// Rewrite legacy hash links like #week1&season9 → ?season=9#week1
+(function () {
+    var hash = window.location.hash.replace(/^#/, '');
+    if (!hash) return;
+    var parts = hash.split('&');
+    var weekPart = null, seasonPart = null;
+    parts.forEach(function (p) {
+        if (/^week\d+$/.test(p)) weekPart = p;
+        if (/^season\d+$/.test(p)) seasonPart = p;
+    });
+    if (seasonPart) {
+        var seasonNum = seasonPart.replace('season', '');
+        var url = '?season=' + seasonNum + (weekPart ? '#' + weekPart : '');
+        window.location.replace(url);
+    }
+})();
+</script>
+
 <style>
     html {
         scroll-behavior: smooth;
@@ -613,82 +707,213 @@ echo "<!-- Data: $cacheStatus -->\n";
         margin-bottom: 30px;
     }
     
-    /* Week Navigation Bar */
-    .week-navigation {
-        background: rgba(0, 0, 0, 0.4);
-        border: 2px solid rgba(0, 212, 255, 0.3);
-        border-radius: 10px;
-        padding: 15px 20px;
-        margin-bottom: 25px;
+    /* ── Schedule Navigation ── */
+    .schedule-nav {
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        border-radius: 12px;
+        padding: 16px 22px 18px;
+        margin-bottom: 28px;
+        position: sticky;
+        top: 16px;
+        z-index: 100;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+    }
+
+    .schedule-nav-top {
         display: flex;
         align-items: center;
-        gap: 20px;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
         flex-wrap: wrap;
-        position: sticky;
-        top: 20px;
-        z-index: 100;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     }
-    
+
+    /* Season picker */
+    .season-picker-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .season-picker-label {
+        color: #aaa;
+        font-size: 0.78em;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .season-select-box {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .season-select-box select {
+        appearance: none;
+        -webkit-appearance: none;
+        background: rgba(0, 212, 255, 0.1);
+        border: 1px solid rgba(0, 212, 255, 0.35);
+        border-radius: 8px;
+        color: #00d4ff;
+        font-size: 0.95em;
+        font-weight: 700;
+        padding: 7px 34px 7px 14px;
+        cursor: pointer;
+        outline: none;
+        transition: background 0.2s, border-color 0.2s;
+        min-width: 180px;
+    }
+
+    .season-select-box select:hover,
+    .season-select-box select:focus {
+        background: rgba(0, 212, 255, 0.18);
+        border-color: rgba(0, 212, 255, 0.65);
+    }
+
+    .season-select-box select option {
+        background: #1a1a2e;
+        color: #e0e0e0;
+        font-weight: 400;
+    }
+
+    .select-arrow {
+        position: absolute;
+        right: 11px;
+        color: #00d4ff;
+        font-size: 0.7em;
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+    /* Next match button */
     .btn-next-match {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
         background: linear-gradient(135deg, #28a745, #20c997);
         color: white;
-        padding: 10px 20px;
+        padding: 8px 18px;
         border-radius: 8px;
         text-decoration: none;
         font-weight: 700;
-        font-size: 1.1em;
+        font-size: 0.95em;
         white-space: nowrap;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 10px rgba(40, 167, 69, 0.4);
+        transition: all 0.25s ease;
+        box-shadow: 0 2px 10px rgba(40, 167, 69, 0.35);
     }
-    
+
     .btn-next-match:hover {
-        background: linear-gradient(135deg, #20c997, #28a745);
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.6);
+        box-shadow: 0 4px 16px rgba(40, 167, 69, 0.55);
         color: white;
         text-decoration: none;
     }
-    
-    .week-links {
+
+    .btn-next-icon {
+        font-size: 0.8em;
+    }
+
+    /* Week stepper */
+    .week-stepper {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        flex: 1;
+        align-items: center;
         justify-content: center;
+        gap: 0;
+        overflow-x: auto;
+        padding: 4px 2px 6px;
+        scrollbar-width: none;
     }
-    
-    .week-link {
-        background: rgba(0, 212, 255, 0.2);
-        color: #00d4ff;
-        padding: 8px 15px;
-        border-radius: 6px;
+
+    .week-stepper::-webkit-scrollbar { display: none; }
+
+    .step-connector {
+        flex: 1;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.12);
+        min-width: 12px;
+        max-width: 48px;
+        transition: background 0.3s;
+    }
+
+    .step-connector.done {
+        background: rgba(40, 167, 69, 0.55);
+    }
+
+    .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
         text-decoration: none;
-        font-weight: 600;
-        font-size: 0.95em;
-        transition: all 0.3s ease;
-        border: 1px solid rgba(0, 212, 255, 0.3);
+        flex-shrink: 0;
+        transition: transform 0.2s;
     }
-    
-    .week-link:hover {
-        background: rgba(0, 212, 255, 0.4);
-        color: #ffffff;
-        transform: translateY(-2px);
-        box-shadow: 0 2px 8px rgba(0, 212, 255, 0.4);
-        text-decoration: none;
+
+    .step:hover { transform: translateY(-3px); text-decoration: none; }
+
+    .step-bubble {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9em;
+        border: 2px solid transparent;
+        transition: all 0.25s ease;
     }
-    
-    .week-link.completed {
-        background: rgba(40, 167, 69, 0.2);
-        border-color: rgba(40, 167, 69, 0.4);
+
+    .step.done .step-bubble {
+        background: rgba(40, 167, 69, 0.25);
+        border-color: #28a745;
         color: #28a745;
     }
-    
-    .week-link.completed:hover {
-        background: rgba(40, 167, 69, 0.3);
-        color: #ffffff;
+
+    .step.done:hover .step-bubble {
+        background: rgba(40, 167, 69, 0.45);
+        box-shadow: 0 0 12px rgba(40, 167, 69, 0.5);
     }
+
+    .step.next .step-bubble {
+        background: rgba(0, 212, 255, 0.2);
+        border-color: #00d4ff;
+        color: #00d4ff;
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+        animation: pulse-next 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-next {
+        0%, 100% { box-shadow: 0 0 8px rgba(0, 212, 255, 0.4); }
+        50%       { box-shadow: 0 0 18px rgba(0, 212, 255, 0.75); }
+    }
+
+    .step.upcoming .step-bubble {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.18);
+        color: #888;
+    }
+
+    .step.upcoming:hover .step-bubble {
+        border-color: rgba(0, 212, 255, 0.4);
+        color: #aaa;
+    }
+
+    .step-label {
+        font-size: 0.68em;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .step.done     .step-label { color: #28a745; }
+    .step.next     .step-label { color: #00d4ff; }
+    .step.upcoming .step-label { color: #555; }
     
     .schedule-container {
         background: rgba(255, 255, 255, 0.1);
@@ -1140,28 +1365,36 @@ echo "<!-- Data: $cacheStatus -->\n";
             margin-bottom: 20px;
         }
         
-        .week-navigation {
-            padding: 12px 15px;
-            gap: 12px;
+        .schedule-nav {
+            padding: 12px 14px 14px;
             position: relative;
             top: 0;
         }
-        
+
+        .schedule-nav-top {
+            margin-bottom: 14px;
+        }
+
+        .season-select-box select {
+            min-width: 0;
+            width: 100%;
+            font-size: 0.9em;
+        }
+
+        .season-picker-wrap {
+            flex: 1;
+            min-width: 0;
+        }
+
         .btn-next-match {
-            padding: 8px 16px;
-            font-size: 1em;
-            width: 100%;
-            text-align: center;
+            padding: 8px 14px;
+            font-size: 0.9em;
         }
-        
-        .week-links {
-            width: 100%;
-            gap: 6px;
-        }
-        
-        .week-link {
-            padding: 6px 12px;
-            font-size: 0.85em;
+
+        .step-bubble {
+            width: 30px;
+            height: 30px;
+            font-size: 0.8em;
         }
         
         .schedule-container {
@@ -1412,23 +1645,18 @@ echo "<!-- Data: $cacheStatus -->\n";
             margin-bottom: 15px;
         }
         
-        .week-navigation {
-            padding: 10px 12px;
-            gap: 10px;
+        .schedule-nav {
+            padding: 10px 10px 12px;
         }
-        
-        .btn-next-match {
-            padding: 7px 14px;
-            font-size: 0.9em;
+
+        .step-bubble {
+            width: 26px;
+            height: 26px;
+            font-size: 0.75em;
         }
-        
-        .week-links {
-            gap: 5px;
-        }
-        
-        .week-link {
-            padding: 5px 10px;
-            font-size: 0.8em;
+
+        .step-label {
+            font-size: 0.6em;
         }
         
         .schedule-container {
