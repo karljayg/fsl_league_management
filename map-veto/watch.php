@@ -446,6 +446,18 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         return m + ':' + String(r).padStart(2, '0');
     }
 
+    function fmtSecs(sec) {
+        const n = Math.max(0, parseInt(sec, 10) || 0);
+        const m = Math.floor(n / 60);
+        const r = n % 60;
+        return m + ':' + String(r).padStart(2, '0');
+    }
+
+    function timerDisplay(state) {
+        if (state.paused) return 'Paused · ' + fmtSecs(state.pause_remaining_seconds || 0);
+        return fmtRemaining(state.turn_expires_at);
+    }
+
     function render(state) {
         window.__lastState = state;
         const status = state.status;
@@ -459,16 +471,22 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         if (status === 'cancelled') { label = 'OFF'; badgeClass = 'badge-dark'; }
 
         const badgeEl = document.getElementById('phaseBadge');
-        badgeEl.className = 'badge ' + badgeClass;
-        badgeEl.textContent = label;
+        if (state.paused && (status === 'live_veto' || status === 'live_order')) {
+            badgeEl.className = 'badge badge-warning';
+            badgeEl.textContent = 'PAUSED';
+        } else {
+            badgeEl.className = 'badge ' + badgeClass;
+            badgeEl.textContent = label;
+        }
 
         const timerRow = document.getElementById('timerRow');
-        if ((status === 'live_veto' || status === 'live_order') && state.turn_expires_at) {
+        const liveSt = status === 'live_veto' || status === 'live_order';
+        if (liveSt && (state.turn_expires_at || state.paused)) {
             timerRow.classList.remove('d-none');
         } else {
             timerRow.classList.add('d-none');
         }
-        var rem = fmtRemaining(state.turn_expires_at);
+        var rem = timerDisplay(state);
         document.getElementById('timerVal').textContent = rem;
         var spotT = document.getElementById('timerValSpot');
         if (spotT) spotT.textContent = rem;
@@ -490,7 +508,9 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         });
 
         let phaseLine = '';
-        if (status === 'live_veto') {
+        if (state.paused && (status === 'live_veto' || status === 'live_order')) {
+            phaseLine = 'Paused by admin · timer frozen';
+        } else if (status === 'live_veto') {
             const vp = state.veto_progress;
             const prog = vp && vp.total ? (vp.current + '/' + vp.total + ' vetoes · ') : '';
             phaseLine = prog + nAvail + ' in pool · stop at ' + mapsToPlay + ' · ';
@@ -543,11 +563,14 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         if (status === 'pending') nowMain = 'Waiting to start';
         else if (status === 'completed') nowMain = 'Series complete';
         else if (status === 'cancelled') nowMain = 'Cancelled';
+        else if (state.paused && (status === 'live_veto' || status === 'live_order')) nowMain = 'Paused — waiting for admin';
         else if (status === 'live_veto') nowMain = actingName ? (actingName + ' removes a map') : 'Veto phase — next turn';
         else if (status === 'live_order') nowMain = actingName ? (actingName + ' picks Game ' + gnSpot + ' map') : 'Map order — next turn';
 
         var nowSubBits = [];
-        if (status === 'live_veto' || status === 'live_order') {
+        if (state.paused && (status === 'live_veto' || status === 'live_order')) {
+            nowSubBits.push('Timer stopped until admin resumes');
+        } else if (status === 'live_veto' || status === 'live_order') {
             nowSubBits.push(nAvail + ' maps still in pool');
         } else if (status === 'pending') {
             nowSubBits.push('Admin starts the veto from the manager');
@@ -558,7 +581,7 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         document.getElementById('spotNowSub').textContent = nowSubBits.join(' · ');
 
         var tSpot = document.getElementById('spotNowTimerWrap');
-        if ((status === 'live_veto' || status === 'live_order') && state.turn_expires_at) {
+        if ((status === 'live_veto' || status === 'live_order') && (state.turn_expires_at || state.paused)) {
             tSpot.classList.remove('d-none');
             document.getElementById('timerValSpot').textContent = rem;
         } else {
@@ -715,8 +738,9 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
     setInterval(poll, 2000);
     setInterval(function () {
         const st = window.__lastState;
-        if (!st || !st.turn_expires_at) return;
-        const t = fmtRemaining(st.turn_expires_at);
+        if (!st) return;
+        const t = st.paused ? timerDisplay(st) : (st.turn_expires_at ? fmtRemaining(st.turn_expires_at) : null);
+        if (t === null) return;
         const el = document.getElementById('timerVal');
         if (el) el.textContent = t;
         const sp = document.getElementById('timerValSpot');

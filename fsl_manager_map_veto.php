@@ -137,6 +137,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $message = 'Session cancelled.';
             }
+        } elseif ($action === 'pause_session') {
+            $id = trim((string) ($_POST['session_id'] ?? ''));
+            if (map_veto_pause_session($id) === null) {
+                $error = 'Could not pause session.';
+            } else {
+                $message = 'Session paused — timer frozen until you resume.';
+            }
+        } elseif ($action === 'resume_session') {
+            $id = trim((string) ($_POST['session_id'] ?? ''));
+            if (map_veto_resume_session($id) === null) {
+                $error = 'Could not resume session.';
+            } else {
+                $message = 'Session resumed.';
+            }
         } elseif ($action === 'regenerate_tokens') {
             $id = trim((string) ($_POST['session_id'] ?? ''));
             if (map_veto_regenerate_tokens($id) === null) {
@@ -507,6 +521,7 @@ function mv_map_search_blob(string $name, string $mid, string $descExtra = ''): 
                             $pb = $sess['player_b']['display_name'] ?? '';
                             $mTitle = trim((string) ($sess['match_title'] ?? ''));
                             $st = (string) ($sess['status'] ?? '');
+                            $mvPaused = !empty($sess['paused']);
                             $sidHtmlId = 's' . preg_replace('/[^a-zA-Z0-9_-]/', '_', $sid);
                             ?>
                             <tr>
@@ -520,13 +535,27 @@ function mv_map_search_blob(string $name, string $mid, string $descExtra = ''): 
                                     <code class="small"><?= h($sid) ?></code>
                                 </td>
                                 <td><?= h((string) ($sess['season_name'] ?? '')) ?> · BO<?= (int) ($sess['best_of'] ?? 1) ?></td>
-                                <td><?= h($st) ?></td>
+                                <td><?= h($st) ?><?= $mvPaused ? ' <span class="badge badge-warning">paused</span>' : '' ?></td>
                                 <td>
                                     <?php if ($st === 'pending'): ?>
                                         <form method="post" class="d-inline">
                                             <input type="hidden" name="action" value="start_session">
                                             <input type="hidden" name="session_id" value="<?= h($sid) ?>">
                                             <button type="submit" class="btn btn-sm btn-success mb-1">Start</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <?php if (($st === 'live_veto' || $st === 'live_order') && !$mvPaused): ?>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="action" value="pause_session">
+                                            <input type="hidden" name="session_id" value="<?= h($sid) ?>">
+                                            <button type="submit" class="btn btn-sm btn-warning mb-1">Pause</button>
+                                        </form>
+                                    <?php endif; ?>
+                                    <?php if (($st === 'live_veto' || $st === 'live_order') && $mvPaused): ?>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="action" value="resume_session">
+                                            <input type="hidden" name="session_id" value="<?= h($sid) ?>">
+                                            <button type="submit" class="btn btn-sm btn-info mb-1">Resume</button>
                                         </form>
                                     <?php endif; ?>
                                     <form method="post" class="d-inline" onsubmit="return confirm('Reset this session to the beginning? All vetoes and map picks are cleared; the map pool is rebuilt from the current season. Player and watch links stay the same.');">

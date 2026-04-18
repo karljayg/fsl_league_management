@@ -263,6 +263,18 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
         return m + ':' + String(r).padStart(2, '0');
     }
 
+    function fmtSecs(sec) {
+        const n = Math.max(0, parseInt(sec, 10) || 0);
+        const m = Math.floor(n / 60);
+        const r = n % 60;
+        return m + ':' + String(r).padStart(2, '0');
+    }
+
+    function timerDisplay(state) {
+        if (state.paused) return 'Paused · ' + fmtSecs(state.pause_remaining_seconds || 0);
+        return fmtRemaining(state.turn_expires_at);
+    }
+
     function showConfirm(show) {
         backdrop.classList.toggle('show', !!show);
     }
@@ -359,7 +371,7 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
         var act = document.getElementById('mapDetailActions');
         act.innerHTML = '';
 
-        var canAct = !!(state.is_my_turn && st === 'available' && (status === 'live_veto' || status === 'live_order'));
+        var canAct = !!(state.is_my_turn && !state.paused && st === 'available' && (status === 'live_veto' || status === 'live_order'));
         if (canAct) {
             var go = document.createElement('button');
             go.type = 'button';
@@ -407,12 +419,13 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
         phaseEl.textContent = label;
 
         const timerRow = document.getElementById('timerRow');
-        if ((status === 'live_veto' || status === 'live_order') && state.turn_expires_at) {
+        const livePhase = status === 'live_veto' || status === 'live_order';
+        if (livePhase && (state.turn_expires_at || state.paused)) {
             timerRow.classList.remove('d-none');
         } else {
             timerRow.classList.add('d-none');
         }
-        document.getElementById('timerVal').textContent = fmtRemaining(state.turn_expires_at);
+        document.getElementById('timerVal').textContent = timerDisplay(state);
 
         const paName = (state.player_a && state.player_a.display_name) ? state.player_a.display_name : 'Player A';
         const pbName = (state.player_b && state.player_b.display_name) ? state.player_b.display_name : 'Player B';
@@ -482,7 +495,11 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
         const bY = document.getElementById('turnBannerYour');
         const bW = document.getElementById('turnBannerWait');
         const live = status === 'live_veto' || status === 'live_order';
-        if (live && state.is_my_turn) {
+        if (live && state.paused) {
+            bY.classList.add('d-none');
+            bW.classList.remove('d-none');
+            document.getElementById('turnBannerWaitDetail').textContent = 'Paused by admin — timer frozen until they resume.';
+        } else if (live && state.is_my_turn) {
             bY.classList.remove('d-none');
             bW.classList.add('d-none');
             var yd = document.getElementById('turnBannerYourDetail');
@@ -553,7 +570,7 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
             card.appendChild(thumb);
             card.appendChild(body);
 
-            const canClick = state.is_my_turn && m.state === 'available' && (status === 'live_veto' || status === 'live_order');
+            const canClick = state.is_my_turn && !state.paused && m.state === 'available' && (status === 'live_veto' || status === 'live_order');
             if (!canClick) {
                 card.classList.add('disabled');
             } else {
@@ -589,7 +606,11 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
         }
 
         const banner = document.getElementById('banner');
-        if (status === 'pending') {
+        if (livePhase && state.paused) {
+            banner.classList.remove('d-none');
+            banner.className = 'alert alert-info py-2';
+            banner.textContent = 'Paused by admin — timer frozen.';
+        } else if (status === 'pending') {
             banner.classList.remove('d-none');
             banner.className = 'alert alert-warning py-2';
             banner.textContent = 'Waiting for admin to start the veto.';
@@ -616,7 +637,12 @@ $mvMatchTitle = trim((string) ($session['match_title'] ?? ''));
     setInterval(function () {
         const el = document.getElementById('timerVal');
         const st = window.__lastState;
-        if (st && st.turn_expires_at) el.textContent = fmtRemaining(st.turn_expires_at);
+        if (!st) return;
+        if (st.paused) {
+            el.textContent = timerDisplay(st);
+            return;
+        }
+        if (st.turn_expires_at) el.textContent = fmtRemaining(st.turn_expires_at);
     }, 250);
 })();
 </script>

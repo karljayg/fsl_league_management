@@ -142,8 +142,14 @@ function map_veto_build_payload(array $session, string $role): array
         $mySide = 'b';
     }
 
+    $paused = !empty($session['paused']);
+    $pauseRem = (int) ($session['pause_remaining_seconds'] ?? 0);
+
     $isMyTurn = false;
-    if ($mySide !== null && $turn === $mySide && ($status === 'live_veto' || $status === 'live_order')) {
+    if (
+        $mySide !== null && $turn === $mySide && ($status === 'live_veto' || $status === 'live_order')
+        && !$paused
+    ) {
         $isMyTurn = true;
     }
 
@@ -167,6 +173,8 @@ function map_veto_build_payload(array $session, string $role): array
         'best_of' => (int) ($session['best_of'] ?? 1),
         'maps_to_play' => (int) ($session['maps_to_play'] ?? 1),
         'timer_seconds' => (int) ($session['timer_seconds'] ?? 60),
+        'paused' => $paused,
+        'pause_remaining_seconds' => $paused ? $pauseRem : null,
         'player_a' => $session['player_a'] ?? null,
         'player_b' => $session['player_b'] ?? null,
         'higher_side' => (string) ($session['higher_side'] ?? 'a'),
@@ -174,8 +182,8 @@ function map_veto_build_payload(array $session, string $role): array
         'current_turn_side' => $turn,
         'current_turn_label' => $turn !== '' ? map_veto_player_display_side($session, $turn) : '',
         'game_number' => (int) ($session['game_number'] ?? 1),
-        'turn_started_at' => $session['turn_started_at'] ?? null,
-        'turn_expires_at' => $session['turn_expires_at'] ?? null,
+        'turn_started_at' => $paused ? null : ($session['turn_started_at'] ?? null),
+        'turn_expires_at' => $paused ? null : ($session['turn_expires_at'] ?? null),
         'session_maps' => array_values($maps),
         'actions' => array_values($actions),
         'final_order' => array_values($finalOrder),

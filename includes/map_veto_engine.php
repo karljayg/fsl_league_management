@@ -167,6 +167,9 @@ function map_veto_process_tick(array &$session): void
     if ($status === 'cancelled' || $status === 'completed' || $status === 'pending') {
         return;
     }
+    if (!empty($session['paused'])) {
+        return;
+    }
     // Order autofill loop
     while (($session['status'] ?? '') === 'live_order') {
         $avail = [];
@@ -214,6 +217,9 @@ function map_veto_process_tick(array &$session): void
 function map_veto_resolve_deadlines(array &$session): void
 {
     $status = (string) ($session['status'] ?? '');
+    if (!empty($session['paused'])) {
+        return;
+    }
     if ($status !== 'live_veto' && $status !== 'live_order') {
         return;
     }
@@ -519,6 +525,9 @@ function map_veto_submit_veto(string $sessionId, string $playerSide, string $map
         if (($s['status'] ?? '') !== 'live_veto' || ($s['current_phase'] ?? '') !== 'veto') {
             return $s;
         }
+        if (!empty($s['paused'])) {
+            return $s;
+        }
         if (($s['current_turn_side'] ?? '') !== $playerSide) {
             return $s;
         }
@@ -543,6 +552,9 @@ function map_veto_submit_pick(string $sessionId, string $playerSide, string $map
 {
     $out = map_veto_session_transaction($sessionId, static function (array $s) use ($playerSide, $mapId): ?array {
         if (($s['status'] ?? '') !== 'live_order' || ($s['current_phase'] ?? '') !== 'order') {
+            return $s;
+        }
+        if (!empty($s['paused'])) {
             return $s;
         }
         if (($s['current_turn_side'] ?? '') !== $playerSide) {
@@ -600,7 +612,79 @@ function map_veto_cancel_session(string $id): ?array
         $s['current_turn_side'] = null;
         $s['turn_started_at'] = null;
         $s['turn_expires_at'] = null;
+        unset($s['paused'], $s['pause_remaining_seconds'], $s['paused_at']);
         $s['revision'] = (int) ($s['revision'] ?? 0) + 1;
+        return $s;
+    });
+}
+
+/**
+ * Admin: freeze timer and player actions until resume.
+ *
+ * @return array<string, mixed>|null
+ */
+function map_veto_pause_session(string $id): ?array
+{
+    return map_veto_session_transaction($id, static function (array $s): ?array {
+        $st = (string) ($s['status'] ?? '');
+        if ($st !== 'live_veto' && $st !== 'live_order') {
+            return $s;
+        }
+        if (!empty($s['paused'])) {
+            return $s;
+        }
+        $exp = $s['turn_expires_at'] ?? null;
+        $rem = 0;
+        if (is_string($exp) && $exp !== '') {
+            $expTs = strtotime($exp);
+            if ($expTs !== false) {
+                $rem = max(0, $expTs - time());
+            }
+        } else {
+            $timer = max(15, min(600, (int) ($s['timer_seconds'] ?? 60)));
+            $rem = $timer;
+        }
+        $s['pause_remaining_seconds'] = $rem;
+        $s['paused'] = true;
+        $s['paused_at'] = gmdate('c');
+        $s['turn_expires_at'] = null;
+        map_veto_append_action($s, [
+            'phase' => 'system',
+            'acting_side' => 'system',
+            'action_type' => 'admin_pause',
+            'remaining_seconds' => $rem,
+        ]);
+        return $s;
+    });
+}
+
+/**
+ * Admin: continue from saved remaining time.
+ *
+ * @return array<string, mixed>|null
+ */
+function map_veto_resume_session(string $id): ?array
+{
+    return map_veto_session_transaction($id, static function (array $s): ?array {
+        if (empty($s['paused'])) {
+            return $s;
+        }
+        $st = (string) ($s['status'] ?? '');
+        if ($st !== 'live_veto' && $st !== 'live_order') {
+            unset($s['paused'], $s['pause_remaining_seconds'], $s['paused_at']);
+            return $s;
+        }
+        $rem = max(0, (int) ($s['pause_remaining_seconds'] ?? 0));
+        unset($s['paused'], $s['paused_at'], $s['pause_remaining_seconds']);
+        $s['turn_started_at'] = gmdate('c');
+        $s['turn_expires_at'] = gmdate('c', time() + max(1, $rem));
+        map_veto_append_action($s, [
+            'phase' => 'system',
+            'acting_side' => 'system',
+            'action_type' => 'admin_resume',
+            'remaining_seconds' => $rem,
+        ]);
+        map_veto_process_tick($s);
         return $s;
     });
 }
@@ -692,6 +776,7 @@ function map_veto_reset_session_to_start(string $id): array
         $s['completed_at'] = null;
         $s['turn_started_at'] = null;
         $s['turn_expires_at'] = null;
+        unset($s['paused'], $s['pause_remaining_seconds'], $s['paused_at']);
         $s['revision'] = (int) ($s['revision'] ?? 0) + 1;
 
         return $s;
