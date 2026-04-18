@@ -144,6 +144,9 @@ $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $seasonQuery = "SELECT DISTINCT season FROM fsl_matches ORDER BY season DESC";
 $seasons = $db->query($seasonQuery)->fetchAll(PDO::FETCH_COLUMN);
 
+// Get latest match defaults for pre-filling the add form
+$latestMatch = $db->query("SELECT season, season_extra_info, notes FROM fsl_matches ORDER BY fsl_match_id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+
 // Include header
 include 'includes/header.php';
 ?>
@@ -554,6 +557,20 @@ include 'includes/header.php';
 <script>
     // Player ID -> Team ID for auto-fill when player selection changes
     var playerToTeam = <?php echo json_encode($playerToTeam); ?>;
+
+    // Seed localStorage defaults from latest DB match if not already set
+    (function() {
+        var defaults = <?php echo json_encode([
+            'addMatch_season'            => $latestMatch['season'] ?? '',
+            'addMatch_season_extra_info' => $latestMatch['season_extra_info'] ?? '',
+            'addMatch_notes'             => $latestMatch['notes'] ?? '',
+        ]); ?>;
+        Object.keys(defaults).forEach(function(key) {
+            if (localStorage.getItem(key) === null) {
+                localStorage.setItem(key, defaults[key]);
+            }
+        });
+    })();
     
     // Update winner indicator based on scores
     function updateWinnerIndicator(input) {
@@ -749,6 +766,17 @@ include 'includes/header.php';
     
     // Show add match form
     function showAddMatchForm() {
+        var form = document.getElementById('addMatchForm');
+        // Restore last-used values from localStorage
+        var lastSeason = localStorage.getItem('addMatch_season');
+        var lastExtraInfo = localStorage.getItem('addMatch_season_extra_info');
+        var lastNotes = localStorage.getItem('addMatch_notes');
+        if (lastSeason !== null) form.querySelector('input[name="season"]').value = lastSeason;
+        if (lastExtraInfo !== null) form.querySelector('input[name="season_extra_info"]').value = lastExtraInfo;
+        if (lastNotes !== null) form.querySelector('input[name="notes"]').value = lastNotes;
+        // Always reset teams to blank (—)
+        form.querySelector('select[name="team_a_id"]').value = '';
+        form.querySelector('select[name="team_b_id"]').value = '';
         $('#addMatchModal').modal('show');
     }
     
@@ -786,6 +814,11 @@ include 'includes/header.php';
             return;
         }
         
+        // Persist season/extra info/notes for next entry
+        localStorage.setItem('addMatch_season', formData.get('season'));
+        localStorage.setItem('addMatch_season_extra_info', formData.get('season_extra_info'));
+        localStorage.setItem('addMatch_notes', formData.get('notes'));
+
         fetch('edit_fsl_matches_handler.php', {
             method: 'POST',
             body: formData

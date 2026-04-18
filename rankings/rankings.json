@@ -2,231 +2,645 @@
     {
         "rank": 1,
         "name": "DarkMenace",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 121,
+        "alltime_gl": 59,
+        "alltime_sw": 48,
+        "alltime_sl": 18,
+        "group": 1
     },
     {
         "rank": 2,
-        "name": "Harouz",
-        "race": "P"
+        "name": "HarOuz",
+        "race": "P",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 30,
+        "alltime_gl": 27,
+        "alltime_sw": 13,
+        "alltime_sl": 12,
+        "group": 1
     },
     {
         "rank": 3,
         "name": "Chat-Omic",
-        "race": "T"
+        "race": "T",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 12,
+        "alltime_gl": 5,
+        "alltime_sw": 6,
+        "alltime_sl": 3,
+        "group": 1
     },
     {
         "rank": 4,
         "name": "AntoineQ",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 3,
+        "alltime_gl": 6,
+        "alltime_sw": 2,
+        "alltime_sl": 3,
+        "group": 1
     },
     {
         "rank": 5,
         "name": "Neutrophil",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 127,
+        "alltime_gl": 62,
+        "alltime_sw": 54,
+        "alltime_sl": 14,
+        "group": 2
     },
     {
         "rank": 6,
         "name": "sOs",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 4,
+        "alltime_gl": 0,
+        "alltime_sw": 2,
+        "alltime_sl": 0,
+        "group": 2
     },
     {
         "rank": 7,
         "name": "NukLeo",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 6,
+        "alltime_gl": 6,
+        "alltime_sw": 3,
+        "alltime_sl": 4,
+        "group": 2
     },
     {
         "rank": 8,
         "name": "Adastra",
-        "race": "P"
+        "race": "P",
+        "season_gw": 2,
+        "season_gl": 0,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 5,
+        "alltime_gl": 3,
+        "alltime_sw": 2,
+        "alltime_sl": 2,
+        "group": 2
     },
     {
         "rank": 9,
         "name": "Sopuli",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 18,
+        "alltime_gl": 4,
+        "alltime_sw": 9,
+        "alltime_sl": 1,
+        "group": 3
     },
     {
         "rank": 10,
         "name": "Instability",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 37,
+        "alltime_gl": 34,
+        "alltime_sw": 15,
+        "alltime_sl": 14,
+        "group": 3
     },
     {
         "rank": 11,
         "name": "LightHood",
-        "race": "T"
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 26,
+        "alltime_gl": 16,
+        "alltime_sw": 12,
+        "alltime_sl": 7,
+        "group": 3
     },
     {
         "rank": 12,
         "name": "Greeempire",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 2,
+        "season_gl": 0,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 2,
+        "alltime_gl": 2,
+        "alltime_sw": 1,
+        "alltime_sl": 1,
+        "group": 3
     },
     {
         "rank": 13,
         "name": "GreatArchon",
-        "race": "T"
+        "race": "T",
+        "season_gw": 2,
+        "season_gl": 0,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 2,
+        "alltime_gl": 3,
+        "alltime_sw": 1,
+        "alltime_sl": 2,
+        "group": 4
     },
     {
         "rank": 14,
-        "name": "KJ Freeedom",
-        "race": "T"
+        "name": "Freeedom",
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 25,
+        "alltime_gl": 31,
+        "alltime_sw": 11,
+        "alltime_sl": 14,
+        "group": 4
     },
     {
         "rank": 15,
-        "name": "DLSMizel",
-        "race": "T"
+        "name": "DLSMIZEL",
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 2,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 35,
+        "alltime_gl": 52,
+        "alltime_sw": 11,
+        "alltime_sl": 22,
+        "group": 4
     },
     {
         "rank": 16,
         "name": "SirMalagant",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 37,
+        "alltime_gl": 59,
+        "alltime_sw": 15,
+        "alltime_sl": 25,
+        "group": 4
     },
     {
         "rank": 17,
         "name": "Warbunnies",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 6,
+        "alltime_gl": 5,
+        "alltime_sw": 4,
+        "alltime_sl": 2,
+        "group": 5
     },
     {
         "rank": 18,
         "name": "HurtnTime",
-        "race": "T"
+        "race": "T",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 22,
+        "alltime_gl": 50,
+        "alltime_sw": 9,
+        "alltime_sl": 24,
+        "group": 5
     },
     {
         "rank": 19,
         "name": "LittleReaper",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 2,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 85,
+        "alltime_gl": 75,
+        "alltime_sw": 36,
+        "alltime_sl": 30,
+        "group": 5
     },
     {
         "rank": 20,
         "name": "Reevou",
-        "race": "T"
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 0,
+        "alltime_gl": 0,
+        "alltime_sw": 0,
+        "alltime_sl": 0,
+        "group": 5
     },
     {
         "rank": 21,
-        "name": "CrankyToast",
-        "race": "T"
+        "name": "CrankyToaster",
+        "race": "T",
+        "season_gw": 1,
+        "season_gl": 2,
+        "season_sw": 1,
+        "season_sl": 1,
+        "alltime_gw": 1,
+        "alltime_gl": 2,
+        "alltime_sw": 1,
+        "alltime_sl": 1,
+        "group": 6
     },
     {
         "rank": 22,
-        "name": "SaranghaeSC2",
-        "race": "T"
+        "name": "SaraNghae",
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 0,
+        "alltime_gl": 0,
+        "alltime_sw": 0,
+        "alltime_sl": 0,
+        "group": 6
     },
     {
         "rank": 23,
-        "name": "PossiblyMayb",
-        "race": "Z"
+        "name": "PossiblyMayB",
+        "race": "Z",
+        "season_gw": 1,
+        "season_gl": 2,
+        "season_sw": 1,
+        "season_sl": 1,
+        "alltime_gw": 7,
+        "alltime_gl": 5,
+        "alltime_sw": 4,
+        "alltime_sl": 2,
+        "group": 6
     },
     {
         "rank": 24,
-        "name": "Cyan",
-        "race": "P"
+        "name": "cyan",
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 48,
+        "alltime_gl": 54,
+        "alltime_sw": 22,
+        "alltime_sl": 19,
+        "group": 6
     },
     {
         "rank": 25,
-        "name": "Kriminal",
-        "race": "T"
+        "name": "KriMiNal",
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 30,
+        "alltime_gl": 16,
+        "alltime_sw": 13,
+        "alltime_sl": 3,
+        "group": 7
     },
     {
         "rank": 26,
         "name": "RevenantRage",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 13,
+        "alltime_gl": 12,
+        "alltime_sw": 7,
+        "alltime_sl": 8,
+        "group": 7
     },
     {
         "rank": 27,
         "name": "HyperTurtle",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 40,
+        "alltime_gl": 56,
+        "alltime_sw": 17,
+        "alltime_sl": 26,
+        "group": 7
     },
     {
         "rank": 28,
         "name": "MvonLipwig",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 2,
+        "alltime_gl": 2,
+        "alltime_sw": 0,
+        "alltime_sl": 2,
+        "group": 7
     },
     {
         "rank": 29,
         "name": "SCVSir",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 3,
+        "alltime_gl": 4,
+        "alltime_sw": 1,
+        "alltime_sl": 3,
+        "group": 8
     },
     {
         "rank": 30,
         "name": "Papella",
-        "race": "T"
+        "race": "T",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 1,
+        "alltime_gl": 1,
+        "alltime_sw": 0,
+        "alltime_sl": 1,
+        "group": 8
     },
     {
         "rank": 31,
         "name": "PorkSisig",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 2,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 0,
+        "alltime_gl": 2,
+        "alltime_sw": 0,
+        "alltime_sl": 1,
+        "group": 8
     },
     {
         "rank": 32,
-        "name": "JMPZ",
-        "race": "Z"
+        "name": "Jmpz",
+        "race": "Z",
+        "season_gw": 2,
+        "season_gl": 0,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 9,
+        "alltime_gl": 16,
+        "alltime_sw": 4,
+        "alltime_sl": 7,
+        "group": 8
     },
     {
         "rank": 33,
-        "name": "judgefae",
-        "race": "Z"
+        "name": "JudgeFae",
+        "race": "Z",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 1,
+        "alltime_gl": 1,
+        "alltime_sw": 1,
+        "alltime_sl": 0,
+        "group": 9
     },
     {
         "rank": 34,
         "name": "ChienPwn",
-        "race": "R"
+        "race": "R",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 43,
+        "alltime_gl": 30,
+        "alltime_sw": 21,
+        "alltime_sl": 11,
+        "group": 9
     },
     {
         "rank": 35,
         "name": "Nachoz",
-        "race": "R"
+        "race": "R",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 21,
+        "alltime_gl": 27,
+        "alltime_sw": 10,
+        "alltime_sl": 15,
+        "group": 9
     },
     {
         "rank": 36,
         "name": "Klem",
-        "race": "T"
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 6,
+        "alltime_gl": 3,
+        "alltime_sw": 2,
+        "alltime_sl": 3,
+        "group": 9
     },
     {
         "rank": 37,
         "name": "LanixMagi",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 7,
+        "alltime_gl": 5,
+        "alltime_sw": 2,
+        "alltime_sl": 5,
+        "group": 10
     },
     {
         "rank": 38,
         "name": "SgtABC",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 2,
+        "season_gl": 0,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 11,
+        "alltime_gl": 17,
+        "alltime_sw": 6,
+        "alltime_sl": 8,
+        "group": 10
     },
     {
         "rank": 39,
         "name": "Fenrir",
-        "race": "T"
+        "race": "T",
+        "season_gw": 1,
+        "season_gl": 1,
+        "season_sw": 1,
+        "season_sl": 0,
+        "alltime_gw": 26,
+        "alltime_gl": 18,
+        "alltime_sw": 13,
+        "alltime_sl": 4,
+        "group": 10
     },
     {
         "rank": 40,
-        "name": "pacha",
-        "race": "T"
+        "name": "Pacha",
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 0,
+        "alltime_gl": 0,
+        "alltime_sw": 0,
+        "alltime_sl": 0,
+        "group": 10
     },
     {
         "rank": 41,
         "name": "MonkeyShaman",
-        "race": "R"
+        "race": "R",
+        "season_gw": 0,
+        "season_gl": 2,
+        "season_sw": 0,
+        "season_sl": 1,
+        "alltime_gw": 8,
+        "alltime_gl": 15,
+        "alltime_sw": 5,
+        "alltime_sl": 7,
+        "group": 11
     },
     {
         "rank": 42,
         "name": "WindShadow",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 3,
+        "alltime_gl": 9,
+        "alltime_sw": 1,
+        "alltime_sl": 5,
+        "group": 11
     },
     {
         "rank": 43,
         "name": "Pebble",
-        "race": "Z"
+        "race": "Z",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 3,
+        "alltime_gl": 7,
+        "alltime_sw": 4,
+        "alltime_sl": 2,
+        "group": 11
     },
     {
         "rank": 44,
         "name": "SpamAndRice",
-        "race": "T"
+        "race": "T",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 0,
+        "alltime_gl": 0,
+        "alltime_sw": 0,
+        "alltime_sl": 0,
+        "group": 11
     },
     {
         "rank": 45,
         "name": "ArduousGem",
-        "race": "P"
+        "race": "P",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 2,
+        "alltime_gl": 4,
+        "alltime_sw": 1,
+        "alltime_sl": 2,
+        "group": 12
     },
     {
         "rank": 46,
-        "name": "poellie",
-        "race": "R"
+        "name": "Poellie",
+        "race": "R",
+        "season_gw": 0,
+        "season_gl": 0,
+        "season_sw": 0,
+        "season_sl": 0,
+        "alltime_gw": 0,
+        "alltime_gl": 0,
+        "alltime_sw": 0,
+        "alltime_sl": 0,
+        "group": 12
     }
 ]

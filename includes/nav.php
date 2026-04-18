@@ -312,6 +312,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <h4>Admin</h4>
                     <?php if ($hasAdminRole || hasNavPermission('manage fsl schedule')): ?>
                     <a href="<?= $basePath ?>admin_schedule.php" class="dropdown-link">Manage FSL Schedule</a>
+                    <a href="<?= $basePath ?>fsl_manager_map_veto.php" class="dropdown-link">Map Veto</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit_matches')): ?>
@@ -433,6 +434,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 <h4>Admin</h4>
                 <?php if ($hasAdminRole || hasNavPermission('manage fsl schedule')): ?>
                 <a href="<?= $basePath ?>admin_schedule.php" class="mobile-link">Manage FSL Schedule</a>
+                <a href="<?= $basePath ?>fsl_manager_map_veto.php" class="mobile-link">Map Veto</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit_matches')): ?>

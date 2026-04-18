@@ -104,7 +104,10 @@ try {
                     pav.reviewer_id,
                     pav.vote,
                     pav.player1_id,
-                    pav.player2_id
+                    pav.player2_id,
+                    pav.tally_player1,
+                    pav.tally_player2,
+                    pav.tally_tie
                 FROM Player_Attribute_Votes pav
                 JOIN fsl_matches fm ON pav.fsl_match_id = fm.fsl_match_id
                 WHERE pav.attribute = ?
@@ -117,28 +120,39 @@ try {
             
             $positive_votes = 0;
             $negative_votes = 0;
-            $total_votes = count($votes);
+            $total_weight   = 0;
             
-            // Calculate weighted votes using CSV data
             foreach ($votes as $vote) {
                 $reviewer_id = $vote['reviewer_id'];
-                $vote_value = $vote['vote'];
-                $weight = isset($reviewers_by_id[$reviewer_id]) ? $reviewers_by_id[$reviewer_id]['weight'] : 1.0;
-                
-                if (($vote['player1_id'] == $player_id && $vote_value == 1) || 
-                    ($vote['player2_id'] == $player_id && $vote_value == 2)) {
+                $weight = isset($reviewers_by_id[$reviewer_id]) ? (float) $reviewers_by_id[$reviewer_id]['weight'] : 1.0;
+                $is_player1 = ($vote['player1_id'] == $player_id);
+
+                // Tally row (bot/chat submission) — use raw counts scaled by reviewer weight
+                if ($vote['tally_player1'] !== null) {
+                    $tp1  = (int) $vote['tally_player1'];
+                    $tp2  = (int) $vote['tally_player2'];
+                    $ttie = (int) $vote['tally_tie'];
+                    $total_tally = $tp1 + $tp2 + $ttie;
+
+                    if ($is_player1) {
+                        $positive_votes += $tp1  * $weight;
+                        $negative_votes += $tp2  * $weight;
+                    } else {
+                        $positive_votes += $tp2  * $weight;
+                        $negative_votes += $tp1  * $weight;
+                    }
+                    $total_weight += $total_tally * $weight;
+                    continue;
+                }
+
+                // Human reviewer row — single weighted vote
+                $vote_value = (int) $vote['vote'];
+                if (($is_player1 && $vote_value === 1) || (!$is_player1 && $vote_value === 2)) {
                     $positive_votes += $weight;
-                } elseif (($vote['player1_id'] == $player_id && $vote_value == 2) || 
-                         ($vote['player2_id'] == $player_id && $vote_value == 1)) {
+                } elseif (($is_player1 && $vote_value === 2) || (!$is_player1 && $vote_value === 1)) {
                     $negative_votes += $weight;
                 }
-            }
-            
-            // Calculate total weight for normalization
-            $total_weight = 0;
-            foreach ($votes as $vote) {
-                $reviewer_id = $vote['reviewer_id'];
-                $weight = isset($reviewers_by_id[$reviewer_id]) ? $reviewers_by_id[$reviewer_id]['weight'] : 1.0;
+                // vote === 0 (tie): no positive/negative, but counts toward total
                 $total_weight += $weight;
             }
             

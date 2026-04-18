@@ -24,3 +24,37 @@
 -- UPDATE forumthreads SET last = '1970-01-01 00:00:00' WHERE last = '0000-00-00 00:00:00';
 -- ALTER TABLE forumthreads ADD COLUMN site_user_id INT NULL;
 -- SET SESSION sql_mode = '...';  -- restore value from SELECT above
+
+-- 2026-04-10: Twitch Chat Voting API
+-- Adds tally columns to Player_Attribute_Votes, voting_sessions table, and bot reviewer row.
+
+-- 1. Add tally columns to Player_Attribute_Votes (NULL for human reviewer rows)
+ALTER TABLE Player_Attribute_Votes
+    ADD COLUMN IF NOT EXISTS tally_player1 INT NULL AFTER vote,
+    ADD COLUMN IF NOT EXISTS tally_player2 INT NULL AFTER tally_player1,
+    ADD COLUMN IF NOT EXISTS tally_tie     INT NULL AFTER tally_player2;
+
+-- 2. Create voting_sessions table
+CREATE TABLE IF NOT EXISTS voting_sessions (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    fsl_match_id  INT NOT NULL,
+    enabled_by    VARCHAR(255) NULL,
+    channel       VARCHAR(255) NULL,
+    enabled_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at    TIMESTAMP NOT NULL,
+    closed_at     TIMESTAMP NULL,
+    status        ENUM('open','closed','expired') DEFAULT 'open',
+    FOREIGN KEY (fsl_match_id) REFERENCES fsl_matches(fsl_match_id) ON DELETE CASCADE,
+    INDEX idx_vs_status  (status),
+    INDEX idx_vs_match   (fsl_match_id),
+    INDEX idx_vs_expires (expires_at)
+);
+
+-- 3. Bot reviewer entry (skip if already exists)
+INSERT IGNORE INTO reviewers (name, unique_url, weight, status)
+VALUES ('TwitchChat', 'bot-internal-not-for-web', 1.00, 'active');
+
+-- 4. Unique constraint on Player_Attribute_Votes for upsert support
+--    (one vote per reviewer per match per attribute)
+ALTER TABLE Player_Attribute_Votes
+    ADD UNIQUE KEY IF NOT EXISTS unique_reviewer_match_attr (reviewer_id, fsl_match_id, attribute);
