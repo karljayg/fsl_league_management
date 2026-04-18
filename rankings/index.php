@@ -7,165 +7,310 @@
 ob_start();
 session_start();
 require_once __DIR__ . '/../includes/db.php';
-require_once __DIR__ . '/../includes/team_logo.php';
+require_once __DIR__ . '/voting_logic.php';
 
 $rankingsFile = __DIR__ . '/rankings.json';
 $configFile = __DIR__ . '/rankings_config.json';
 
-/**
- * Enrich rankings array with current season and all-time games (maps) and sets W-L from DB.
- * Adds per player: season_gw, season_gl, season_sw, season_sl, alltime_gw, alltime_gl, alltime_sw, alltime_sl.
- *
- * @param array $rankings Array of {rank, name, race, ...}
- * @param PDO $db
- * @return array Same structure with record fields per player
- */
-function enrich_rankings_with_records(array $rankings, PDO $db): array {
-    if (empty($rankings)) {
-        return $rankings;
-    }
-    $currentSeason = null;
-    try {
-        $row = $db->query("SELECT MAX(season) as s FROM fsl_matches")->fetch(PDO::FETCH_ASSOC);
-        $currentSeason = $row && isset($row['s']) ? (int) $row['s'] : null;
-    } catch (PDOException $e) {
-        $currentSeason = null;
-    }
-    $names = array_unique(array_filter(array_map(function ($p) { return trim((string)($p['name'] ?? '')); }, $rankings)));
-    $defaults = ['season_gw' => 0, 'season_gl' => 0, 'season_sw' => 0, 'season_sl' => 0, 'alltime_gw' => 0, 'alltime_gl' => 0, 'alltime_sw' => 0, 'alltime_sl' => 0];
-    $records = [];
-    if (empty($names) || $currentSeason === null) {
-        foreach ($rankings as $i => $p) {
-            foreach ($defaults as $k => $v) {
-                $rankings[$i][$k] = $v;
-            }
-            $rank = (int)($rankings[$i]['rank'] ?? $i + 1);
-            $rankings[$i]['group'] = (int) ceil($rank / 4);
-        }
-        return $rankings;
-    }
-    $placeholders = implode(',', array_fill(0, count($names), '?'));
-    $stmt = $db->prepare("SELECT Player_ID, Real_Name FROM Players WHERE Real_Name IN ($placeholders)");
-    $stmt->execute(array_values($names));
-    $nameToPid = [];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $nameToPid[trim($row['Real_Name'])] = (int) $row['Player_ID'];
-        $nameToPid[strtolower(trim($row['Real_Name']))] = (int) $row['Player_ID'];
-    }
-    foreach ($names as $name) {
-        $pid = $nameToPid[$name] ?? $nameToPid[strtolower($name)] ?? null;
-        $rec = $defaults;
-        if ($pid !== null) {
-            $stmt = $db->prepare("
-                SELECT
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sw,
-                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sl,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as gw,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as gl
-                FROM fsl_matches WHERE season = ? AND (winner_player_id = ? OR loser_player_id = ?)
-            ");
-            $stmt->execute([$pid, $pid, $pid, $pid, $currentSeason, $pid, $pid]);
-            $r = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rec['season_sw'] = (int)($r['sw'] ?? 0);
-            $rec['season_sl'] = (int)($r['sl'] ?? 0);
-            $rec['season_gw'] = (int)($r['gw'] ?? 0);
-            $rec['season_gl'] = (int)($r['gl'] ?? 0);
-            $stmt = $db->prepare("
-                SELECT
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sw,
-                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sl,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as gw,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as gl
-                FROM fsl_matches WHERE winner_player_id = ? OR loser_player_id = ?
-            ");
-            $stmt->execute([$pid, $pid, $pid, $pid, $pid, $pid]);
-            $r = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rec['alltime_sw'] = (int)($r['sw'] ?? 0);
-            $rec['alltime_sl'] = (int)($r['sl'] ?? 0);
-            $rec['alltime_gw'] = (int)($r['gw'] ?? 0);
-            $rec['alltime_gl'] = (int)($r['gl'] ?? 0);
-        }
-        $records[$name] = $rec;
-        $records[strtolower($name)] = $rec;
-    }
-    foreach ($rankings as $i => $p) {
-        $name = trim((string)($p['name'] ?? ''));
-        $rec = $records[$name] ?? $records[strtolower($name)] ?? $defaults;
-        foreach ($defaults as $k => $v) {
-            $rankings[$i][$k] = $rec[$k];
-        }
-        $rank = (int)($rankings[$i]['rank'] ?? $i + 1);
-        $rankings[$i]['group'] = (int) ceil($rank / 4);
-    }
-    return $rankings;
+$canEdit = false;
+$canVote = false;
+if (isset($_SESSION['user_id'])) {
+    $uid = (string) $_SESSION['user_id'];
+    $canEdit = rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER);
+    $canVote = rankings_user_has_permission($db, $uid, RANKINGS_PERM_VOTE);
 }
 
-// Check if user has edit permission
-$canEdit = false;
-if (isset($_SESSION['user_id'])) {
-    try {
-        $stmt = $db->prepare("
-            SELECT COUNT(*) as cnt
-            FROM ws_user_roles ur
-            JOIN ws_role_permissions rp ON ur.role_id = rp.role_id
-            JOIN ws_permissions p ON rp.permission_id = p.permission_id
-            WHERE ur.user_id = ? AND p.permission_name = ?
-        ");
-        $stmt->execute([$_SESSION['user_id'], 'edit player, team, stats']);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $canEdit = $result && $result['cnt'] > 0;
-    } catch (PDOException $e) {
-        // Silent fail
-    }
-}
+$votingSession = rankings_voting_load_session();
+$canonicalLocked = rankings_voting_blocks_canonical_edit($votingSession);
+$votingCollectingNow = rankings_voting_is_collecting_now($votingSession);
+$canEditCanonical = $canEdit && !$canonicalLocked;
 
 // Handle AJAX requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ob_end_clean();
-    if (!$canEdit) {
-        header('Content-Type: application/json');
+    header('Content-Type: application/json');
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $action = $input['action'] ?? '';
+
+    $votingActions = [
+        'voting_start', 'voting_close', 'voting_submit_ballot', 'voting_apply',
+        'voting_publish', 'voting_discard_preview', 'voting_cancel',
+    ];
+
+    if (in_array($action, $votingActions, true)) {
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'error' => 'Not logged in']);
+            exit;
+        }
+        $uid = (string) $_SESSION['user_id'];
+        $username = (string) ($_SESSION['username'] ?? $uid);
+
+        $jsonFail = static function (string $msg): void {
+            echo json_encode(['success' => false, 'error' => $msg]);
+            exit;
+        };
+
+        if ($action === 'voting_start') {
+            if (!rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER)) {
+                $jsonFail('Permission denied');
+            }
+            if (rankings_voting_load_session() !== null) {
+                $jsonFail('A voting session is already active. Close, publish, or cancel it first.');
+            }
+            $opensRaw = trim((string) ($input['opens_at'] ?? ''));
+            $duration = (float) ($input['duration_hours'] ?? 24);
+            if ($opensRaw === '' || $duration <= 0 || $duration > 8760) {
+                $jsonFail('Invalid opens_at or duration_hours');
+            }
+            $opensTs = strtotime($opensRaw);
+            if ($opensTs === false) {
+                $jsonFail('Could not parse opens_at');
+            }
+            $closesTs = (int) round($opensTs + (float) $duration * 3600);
+            $baseline = json_decode((string) file_get_contents($rankingsFile), true);
+            if (!is_array($baseline) || $baseline === []) {
+                $jsonFail('No baseline rankings to vote on');
+            }
+            $sid = bin2hex(random_bytes(8));
+            $session = [
+                'id' => $sid,
+                'status' => 'collecting',
+                'opens_at' => gmdate('c', $opensTs),
+                'closes_at' => gmdate('c', $closesTs),
+                'duration_hours' => $duration,
+                'baseline' => $baseline,
+                'preview_rankings' => null,
+                'created_at' => gmdate('c'),
+            ];
+            if (!rankings_voting_save_session($session)) {
+                $jsonFail('Could not save voting session');
+            }
+            rankings_voting_ballots_save($sid, []);
+            rankings_voting_append_log(
+                "SESSION START id={$sid} opens={$session['opens_at']} closes={$session['closes_at']} duration_h={$duration} by user_id={$uid} username={$username}"
+            );
+            echo json_encode(['success' => true, 'session' => ['id' => $sid, 'status' => 'collecting']]);
+            exit;
+        }
+
+        if ($action === 'voting_close') {
+            if (!rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER)) {
+                $jsonFail('Permission denied');
+            }
+            $sess = rankings_voting_load_session();
+            if ($sess === null || ($sess['status'] ?? '') !== 'collecting') {
+                $jsonFail('No open voting session to close');
+            }
+            $sess['status'] = 'closed';
+            $sess['closes_at'] = gmdate('c', time());
+            $sess['closed_at'] = gmdate('c');
+            rankings_voting_save_session($sess);
+            rankings_voting_append_log(
+                'SESSION CLOSED id=' . ($sess['id'] ?? '') . ' by user_id=' . $uid . ' username=' . $username
+            );
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($action === 'voting_submit_ballot') {
+            if (!$canVote) {
+                $jsonFail('Permission denied');
+            }
+            $sess = rankings_voting_load_session();
+            if (!rankings_voting_is_collecting_now($sess)) {
+                $jsonFail('Voting is not open for ballots right now');
+            }
+            $ordered = $input['ordered_names'] ?? [];
+            if (!is_array($ordered)) {
+                $jsonFail('Invalid ballot');
+            }
+            $ordered = array_map('strval', $ordered);
+            $baseline = $sess['baseline'] ?? [];
+            if (!is_array($baseline)) {
+                $jsonFail('Invalid session baseline');
+            }
+            $deltas = rankings_voting_deltas_from_order($baseline, $ordered);
+            if ($deltas === []) {
+                $jsonFail('Ballot does not match the voting list');
+            }
+            $ballots = rankings_voting_ballots_load((string) $sess['id']);
+            $newBallot = [
+                'user_id' => $uid,
+                'username' => $username,
+                'submitted_at' => gmdate('c'),
+                'deltas' => $deltas,
+            ];
+            $filtered = array_values(array_filter($ballots, static function ($b) use ($uid): bool {
+                return (string) ($b['user_id'] ?? '') !== $uid;
+            }));
+            $filtered[] = $newBallot;
+            if (!rankings_voting_ballots_save((string) $sess['id'], $filtered)) {
+                $jsonFail('Could not save ballot');
+            }
+            $changesForLog = rankings_voting_nonzero_deltas_only($deltas);
+            rankings_voting_append_log(
+                'BALLOT user_id=' . $uid . ' username=' . $username . ' session=' . ($sess['id'] ?? '')
+                . ' changes=' . json_encode($changesForLog, JSON_UNESCAPED_UNICODE)
+            );
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($action === 'voting_apply') {
+            if (!rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER)) {
+                $jsonFail('Permission denied');
+            }
+            $sess = rankings_voting_load_session();
+            if ($sess === null || ($sess['status'] ?? '') !== 'closed') {
+                $jsonFail('Apply is only available after voting is closed (and preview not yet built)');
+            }
+            $baseline = $sess['baseline'] ?? [];
+            if (!is_array($baseline)) {
+                $jsonFail('Missing baseline');
+            }
+            $ballots = rankings_voting_ballots_load((string) ($sess['id'] ?? ''));
+            $agg = rankings_voting_aggregate($baseline, $ballots);
+            $preview = rankings_voting_merge_apply_deltas($baseline, $agg['applied']);
+            $sess['preview_rankings'] = $preview;
+            $sess['status'] = 'preview';
+            $sess['applied_deltas'] = $agg['applied'];
+            rankings_voting_save_session($sess);
+
+            $logBlock = "APPLY session=" . ($sess['id'] ?? '') . " by user_id={$uid} username={$username}\n";
+            $logBlock .= implode("\n", $agg['details']) . "\n";
+            $logBlock .= 'Ballots (' . count($ballots) . "), non-zero deltas only:\n";
+            foreach ($ballots as $b) {
+                $raw = is_array($b['deltas'] ?? null) ? $b['deltas'] : [];
+                $nz = rankings_voting_nonzero_deltas_only($raw);
+                $logBlock .= '  ' . ($b['username'] ?? '') . ' @ ' . ($b['submitted_at'] ?? '')
+                    . ' ' . json_encode($nz, JSON_UNESCAPED_UNICODE) . "\n";
+            }
+            rankings_voting_append_log($logBlock);
+
+            echo json_encode(['success' => true, 'preview_count' => count($preview)]);
+            exit;
+        }
+
+        if ($action === 'voting_discard_preview') {
+            if (!rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER)) {
+                $jsonFail('Permission denied');
+            }
+            $sess = rankings_voting_load_session();
+            if ($sess === null || ($sess['status'] ?? '') !== 'preview') {
+                $jsonFail('No preview to discard');
+            }
+            $sess['status'] = 'closed';
+            $sess['preview_rankings'] = null;
+            unset($sess['applied_deltas']);
+            rankings_voting_save_session($sess);
+            rankings_voting_append_log('DISCARD PREVIEW session=' . ($sess['id'] ?? '') . " by user_id={$uid}");
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($action === 'voting_publish') {
+            if (!rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER)) {
+                $jsonFail('Permission denied');
+            }
+            $sess = rankings_voting_load_session();
+            if ($sess === null || ($sess['status'] ?? '') !== 'preview') {
+                $jsonFail('Nothing to publish (apply first)');
+            }
+            $preview = $sess['preview_rankings'] ?? null;
+            if (!is_array($preview) || $preview === []) {
+                $jsonFail('Invalid preview');
+            }
+            $previousPublished = [];
+            if (is_readable($rankingsFile)) {
+                $prevRaw = file_get_contents($rankingsFile);
+                $decoded = is_string($prevRaw) ? json_decode($prevRaw, true) : null;
+                if (is_array($decoded)) {
+                    $previousPublished = $decoded;
+                }
+            }
+            if (@file_put_contents($rankingsFile, json_encode($preview, JSON_PRETTY_PRINT), LOCK_EX) === false) {
+                $jsonFail('Could not write rankings.json');
+            }
+            $pubAt = gmdate('c');
+            rankings_voting_save_snapshot($previousPublished, $pubAt);
+            $sid = (string) ($sess['id'] ?? '');
+            rankings_voting_append_log("PUBLISH session={$sid} by user_id={$uid} username={$username} at={$pubAt}");
+
+            $dir = rankings_voting_sessions_dir($sid);
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*') ?: [];
+                foreach ($files as $f) {
+                    if (is_file($f)) {
+                        @unlink($f);
+                    }
+                }
+                @rmdir($dir);
+            }
+            rankings_voting_clear_session();
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($action === 'voting_cancel') {
+            if (!rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER)) {
+                $jsonFail('Permission denied');
+            }
+            $sess = rankings_voting_load_session();
+            if ($sess === null) {
+                $jsonFail('No active session');
+            }
+            $sid = (string) ($sess['id'] ?? '');
+            rankings_voting_append_log("CANCEL session={$sid} by user_id={$uid} username={$username}");
+            $dir = rankings_voting_sessions_dir($sid);
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*') ?: [];
+                foreach ($files as $f) {
+                    if (is_file($f)) {
+                        @unlink($f);
+                    }
+                }
+                @rmdir($dir);
+            }
+            rankings_voting_clear_session();
+            echo json_encode(['success' => true]);
+            exit;
+        }
+    }
+
+    if (!$canEditCanonical) {
         echo json_encode(['success' => false, 'error' => 'Permission denied']);
         exit;
     }
-    header('Content-Type: application/json');
-    
-    $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $action = $input['action'] ?? '';
-    
+
     if ($action === 'move') {
         $fromIndex = $input['from'] ?? -1;
         $toIndex = $input['to'] ?? -1;
-        
+
         $rankings = json_decode(file_get_contents($rankingsFile), true);
-        
-        if ($fromIndex >= 0 && $fromIndex < count($rankings) && 
+
+        if ($fromIndex >= 0 && $fromIndex < count($rankings) &&
             $toIndex >= 0 && $toIndex < count($rankings)) {
-            
-            // Remove player from old position
+
             $player = array_splice($rankings, $fromIndex, 1)[0];
-            // When dragging down, indices shift after removal
             $insertIndex = ($fromIndex < $toIndex) ? $toIndex - 1 : $toIndex;
             array_splice($rankings, $insertIndex, 0, [$player]);
-            
-            // Re-number ranks
+
             foreach ($rankings as $i => &$p) {
                 $p['rank'] = $i + 1;
             }
-            unset($p);
-            $rankings = enrich_rankings_with_records($rankings, $db);
+
             file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
             echo json_encode(['success' => true]);
             exit;
         }
-        
+
         echo json_encode(['success' => false, 'error' => 'Invalid indices']);
         exit;
     }
-    
+
     if ($action === 'update') {
         $rankings = $input['rankings'] ?? [];
         if (!empty($rankings)) {
-            $rankings = enrich_rankings_with_records($rankings, $db);
             file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
             echo json_encode(['success' => true]);
             exit;
@@ -173,12 +318,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['success' => false, 'error' => 'No rankings provided']);
         exit;
     }
-    
+
     if ($action === 'save_code_tiers') {
         $config = [
-            'codeS' => ['minRank' => (int)($input['codeS_min'] ?? 1), 'maxRank' => (int)($input['codeS_max'] ?? 24)],
-            'codeA' => ['minRank' => (int)($input['codeA_min'] ?? 25), 'maxRank' => (int)($input['codeA_max'] ?? 36)],
-            'codeB' => ['minRank' => (int)($input['codeB_min'] ?? 37), 'maxRank' => (int)($input['codeB_max'] ?? 46)]
+            'codeS' => ['minRank' => (int) ($input['codeS_min'] ?? 1), 'maxRank' => (int) ($input['codeS_max'] ?? 24)],
+            'codeA' => ['minRank' => (int) ($input['codeA_min'] ?? 25), 'maxRank' => (int) ($input['codeA_max'] ?? 36)],
+            'codeB' => ['minRank' => (int) ($input['codeB_min'] ?? 37), 'maxRank' => (int) ($input['codeB_max'] ?? 46)],
         ];
         $result = @file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT));
         if ($result === false) {
@@ -189,45 +334,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    if ($action === 'update_name') {
-        $index = isset($input['index']) ? (int) $input['index'] : -1;
-        $name = isset($input['name']) ? trim((string) $input['name']) : '';
-        $rankings = json_decode(file_get_contents($rankingsFile), true);
-        if (!is_array($rankings) || $index < 0 || $index >= count($rankings)) {
-            echo json_encode(['success' => false, 'error' => 'Invalid index']);
-            exit;
-        }
-        if ($name === '') {
-            echo json_encode(['success' => false, 'error' => 'Name cannot be empty']);
-            exit;
-        }
-        $rankings[$index]['name'] = $name;
-        $rankings = enrich_rankings_with_records($rankings, $db);
-        file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT));
-        echo json_encode(['success' => true]);
-        exit;
-    }
-
-    if ($action === 'refresh_records') {
-        $rankings = json_decode(file_get_contents($rankingsFile), true);
-        if (!is_array($rankings) || empty($rankings)) {
-            echo json_encode(['success' => false, 'error' => 'No rankings to refresh']);
-            exit;
-        }
-        $rankings = enrich_rankings_with_records($rankings, $db);
-        if (file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT)) === false) {
-            echo json_encode(['success' => false, 'error' => 'Could not write rankings file']);
-            exit;
-        }
-        echo json_encode(['success' => true]);
-        exit;
-    }
-
     echo json_encode(['success' => false, 'error' => 'Unknown action']);
     exit;
 }
 
-// Load rankings (W-L records come from JSON; DB is only used on save/refresh)
+// Load rankings
 $rankings = [];
 if (file_exists($rankingsFile)) {
     $rankings = json_decode(file_get_contents($rankingsFile), true) ?? [];
@@ -254,37 +365,37 @@ if (file_exists($configFile)) {
     }
 }
 
-$raceIcons = [
-    'T' => 'terran_icon.png',
-    'P' => 'protoss_icon.png',
-    'Z' => 'zerg_icon.png',
-    'R' => 'random_icon.png'
-];
+$showVoterUi = $canVote && $votingCollectingNow;
+$displayRankings = $rankings;
+if ($showVoterUi && $votingSession !== null && !empty($votingSession['baseline']) && is_array($votingSession['baseline'])) {
+    $displayRankings = $votingSession['baseline'];
+}
 
-// Team logo per player (by ranking name)
-$playerTeamLogo = [];
-if (!empty($rankings)) {
-    $names = array_unique(array_filter(array_map(function ($p) { return trim((string)($p['name'] ?? '')); }, $rankings)));
-    if (!empty($names)) {
-        $placeholders = implode(',', array_fill(0, count($names), '?'));
-        $stmt = $db->prepare("SELECT p.Real_Name, t.Team_Name FROM Players p JOIN Teams t ON p.Team_ID = t.Team_ID WHERE p.Real_Name IN ($placeholders)");
-        $stmt->execute(array_values($names));
-        $nameToTeam = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $nameToTeam[trim($row['Real_Name'])] = trim($row['Team_Name']);
-            $nameToTeam[strtolower(trim($row['Real_Name']))] = trim($row['Team_Name']);
-        }
-        foreach ($names as $name) {
-            $teamName = $nameToTeam[$name] ?? $nameToTeam[strtolower($name)] ?? null;
-            if ($teamName) {
-                $logo = getTeamLogo($teamName, '256px');
-                if ($logo) {
-                    $playerTeamLogo[$name] = $logo;
-                }
+$snapshotRanks = rankings_voting_load_snapshot_ranks();
+$movementByName = rankings_voting_rank_movement_vs_snapshot($rankings, $snapshotRanks);
+
+$ballotCountThisSession = 0;
+$userHasBallot = false;
+if ($votingSession !== null && !empty($votingSession['id'])) {
+    $_ballots = rankings_voting_ballots_load((string) $votingSession['id']);
+    $ballotCountThisSession = count($_ballots);
+    if (isset($_SESSION['user_id'])) {
+        foreach ($_ballots as $_b) {
+            if ((string) ($_b['user_id'] ?? '') === (string) $_SESSION['user_id']) {
+                $userHasBallot = true;
+                break;
             }
         }
     }
 }
+$sessionStatus = (string) ($votingSession['status'] ?? '');
+
+$raceIcons = [
+    'T' => 'terran_icon.png',
+    'P' => 'protoss_icon.png', 
+    'Z' => 'zerg_icon.png',
+    'R' => 'random_icon.png'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -305,19 +416,12 @@ if (!empty($rankings)) {
         }
         
         .rankings-container {
-            width: 100%;
-            max-width: 1000px;
-            margin-left: auto;
-            margin-right: auto;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 2rem;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
         
         .rankings-header {
-            width: 100%;
             text-align: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
@@ -342,28 +446,21 @@ if (!empty($rankings)) {
         }
         
         .rankings-list {
-            width: max-content;
-            max-width: 100%;
             background: rgba(0, 0, 0, 0.3);
             border-radius: 10px;
             padding: 1rem;
-        }
-        .rankings-rows {
-            min-width: 0;
-            padding-left: var(--rankings-row-pad, 0.25rem);
         }
         
         .player-row {
             display: flex;
             align-items: center;
-            padding: 0.5rem 0.75rem;
+            padding: 0.75rem 1rem;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.5rem;
             transition: all 0.2s ease;
             position: relative;
-            overflow: visible;
-            box-sizing: border-box;
+            overflow: hidden;
         }
         
         .player-row:hover {
@@ -404,28 +501,26 @@ if (!empty($rankings)) {
         }
         
         .rank-badge {
-            width: 26px;
-            height: 26px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #6c5ce7, #a29bfe);
             border-radius: 50%;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 0.75rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: #fff;
-            margin-right: 0.5rem;
+            margin-right: 1rem;
             flex-shrink: 0;
         }
         
         .player-name {
             font-family: 'Exo 2', sans-serif;
-            font-size: 1rem;
+            font-size: 1.2rem;
             font-weight: 600;
             flex: 1;
-            min-width: 0;
-            max-width: 180px;
         }
         
         .player-name a {
@@ -436,178 +531,56 @@ if (!empty($rankings)) {
         .player-name a:hover {
             color: #a29bfe;
         }
-        
-        .player-name a.edit-name-trigger {
-            cursor: text;
-        }
-        
-        .player-name input.edit-name-input {
-            width: 100%;
-            max-width: 220px;
-            padding: 0.2rem 0.4rem;
-            font-family: inherit;
-            font-size: 1.2rem;
+
+        .rank-move-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.15rem;
+            margin-left: 0.35rem;
+            font-size: 0.8rem;
             font-weight: 600;
-            background: rgba(108, 92, 231, 0.2);
-            border: 1px solid rgba(108, 92, 231, 0.5);
-            border-radius: 4px;
-            color: #fff;
+            color: rgba(200, 200, 210, 0.55);
+            vertical-align: middle;
+        }
+        .rank-move-indicator i {
+            font-size: 0.72rem;
+            opacity: 0.95;
+        }
+
+        .voting-admin-panel {
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 10px;
+            border: 1px solid rgba(108, 92, 231, 0.25);
+        }
+        .voting-voter-banner {
+            background: rgba(0, 184, 148, 0.12);
+            border: 1px solid rgba(0, 184, 148, 0.35);
+            border-radius: 10px;
+            color: #b2dfdb;
+            font-size: 0.95rem;
+        }
+        .player-row.vote-row-changed {
+            box-shadow: inset 0 0 0 1px rgba(108, 92, 231, 0.35);
         }
         
         .race-icon {
-            width: 22px;
-            height: 22px;
-            margin-right: 0.5rem;
-            flex-shrink: 0;
-        }
-
-        /* Right side: Group, Team, All (sets + games stacked) */
-        .player-row-right {
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-            gap: 0;
-        }
-        .group-badge {
-            font-size: 0.75rem;
-            color: #6c5ce7;
-            background: rgba(108, 92, 231, 0.2);
-            padding: 0.15rem 0.4rem;
-            border-radius: 10px;
-            width: 2rem;
-            text-align: center;
-            flex-shrink: 0;
-        }
-        .player-row .team-logo-cell {
             width: 28px;
             height: 28px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 0.5rem;
+            margin-right: 1rem;
         }
-        .player-row .team-logo-cell img {
-            width: 24px;
-            height: 24px;
-            object-fit: contain;
-            border-radius: 4px;
-            border: 1px solid rgba(108, 92, 231, 0.3);
-        }
-        /* Season and All-time: each column has label then games, sets */
-        .player-records-block {
-            display: flex;
-            gap: 0.75rem;
-            margin-left: 0.5rem;
-            font-size: 0.7rem;
-            color: #888;
-            flex-shrink: 0;
-        }
-        .player-records-col {
-            text-align: left;
-            min-width: 3.5rem;
-        }
-        .player-records-col .record-col-label {
-            display: block;
-            color: #666;
-            font-size: 0.65rem;
-            margin-bottom: 0.1rem;
-        }
-        .player-records-block .record-line {
-            display: block;
-            white-space: nowrap;
-        }
-        .player-records-block .record-num {
-            color: #b8b8b8;
-            font-weight: 600;
-        }
-
-        /* Header: inside .rankings-list-content so strip is to its left; padding matches .rankings-rows */
-        .rankings-list-header {
-            display: flex;
-            align-items: center;
-            padding: 0.4rem 0.75rem 0.25rem var(--rankings-row-pad, 0.25rem);
-            margin-bottom: 0;
-            color: #666;
-            font-size: 0.7rem;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            box-sizing: border-box;
-        }
-        .rankings-list-header .drag-handle-header {
-            width: 24px;
+        
+        .group-badge {
+            font-size: 0.85rem;
+            color: #6c5ce7;
+            background: rgba(108, 92, 231, 0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
             margin-right: 0.5rem;
-            flex-shrink: 0;
         }
-        .rankings-list-header .rank-badge-header {
-            width: 26px;
-            min-width: 26px;
-            margin-right: 0.5rem;
-            flex-shrink: 0;
-            text-align: center;
-            font-size: 0.65rem;
-        }
-        .rankings-list-header .race-icon-header {
-            width: 22px;
-            min-width: 22px;
-            height: 22px;
-            margin-right: 0.5rem;
-            flex-shrink: 0;
-            text-align: center;
-            font-size: 0.65rem;
-        }
-        .rankings-list-header .player-name-header {
-            flex: 1;
-            min-width: 0;
-            max-width: 180px;
-        }
-        .rankings-list-header .group-badge-header {
-            width: 2rem;
-            flex-shrink: 0;
-        }
-        .rankings-list-header .team-logo-header {
-            width: 28px;
-            margin-left: 0.5rem;
-            flex-shrink: 0;
-        }
-        .rankings-list-header .player-records-block {
-            margin-left: 0.5rem;
-            gap: 0.75rem;
-        }
-        .rankings-list-header .player-records-block .player-records-col {
-            min-width: 3.5rem;
-        }
-        .rankings-list-header .record-sublabel {
-            color: #555;
-            font-size: 0.6rem;
-        }
-
-        @media (max-width: 768px) {
-            .rankings-container { padding: 0.75rem; }
-            .rankings-list { padding: 0.5rem; }
-            .player-row { padding: 0.4rem 0.5rem; margin-bottom: 0.25rem; }
-            .rank-badge { width: 22px; height: 22px; font-size: 0.65rem; margin-right: 0.35rem; }
-            .race-icon { width: 18px; height: 18px; margin-right: 0.35rem; }
-            .player-name { font-size: 0.9rem; }
-            .group-badge { width: 1.75rem; font-size: 0.65rem; padding: 0.1rem 0.25rem; }
-            .player-row .team-logo-cell { width: 24px; height: 24px; margin-left: 0.35rem; }
-            .player-row .team-logo-cell img { width: 20px; height: 20px; }
-            .player-records-block { font-size: 0.65rem; margin-left: 0.35rem; gap: 0.5rem; }
-            .player-records-col { min-width: 2.75rem; }
-            .player-records-col .record-col-label { font-size: 0.6rem; }
-            .rankings-list-header { padding: 0.35rem 0.5rem 0.25rem var(--rankings-row-pad, 0.25rem); font-size: 0.65rem; }
-            .rankings-list-header .rank-badge-header { width: 22px; margin-right: 0.35rem; }
-            .rankings-list-header .race-icon-header { width: 18px; margin-right: 0.35rem; }
-            .rankings-list-header .group-badge-header { width: 1.75rem; }
-            .rankings-list-header .team-logo-header { width: 24px; margin-left: 0.35rem; }
-            .rankings-list-header .player-records-block { margin-left: 0.35rem; gap: 0.5rem; }
-            .rankings-list-header .player-records-block .player-records-col { min-width: 2.75rem; }
-            .move-buttons { display: none; }
-        }
-
+        
         .move-buttons {
             display: flex;
             gap: 0.25rem;
-            flex-shrink: 0;
         }
         
         .move-btn {
@@ -639,21 +612,13 @@ if (!empty($rankings)) {
             padding: 0 0.5rem;
             color: #555;
             margin-right: 0.5rem;
-            width: 24px;
-            flex-shrink: 0;
-            display: inline-block;
-            box-sizing: border-box;
         }
-        /* View mode: drag-handle keeps 24px so columns align; hidden via visibility. Edit mode: #rankingsList.edit-mode shows it. */
-        .drag-handle.edit-only { visibility: hidden; }
-        #rankingsList.edit-mode .drag-handle.edit-only { visibility: visible; }
         
         .drag-handle:active {
             cursor: grabbing;
         }
         
         .edit-mode-toggle {
-            width: 100%;
             text-align: center;
             margin-bottom: 1rem;
         }
@@ -678,23 +643,11 @@ if (!empty($rankings)) {
             display: flex;
             gap: 0;
             align-items: stretch;
-            min-height: 0;
         }
-
-        .rankings-list-content {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            --rankings-row-pad: 0.25rem;
-        }
-
+        
         .code-tier-strip {
-            flex: 0 0 28px;
             width: 28px;
             min-width: 28px;
-            align-self: stretch;
-            min-height: 100%;
             border-radius: 8px 0 0 8px;
             overflow: hidden;
             display: flex;
@@ -795,6 +748,14 @@ if (!empty($rankings)) {
         }
         
         
+        @media (max-width: 768px) {
+            .rankings-container { padding: 1rem; }
+            .player-row { padding: 0.5rem; }
+            .rank-badge { width: 32px; height: 32px; font-size: 0.9rem; }
+            .player-name { font-size: 1rem; }
+            .move-buttons { display: none; }
+            .move-buttons.vote-move-buttons { display: flex; }
+        }
     </style>
 </head>
 <body>
@@ -804,14 +765,87 @@ if (!empty($rankings)) {
         <div class="rankings-header">
             <h1>KJ's Power Rankings</h1>
             <p>Code S · Code A · Code B
-                <?php if ($canEdit): ?>
+                <?php if ($canEditCanonical): ?>
                 <button type="button" class="code-tier-edit-btn" onclick="openCodeTierModal()" title="Edit Code tier ranges"><i class="fas fa-cog"></i> Edit ranges</button>
-                <button type="button" class="code-tier-edit-btn" onclick="refreshRecords()" title="Reload W-L from DB and save to rankings file"><i class="fas fa-sync-alt"></i> Refresh records</button>
                 <?php endif; ?>
             </p>
         </div>
-        
+
+        <?php if ($canonicalLocked && $canEdit): ?>
+        <p class="text-center text-warning small mb-2">
+            <i class="fas fa-lock"></i> Official list is frozen while a community vote session is active (close, cancel, or publish to unlock).
+        </p>
+        <?php endif; ?>
+
         <?php if ($canEdit): ?>
+        <div class="voting-admin-panel mb-3 p-3">
+            <h5 class="text-secondary mb-2"><i class="fas fa-users"></i> Community vote</h5>
+            <?php if ($votingSession === null): ?>
+            <p class="small text-muted mb-2">Start a window. Voters with the &quot;rankings community vote&quot; permission can reorder a copy and submit a ballot. Nothing publishes until you apply and publish.</p>
+            <div class="form-row align-items-end">
+                <div class="col-md-5 mb-2">
+                    <label class="small text-muted d-block">Opens (local time)</label>
+                    <input type="datetime-local" class="form-control form-control-sm bg-dark text-white border-secondary" id="voteOpensAt" value="<?= htmlspecialchars(date('Y-m-d\TH:i')) ?>">
+                </div>
+                <div class="col-md-3 mb-2">
+                    <label class="small text-muted d-block">Duration (hours)</label>
+                    <input type="number" class="form-control form-control-sm bg-dark text-white border-secondary" id="voteDurationH" value="24" min="0.25" max="8760" step="0.25">
+                </div>
+                <div class="col-md-4 mb-2">
+                    <button type="button" class="edit-btn btn-sm" onclick="votingStart()"><i class="fas fa-play"></i> Open voting window</button>
+                </div>
+            </div>
+            <?php else: ?>
+            <p class="small mb-2">
+                <strong>Status:</strong> <?= htmlspecialchars($sessionStatus) ?>
+                &middot; <strong>Session:</strong> <?= htmlspecialchars((string) ($votingSession['id'] ?? '')) ?>
+                &middot; <strong>Ballots:</strong> <?= (int) $ballotCountThisSession ?>
+                <?php if (!empty($votingSession['opens_at'])): ?>
+                &middot; Opens <?= htmlspecialchars((string) $votingSession['opens_at']) ?>
+                <?php endif; ?>
+                <?php if (!empty($votingSession['closes_at'])): ?>
+                &middot; Closes <?= htmlspecialchars((string) $votingSession['closes_at']) ?>
+                <?php endif; ?>
+            </p>
+            <p class="small text-muted mb-2">Full audit: <code>rankings/voting_log.txt</code></p>
+            <?php if ($sessionStatus === 'collecting' && !$votingCollectingNow && !empty($votingSession['opens_at']) && strtotime((string) $votingSession['opens_at']) > time()): ?>
+            <p class="small text-info mb-2">Ballots are not accepted yet: opens time is still in the future.</p>
+            <?php endif; ?>
+            <?php if ($sessionStatus === 'preview'): ?>
+            <p class="small text-warning mb-2">Preview is stored in the session (not live yet). This page still shows the published list until you publish.</p>
+            <?php endif; ?>
+            <div class="d-flex flex-wrap mt-2">
+                <?php if ($sessionStatus === 'collecting'): ?>
+                <button type="button" class="btn btn-sm btn-outline-warning mr-2 mb-2" onclick="votingClose()"><i class="fas fa-stop"></i> Close voting</button>
+                <?php endif; ?>
+                <?php if ($sessionStatus === 'closed'): ?>
+                <button type="button" class="btn btn-sm btn-outline-info mr-2 mb-2" onclick="votingApply()"><i class="fas fa-calculator"></i> Apply (build preview)</button>
+                <?php endif; ?>
+                <?php if ($sessionStatus === 'preview'): ?>
+                <button type="button" class="btn btn-sm btn-success mr-2 mb-2" onclick="votingPublish()"><i class="fas fa-check"></i> Publish to site</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary mr-2 mb-2" onclick="votingDiscardPreview()"><i class="fas fa-undo"></i> Discard preview</button>
+                <?php endif; ?>
+                <button type="button" class="btn btn-sm btn-outline-danger mb-2" onclick="votingCancel()"><i class="fas fa-times"></i> Cancel session</button>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($showVoterUi): ?>
+        <div class="voting-voter-banner mb-3 p-3">
+            <strong><i class="fas fa-pen"></i> Voting is open.</strong>
+            You are adjusting a <em>copy</em> for your ballot only; the public list does not change until the admin publishes.
+            Drag rows or use arrows, then <strong>Send vote</strong>. You will not see others&apos; votes or results until they are official.
+            <?php if ($userHasBallot): ?>
+            <span class="d-block mt-1 text-white-50 small">You have already submitted a ballot; sending again replaces it.</span>
+            <?php endif; ?>
+        </div>
+        <div class="edit-mode-toggle mb-3">
+            <button type="button" class="edit-btn" id="sendVoteBtn" onclick="submitVoteBallot()"><i class="fas fa-paper-plane"></i> Send vote</button>
+        </div>
+        <?php endif; ?>
+        
+        <?php if ($canEditCanonical): ?>
         <div class="edit-mode-toggle">
             <button class="edit-btn" id="editModeBtn" onclick="toggleEditMode()">
                 <i class="fas fa-edit"></i> Enable Edit Mode
@@ -821,103 +855,77 @@ if (!empty($rankings)) {
         
         <?php
         $sRows = $aRows = $bRows = 0;
-        foreach ($rankings as $player) {
+        foreach ($displayRankings as $player) {
             $rank = (int) $player['rank'];
-            if ($rank >= $codeTiers['codeS']['minRank'] && $rank <= $codeTiers['codeS']['maxRank']) $sRows++;
-            elseif ($rank >= $codeTiers['codeA']['minRank'] && $rank <= $codeTiers['codeA']['maxRank']) $aRows++;
-            else $bRows++;
+            if ($rank >= $codeTiers['codeS']['minRank'] && $rank <= $codeTiers['codeS']['maxRank']) {
+                $sRows++;
+            } elseif ($rank >= $codeTiers['codeA']['minRank'] && $rank <= $codeTiers['codeA']['maxRank']) {
+                $aRows++;
+            } else {
+                $bRows++;
+            }
         }
+        $displayCount = count($displayRankings);
         ?>
-        <div class="rankings-list">
-            <!-- Layout: strip then header+rows so strip is left of both -->
-            <div class="rankings-with-indicator">
-                <div class="code-tier-strip" title="Code S: #<?= $codeTiers['codeS']['minRank'] ?>–<?= $codeTiers['codeS']['maxRank'] ?> · Code A: #<?= $codeTiers['codeA']['minRank'] ?>–<?= $codeTiers['codeA']['maxRank'] ?> · Code B: #<?= $codeTiers['codeB']['minRank'] ?>–<?= $codeTiers['codeB']['maxRank'] ?>">
-                    <div class="code-zone code-s" style="flex: <?= $sRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>S</span></div>
-                    <div class="code-zone code-a" style="flex: <?= $aRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>A</span></div>
-                    <div class="code-zone code-b" style="flex: <?= $bRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>B</span></div>
-                </div>
-                <div class="rankings-list-content">
-                    <div class="rankings-list-header" data-layout="strip-left-of-header">
-                        <?php if ($canEdit): ?><span class="drag-handle-header"></span><?php endif; ?>
-                        <span class="rank-badge-header">Rank</span>
-                        <span class="race-icon-header">Race</span>
-                        <span class="player-name-header">Player</span>
-                        <span class="group-badge-header">Group #</span>
-                        <span class="team-logo-header">Team</span>
-                        <div class="player-records-block header-records">
-                            <div class="player-records-col">
-                                <span class="record-col-label">Season:</span>
-                                <span class="record-line record-sublabel">games, sets</span>
-                            </div>
-                            <div class="player-records-col">
-                                <span class="record-col-label">All-time:</span>
-                                <span class="record-line record-sublabel">games, sets</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="rankings-rows" id="rankingsList">
-            <?php
-            foreach ($rankings as $index => $player): 
+        <div class="rankings-with-indicator">
+            <div class="code-tier-strip" title="Code S: #<?= $codeTiers['codeS']['minRank'] ?>–<?= $codeTiers['codeS']['maxRank'] ?> · Code A: #<?= $codeTiers['codeA']['minRank'] ?>–<?= $codeTiers['codeA']['maxRank'] ?> · Code B: #<?= $codeTiers['codeB']['minRank'] ?>–<?= $codeTiers['codeB']['maxRank'] ?>">
+                <div class="code-zone code-s" style="flex: <?= $sRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>S</span></div>
+                <div class="code-zone code-a" style="flex: <?= $aRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>A</span></div>
+                <div class="code-zone code-b" style="flex: <?= $bRows ?>"><span class="code-zone-label"><?= implode('<br>', str_split('Code')) ?><br><br>B</span></div>
+            </div>
+        <div class="rankings-list" id="rankingsList">
+            <?php 
+            foreach ($displayRankings as $index => $player):
                 $rank = (int) $player['rank'];
-                $group = isset($player['group']) ? (int) $player['group'] : (int) ceil($rank / 4);
-                $code = ($rank >= $codeTiers['codeS']['minRank'] && $rank <= $codeTiers['codeS']['maxRank']) ? 'S' : 
+                $group = (int) ceil($rank / 4);
+                $code = ($rank >= $codeTiers['codeS']['minRank'] && $rank <= $codeTiers['codeS']['maxRank']) ? 'S' :
                     (($rank >= $codeTiers['codeA']['minRank'] && $rank <= $codeTiers['codeA']['maxRank']) ? 'A' : 'B');
+                $pname = (string) $player['name'];
+                $mvInt = isset($movementByName[$pname]) ? (int) $movementByName[$pname] : 0;
             ?>
-                <div class="player-row" data-index="<?= $index ?>" data-code="<?= $code ?>" draggable="false">
+                <div class="player-row" data-index="<?= $index ?>" data-code="<?= $code ?>" data-player-name="<?= htmlspecialchars($pname) ?>" draggable="false">
                     <div class="skill-band g<?= $group ?>"></div>
-                    <?php if ($canEdit): ?>
-                    <span class="drag-handle edit-only"><i class="fas fa-grip-vertical"></i></span>
+                    <?php if ($canEditCanonical): ?>
+                    <span class="drag-handle edit-only" style="display: none;"><i class="fas fa-grip-vertical"></i></span>
+                    <?php endif; ?>
+                    <?php if ($showVoterUi): ?>
+                    <span class="drag-handle vote-only" style="display: inline-block;"><i class="fas fa-grip-vertical"></i></span>
                     <?php endif; ?>
                     <span class="rank-badge"><?= $player['rank'] ?></span>
-                    <img src="../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                    <span class="player-name" data-index="<?= $index ?>">
-                        <a href="../view_player.php?name=<?= urlencode($player['name']) ?>" class="player-name-link"><?= htmlspecialchars($player['name']) ?></a>
-                    </span>
-                    <div class="player-row-right">
-                        <span class="group-badge">G<?= $group ?></span>
-                        <div class="team-logo-cell">
-                            <?php
-                            $pname = isset($player['name']) ? trim($player['name']) : '';
-                            $logo = $pname ? ($playerTeamLogo[$pname] ?? $playerTeamLogo[strtolower($pname)] ?? null) : null;
-                            if ($logo):
-                            ?><img src="../<?= htmlspecialchars($logo) ?>" alt=""><?php endif; ?>
-                        </div>
-                        <?php
-                        $rec = [
-                            'season_gw' => (int)($player['season_gw'] ?? 0), 'season_gl' => (int)($player['season_gl'] ?? 0),
-                            'season_sw' => (int)($player['season_sw'] ?? 0), 'season_sl' => (int)($player['season_sl'] ?? 0),
-                            'alltime_gw' => (int)($player['alltime_gw'] ?? 0), 'alltime_gl' => (int)($player['alltime_gl'] ?? 0),
-                            'alltime_sw' => (int)($player['alltime_sw'] ?? 0), 'alltime_sl' => (int)($player['alltime_sl'] ?? 0)
-                        ];
+                    <img src="../images/<?= $raceIcons[$player['race']] ?? 'random_icon.png' ?>" alt="<?= htmlspecialchars((string) $player['race']) ?>" class="race-icon">
+                    <span class="player-name">
+                        <a href="../view_player.php?name=<?= urlencode($pname) ?>"><?= htmlspecialchars($pname) ?></a><?php
+                        if ($mvInt !== 0) {
+                            $up = $mvInt > 0;
+                            echo '<span class="rank-move-indicator" title="Since last published rankings"><i class="fas ' . ($up ? 'fa-arrow-up' : 'fa-arrow-down') . '"></i><span>'
+                                . ($up ? '+' . $mvInt : (string) $mvInt) . '</span></span>';
+                        }
                         ?>
-                        <div class="player-records-block" title="Season and all-time: games (W-L), sets (W-L)">
-                            <div class="player-records-col">
-                                <span class="record-col-label">Season:</span>
-                                <span class="record-line"><span class="record-num"><?= $rec['season_gw'] ?>-<?= $rec['season_gl'] ?></span></span>
-                                <span class="record-line"><span class="record-num"><?= $rec['season_sw'] ?>-<?= $rec['season_sl'] ?></span></span>
-                            </div>
-                            <div class="player-records-col">
-                                <span class="record-col-label">All-time:</span>
-                                <span class="record-line"><span class="record-num"><?= $rec['alltime_gw'] ?>-<?= $rec['alltime_gl'] ?></span></span>
-                                <span class="record-line"><span class="record-num"><?= $rec['alltime_sw'] ?>-<?= $rec['alltime_sl'] ?></span></span>
-                            </div>
-                        </div>
-                    </div>
-                    <?php if ($canEdit): ?>
+                    </span>
+                    <span class="group-badge">G<?= $group ?></span>
+                    <?php if ($canEditCanonical): ?>
                     <div class="move-buttons edit-only" style="display: none;">
                         <button class="move-btn move-up" data-index="<?= $index ?>" <?= $index === 0 ? 'disabled' : '' ?>>
                             <i class="fas fa-chevron-up"></i>
                         </button>
-                        <button class="move-btn move-down" data-index="<?= $index ?>" <?= $index === count($rankings) - 1 ? 'disabled' : '' ?>>
+                        <button class="move-btn move-down" data-index="<?= $index ?>" <?= $index === $displayCount - 1 ? 'disabled' : '' ?>>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($showVoterUi): ?>
+                    <div class="move-buttons vote-move-buttons vote-only" style="display: flex;">
+                        <button type="button" class="move-btn move-up" data-index="<?= $index ?>" <?= $index === 0 ? 'disabled' : '' ?>>
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                        <button type="button" class="move-btn move-down" data-index="<?= $index ?>" <?= $index === $displayCount - 1 ? 'disabled' : '' ?>>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                     </div>
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
-                    </div>
-                </div>
-            </div>
+        </div>
         </div>
     </div>
     
@@ -954,28 +962,37 @@ if (!empty($rankings)) {
     <script>
         let editMode = false;
         const codeTiers = <?= json_encode($codeTiers) ?>;
+        const voteMode = <?= $showVoterUi ? 'true' : 'false' ?>;
+        const voteBaselineNames = <?= $showVoterUi ? json_encode(array_values(array_column($displayRankings, 'name'))) : '[]' ?>;
         
         function getCodeForRank(rank) {
             if (rank >= codeTiers.codeS.minRank && rank <= codeTiers.codeS.maxRank) return 'S';
             if (rank >= codeTiers.codeA.minRank && rank <= codeTiers.codeA.maxRank) return 'A';
             return 'B';
         }
+
+        function highlightVoteDiffs() {
+            if (!voteMode || !voteBaselineNames.length) return;
+            const rows = Array.from(document.querySelectorAll('#rankingsList .player-row'));
+            rows.forEach((row, i) => {
+                const name = row.dataset.playerName;
+                const baseIdx = voteBaselineNames.indexOf(name);
+                row.classList.toggle('vote-row-changed', baseIdx !== i);
+            });
+        }
         
         function toggleEditMode() {
-            editMode = !editMode;
             const btn = document.getElementById('editModeBtn');
-            const listEl = document.getElementById('rankingsList');
+            if (!btn) return;
+            editMode = !editMode;
             const editElements = document.querySelectorAll('.edit-only');
             const rows = document.querySelectorAll('.player-row');
+            const list = document.getElementById('rankingsList');
             
             if (editMode) {
                 btn.innerHTML = '<i class="fas fa-eye"></i> View Mode';
                 btn.style.background = 'linear-gradient(135deg, #00b894, #55efc4)';
-                listEl.classList.add('edit-mode');
-                editElements.forEach(el => {
-                    if (el.classList.contains('move-buttons')) el.style.display = 'flex';
-                    else { el.style.removeProperty('display'); el.style.removeProperty('visibility'); }
-                });
+                editElements.forEach(el => { el.style.display = el.classList.contains('move-buttons') ? 'flex' : 'inline-block'; });
                 rows.forEach(row => {
                     row.draggable = true;
                     row.addEventListener('dragstart', handleDragStart);
@@ -984,15 +1001,11 @@ if (!empty($rankings)) {
                     row.addEventListener('drop', handleDrop);
                     row.addEventListener('dragleave', handleDragLeave);
                 });
-                document.getElementById('rankingsList').addEventListener('click', handleMoveButtonClick);
-                document.getElementById('rankingsList').addEventListener('click', handleNameClick);
+                list.addEventListener('click', handleMoveButtonClick);
             } else {
                 btn.innerHTML = '<i class="fas fa-edit"></i> Enable Edit Mode';
                 btn.style.background = 'linear-gradient(135deg, #6c5ce7, #a29bfe)';
-                listEl.classList.remove('edit-mode');
-                editElements.forEach(el => {
-                    if (el.classList.contains('move-buttons')) el.style.display = 'none';
-                });
+                editElements.forEach(el => el.style.display = 'none');
                 rows.forEach(row => {
                     row.draggable = false;
                     row.removeEventListener('dragstart', handleDragStart);
@@ -1001,65 +1014,8 @@ if (!empty($rankings)) {
                     row.removeEventListener('drop', handleDrop);
                     row.removeEventListener('dragleave', handleDragLeave);
                 });
-                document.getElementById('rankingsList').removeEventListener('click', handleMoveButtonClick);
-                document.getElementById('rankingsList').removeEventListener('click', handleNameClick);
+                list.removeEventListener('click', handleMoveButtonClick);
             }
-        }
-        
-        function handleNameClick(e) {
-            if (!editMode) return;
-            const link = e.target.closest('.player-name-link');
-            if (!link) return;
-            e.preventDefault();
-            const row = link.closest('.player-row');
-            const nameSpan = row.querySelector('.player-name');
-            if (!nameSpan || nameSpan.querySelector('.edit-name-input')) return;
-            const index = parseInt(nameSpan.dataset.index, 10);
-            const currentName = link.textContent.trim();
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'edit-name-input';
-            input.value = currentName;
-            input.dataset.index = index;
-            nameSpan.innerHTML = '';
-            nameSpan.appendChild(input);
-            input.focus();
-            input.select();
-            function save() {
-                if (!document.contains(input)) return;
-                const newName = input.value.trim();
-                if (newName === '') { input.value = currentName; return; }
-                if (newName === currentName) {
-                    replaceWithLink(nameSpan, index, currentName);
-                    return;
-                }
-                fetch('', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ action: 'update_name', index: index, name: newName })
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        showSaveIndicator();
-                        replaceWithLink(nameSpan, index, newName);
-                    }
-                });
-            }
-            input.addEventListener('blur', save, { once: true });
-            input.addEventListener('keydown', function(ev) {
-                if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-                if (ev.key === 'Escape') { replaceWithLink(nameSpan, index, currentName); }
-            });
-        }
-        
-        function replaceWithLink(nameSpan, index, name) {
-            const a = document.createElement('a');
-            a.href = '../view_player.php?name=' + encodeURIComponent(name);
-            a.className = 'player-name-link';
-            a.textContent = name;
-            nameSpan.innerHTML = '';
-            nameSpan.appendChild(a);
         }
         
         function handleMoveButtonClick(e) {
@@ -1111,6 +1067,11 @@ if (!empty($rankings)) {
         
         function movePlayerByIndex(fromIndex, toIndex) {
             if (fromIndex === toIndex) return;
+            if (voteMode) {
+                updateDOMAfterMove(fromIndex, toIndex);
+                highlightVoteDiffs();
+                return;
+            }
             fetch('', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -1139,8 +1100,6 @@ if (!empty($rankings)) {
             rows.forEach(row => list.appendChild(row));
             rows.forEach((row, i) => {
                 row.dataset.index = i;
-                const nameSpan = row.querySelector('.player-name');
-                if (nameSpan) nameSpan.dataset.index = i;
                 const rank = i + 1;
                 const group = Math.ceil(rank / 4);
                 row.querySelector('.rank-badge').textContent = rank;
@@ -1193,27 +1152,73 @@ if (!empty($rankings)) {
                 }
             });
         }
-
-        function refreshRecords() {
-            fetch('', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action: 'refresh_records' })
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) {
-                    showSaveIndicator();
-                    location.reload();
-                } else if (res.error) {
-                    alert(res.error);
-                }
-            });
-        }
         
         document.getElementById('codeTierModal').addEventListener('click', function(e) {
             if (e.target === this) closeCodeTierModal();
         });
+
+        function postVoting(body) {
+            return fetch('', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            }).then(r => r.json());
+        }
+        function votingStart() {
+            const opens = document.getElementById('voteOpensAt').value;
+            const dur = parseFloat(document.getElementById('voteDurationH').value);
+            postVoting({ action: 'voting_start', opens_at: opens, duration_hours: dur })
+                .then(d => { if (d.success) location.reload(); else alert(d.error || 'Failed'); });
+        }
+        function votingClose() {
+            if (!confirm('Close voting? No more ballots will be accepted.')) return;
+            postVoting({ action: 'voting_close' })
+                .then(d => { if (d.success) location.reload(); else alert(d.error || 'Failed'); });
+        }
+        function votingApply() {
+            postVoting({ action: 'voting_apply' })
+                .then(d => { if (d.success) location.reload(); else alert(d.error || 'Failed'); });
+        }
+        function votingPublish() {
+            if (!confirm('Publish preview to the live rankings file?')) return;
+            postVoting({ action: 'voting_publish' })
+                .then(d => { if (d.success) location.reload(); else alert(d.error || 'Failed'); });
+        }
+        function votingDiscardPreview() {
+            postVoting({ action: 'voting_discard_preview' })
+                .then(d => { if (d.success) location.reload(); else alert(d.error || 'Failed'); });
+        }
+        function votingCancel() {
+            if (!confirm('Cancel this voting session? Ballots will be discarded; live rankings stay unchanged.')) return;
+            postVoting({ action: 'voting_cancel' })
+                .then(d => { if (d.success) location.reload(); else alert(d.error || 'Failed'); });
+        }
+        function submitVoteBallot() {
+            const names = Array.from(document.querySelectorAll('#rankingsList .player-row')).map(r => r.dataset.playerName);
+            postVoting({ action: 'voting_submit_ballot', ordered_names: names })
+                .then(d => {
+                    if (d.success) {
+                        showSaveIndicator();
+                        alert('Your vote was saved.');
+                    } else {
+                        alert(d.error || 'Failed');
+                    }
+                });
+        }
+
+        if (voteMode) {
+            const list = document.getElementById('rankingsList');
+            list.querySelectorAll('.player-row').forEach(row => {
+                row.draggable = true;
+                row.addEventListener('dragstart', handleDragStart);
+                row.addEventListener('dragend', handleDragEnd);
+                row.addEventListener('dragover', handleDragOver);
+                row.addEventListener('drop', handleDrop);
+                row.addEventListener('dragleave', handleDragLeave);
+            });
+            list.addEventListener('click', handleMoveButtonClick);
+            highlightVoteDiffs();
+        }
     </script>
 </body>
 </html>
