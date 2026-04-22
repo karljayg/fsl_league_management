@@ -39,7 +39,8 @@ if ($playerStats === null) {
         $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Get player statistics with the specified query
+        // One stats row per player + division + race (ignore duplicate alias copies in FSL_STATISTICS).
+        // Pick canonical Alias_ID = MIN per group so W/L pairs stay from one row.
         $playerStatsQuery = "
             SELECT 
                 p.Player_ID,
@@ -58,8 +59,20 @@ if ($playerStats === null) {
                 p.TeamLeague_Championship_Record,
                 p.Teams_History AS Past_Team_History
             FROM Players p
-            LEFT JOIN Player_Aliases a ON p.Player_ID = a.Player_ID
-            LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID AND a.Alias_ID = s.Alias_ID
+            LEFT JOIN (
+                SELECT s_inner.*
+                FROM FSL_STATISTICS s_inner
+                INNER JOIN (
+                    SELECT Player_ID, Division, Race, MIN(Alias_ID) AS Alias_ID
+                    FROM FSL_STATISTICS
+                    GROUP BY Player_ID, Division, Race
+                ) pick
+                    ON s_inner.Player_ID = pick.Player_ID
+                    AND s_inner.Division <=> pick.Division
+                    AND s_inner.Race <=> pick.Race
+                    AND s_inner.Alias_ID = pick.Alias_ID
+            ) s ON p.Player_ID = s.Player_ID
+            LEFT JOIN Player_Aliases a ON p.Player_ID = a.Player_ID AND a.Alias_ID = s.Alias_ID
             LEFT JOIN Teams t ON p.Team_ID = t.Team_ID
             ORDER BY s.MapsW DESC, p.Real_Name, t.Team_Name, s.Division, s.Race
         ";

@@ -155,6 +155,7 @@ if (isset($_GET['clear_role_cache'])) {
 $isLoggedIn = isLoggedIn();
 $username = $isLoggedIn ? getUsername() : null;
 $hasAdminRole = $isLoggedIn ? hasAdminRole() : false;
+$canClearAppCache = $isLoggedIn && ($hasAdminRole || hasNavPermission('edit player, team, stats'));
 
 // Calculate base path for links and images based on where nav.php is included from
 // If $basePath is already set by the including file, use that; otherwise calculate it
@@ -310,6 +311,11 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
             <div class="dropdown-content">
                 <div class="dropdown-section">
                     <h4>Admin</h4>
+                    <?php if ($canClearAppCache): ?>
+                    <form method="post" action="<?= $basePath ?>clear_app_cache.php" class="nav-cache-clear-form" onsubmit="return confirm('Remove all cached files under cache/? (.gitkeep is kept.)');">
+                        <button type="submit" name="clear_cache" value="1" class="dropdown-link nav-cache-clear-btn">Clear cache</button>
+                    </form>
+                    <?php endif; ?>
                     <?php if ($hasAdminRole || hasNavPermission('manage fsl schedule')): ?>
                     <a href="<?= $basePath ?>admin_schedule.php" class="dropdown-link">Manage FSL Schedule</a>
                     <a href="<?= $basePath ?>fsl_manager_map_veto.php" class="dropdown-link">Map Veto</a>
@@ -325,6 +331,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
                     <a href="<?= $basePath ?>update_player_statistics.php" class="dropdown-link">Run Stats Updater</a>
+                    <a href="<?= $basePath ?>rank_voting_log.php" class="dropdown-link">Rankings voting log</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('faq')): ?>
@@ -337,6 +344,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     
                     <?php if ($hasAdminRole || hasNavPermission('manage_user_roles')): ?>
                     <a href="<?= $basePath ?>manage_user_roles.php" class="dropdown-link">Manage User Roles</a>
+                    <a href="<?= $basePath ?>admin_password_resets.php" class="dropdown-link">Password Resets</a>
                     <?php endif; ?>
 
                     <?php if ($hasAdminRole || hasNavPermission('manage_user_roles')): ?>
@@ -432,6 +440,11 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
             <?php if ($isLoggedIn && ($hasAdminRole || hasNavPermission('manage fsl schedule') || hasNavPermission('edit_matches') || hasNavPermission('faq') || hasNavPermission('manage_permissions') || hasNavPermission('manage_user_roles') || hasNavPermission('manage spider charts'))): ?>
             <div class="mobile-section">
                 <h4>Admin</h4>
+                <?php if ($canClearAppCache): ?>
+                <form method="post" action="<?= $basePath ?>clear_app_cache.php" class="nav-cache-clear-form" onsubmit="return confirm('Remove all cached files under cache/? (.gitkeep is kept.)');">
+                    <button type="submit" name="clear_cache" value="1" class="mobile-link nav-cache-clear-btn">Clear cache</button>
+                </form>
+                <?php endif; ?>
                 <?php if ($hasAdminRole || hasNavPermission('manage fsl schedule')): ?>
                 <a href="<?= $basePath ?>admin_schedule.php" class="mobile-link">Manage FSL Schedule</a>
                 <a href="<?= $basePath ?>fsl_manager_map_veto.php" class="mobile-link">Map Veto</a>
@@ -447,6 +460,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
                 <a href="<?= $basePath ?>update_player_statistics.php" class="mobile-link">Run Stats Updater</a>
+                <a href="<?= $basePath ?>rank_voting_log.php" class="mobile-link">Rankings voting log</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('faq')): ?>
@@ -459,6 +473,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 
                 <?php if ($hasAdminRole || hasNavPermission('manage_user_roles')): ?>
                 <a href="<?= $basePath ?>manage_user_roles.php" class="mobile-link">Manage User Roles</a>
+                <a href="<?= $basePath ?>admin_password_resets.php" class="mobile-link">Password Resets</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('manage spider charts')): ?>
@@ -624,6 +639,18 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
     .nav-menu .dropdown-link.sub-link:hover {
         background: rgba(0, 212, 255, 0.08);
         border-color: rgba(0, 212, 255, 0.5);
+    }
+
+    .nav-menu .nav-cache-clear-form {
+        margin: 0 0 10px 0;
+    }
+
+    .nav-menu button.nav-cache-clear-btn {
+        width: 100%;
+        box-sizing: border-box;
+        font: inherit;
+        cursor: pointer;
+        text-align: left;
     }
 
     /* Show Dropdown on Hover */
