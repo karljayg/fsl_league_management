@@ -244,6 +244,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
             <div class="dropdown-content">
                 <div class="dropdown-section">
                     <h4>FSL</h4>
+                    <a href="<?= $basePath ?>hall-of-champions.php" class="dropdown-link">Hall of Champions</a>
                     <a href="<?= $basePath ?>fsl_season.php" class="dropdown-link">Seasons</a>
                     <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link">Schedule</a>
                     <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link">Teams</a>
@@ -400,6 +401,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
             <!-- FSL Section -->
             <div class="mobile-section">
                 <h4>FSL</h4>
+                <a href="<?= $basePath ?>hall-of-champions.php" class="mobile-link">Hall of Champions</a>
                 <a href="<?= $basePath ?>fsl_season.php" class="mobile-link">Seasons</a>
                 <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link">Schedule</a>
                 <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link">Teams</a>

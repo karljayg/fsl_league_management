@@ -347,17 +347,17 @@ include_once 'includes/header.php';
 
         <!-- Season quick-nav -->
         <nav class="season-nav">
-            <a href="#s10" class="tl">S10</a>
-            <a href="#s9" class="tl">S9</a>
-            <a href="#s8" class="tl">S8</a>
+            <a href="#10" class="tl">S10</a>
+            <a href="#9" class="tl">S9</a>
+            <a href="#8" class="tl">S8</a>
             <span class="snav-divider">|</span>
-            <a href="#s7">S7</a>
-            <a href="#s6">S6</a>
-            <a href="#s5">S5</a>
-            <a href="#s4">S4</a>
-            <a href="#s3">S3</a>
-            <a href="#s2">S2</a>
-            <a href="#s1">S1</a>
+            <a href="#7">S7</a>
+            <a href="#6">S6</a>
+            <a href="#5">S5</a>
+            <a href="#4">S4</a>
+            <a href="#3">S3</a>
+            <a href="#2">S2</a>
+            <a href="#1">S1</a>
         </nav>
 
         <!-- Hero video -->
@@ -370,21 +370,24 @@ include_once 'includes/header.php';
         <div class="era-divider">⚔ Team League Era</div>
 
         <!-- ── Season 10 ── -->
-        <div class="season tl" id="s10">
+        <div class="season tl" id="10">
             <div class="season-header">
                 <div class="season-num">10</div>
                 <div class="season-title-group">
                     <h2>The Three-Peat &nbsp;🏆🏆🏆</h2>
-                    <p class="season-meta-line">Jan – Mar 2026 &nbsp;·&nbsp; GSL Group Stage + Ladder Playoff</p>
+                    <p class="season-meta-line">Jan – Apr 2026 &nbsp;·&nbsp; GSL Group Stage + Ladder Playoff</p>
                 </div>
             </div>
 
             <div class="champion-row">
-                🏆 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a>
-                <span class="champion-note">— 3rd consecutive FSL Team League title</span>
+                🏆 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> (Team League)
+                &nbsp;·&nbsp; Code S: TBD
+                &nbsp;·&nbsp; <a href="view_player.php?name=Jmpz">Jmpz</a> (Code A)
+                &nbsp;·&nbsp; <a href="view_player.php?name=WindShadow">WindShadow</a> (Code B)
+                <span class="champion-note">&nbsp;— 3rd consecutive FSL Team League title</span>
             </div>
 
-            <p class="season-desc">History was made. <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> completed a <strong>three-peat</strong> across Seasons 8, 9, and 10, edging out <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a> <strong>10–8</strong> in the Grand Finals on March 28th. Season 10 introduced a new GSL-style group stage to determine seeding before the three-week playoff ladder.</p>
+            <p class="season-desc">History was made. <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> completed a <strong>three-peat</strong> across Seasons 8, 9, and 10, edging out <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a> <strong>10–8</strong> in the Grand Finals on March 28th. Season 10 introduced a new GSL-style group stage to determine seeding before the three-week playoff ladder. <strong>Individual championships:</strong> Code A and Code B have crowned champions; Code S is still <strong>TBD</strong>.</p>
 
             <p class="season-link"><a href="fsl_standings.php?season=10">View Full Season 10 Standings &amp; Schedule →</a></p>
 
@@ -397,7 +400,11 @@ include_once 'includes/header.php';
                 Wk5 <a href="view_team.php?name=Angry+Space+Hares">ASH</a> def. <a href="view_team.php?name=Special+Tactics">Special Tactics</a> 7–5 (→ Seeds 2 &amp; 3)<br><br>
                 <strong>Playoffs:</strong><br>
                 Wk6 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> def. <a href="view_team.php?name=Special+Tactics">Special Tactics</a> 10–2 &nbsp;·&nbsp; Wk7 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> def. <a href="view_team.php?name=Angry+Space+Hares">ASH</a> 8–4<br>
-                Wk8 <strong>GRAND FINALS:</strong> <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> def. <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a> 10–8 🏆
+                Wk8 <strong>GRAND FINALS:</strong> <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> def. <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a> 10–8 🏆<br><br>
+                <strong>Individual championships:</strong><br>
+                <strong>Code S:</strong> TBD<br>
+                <strong>Code A:</strong> <a href="view_player.php?name=Jmpz">Jmpz</a><br>
+                <strong>Code B:</strong> <a href="view_player.php?name=WindShadow">WindShadow</a>
             </div>
 
             <button class="toggle-btn" onclick="togglePanel(this, 'vods-s10')">&#9658; Show Match VODs (8 weeks)</button>
@@ -416,7 +423,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 9 ── -->
-        <div class="season tl" id="s9">
+        <div class="season tl" id="9">
             <div class="season-header">
                 <div class="season-num">9</div>
                 <div class="season-title-group">
@@ -489,7 +496,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 8 ── -->
-        <div class="season tl" id="s8">
+        <div class="season tl" id="8">
             <div class="season-header">
                 <div class="season-num">8</div>
                 <div class="season-title-group">
@@ -522,7 +529,7 @@ include_once 'includes/header.php';
         <div class="era-divider">🎮 Classic Individual Era</div>
 
         <!-- ── Season 7 ── -->
-        <div class="season" id="s7">
+        <div class="season" id="7">
             <div class="season-header">
                 <div class="season-num">7</div>
                 <div class="season-title-group">
@@ -556,7 +563,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 6 ── -->
-        <div class="season" id="s6">
+        <div class="season" id="6">
             <div class="season-header">
                 <div class="season-num">6</div>
                 <div class="season-title-group">
@@ -585,7 +592,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 5 ── -->
-        <div class="season" id="s5">
+        <div class="season" id="5">
             <div class="season-header">
                 <div class="season-num">5</div>
                 <div class="season-title-group">
@@ -614,7 +621,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 4 ── -->
-        <div class="season" id="s4">
+        <div class="season" id="4">
             <div class="season-header">
                 <div class="season-num">4</div>
                 <div class="season-title-group">
@@ -643,7 +650,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 3 ── -->
-        <div class="season" id="s3">
+        <div class="season" id="3">
             <div class="season-header">
                 <div class="season-num">3</div>
                 <div class="season-title-group">
@@ -672,7 +679,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 2 ── -->
-        <div class="season" id="s2">
+        <div class="season" id="2">
             <div class="season-header">
                 <div class="season-num">2</div>
                 <div class="season-title-group">
@@ -700,7 +707,7 @@ include_once 'includes/header.php';
         </div>
 
         <!-- ── Season 1 ── -->
-        <div class="season" id="s1">
+        <div class="season" id="1">
             <div class="season-header">
                 <div class="season-num">1</div>
                 <div class="season-title-group">
