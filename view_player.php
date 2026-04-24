@@ -548,7 +548,7 @@ function getRaceIconFromCode($raceCode) {
                             $linkedProfileUser = (string) $playerInfo[0]['username'];
                             $linkedAvatar = !empty($playerInfo[0]['avatar_url'])
                                 ? (string) $playerInfo[0]['avatar_url']
-                                : 'images/default-avatar.png';
+                                : 'images/default-avatar-silhouette.svg';
                             $linkedProfileUrl = 'profile.php?user=' . rawurlencode($linkedProfileUser);
                             ?>
                             <div class="view-player-profile-team-segment">

@@ -185,7 +185,7 @@ include_once 'includes/header.php';
     <?php else: ?>
         <div class="profile-header">
             <div class="profile-avatar">
-                <img src="<?php echo !empty($user['avatar_url']) ? htmlspecialchars($user['avatar_url']) : 'images/default-avatar.png'; ?>" alt="<?php echo htmlspecialchars($user['username']); ?>">
+                <img src="<?php echo !empty($user['avatar_url']) ? htmlspecialchars($user['avatar_url']) : 'images/default-avatar-silhouette.svg'; ?>" alt="<?php echo htmlspecialchars($user['username']); ?>">
             </div>
             <div class="profile-info">
                 <h1><?php echo htmlspecialchars($user['username']); ?></h1>

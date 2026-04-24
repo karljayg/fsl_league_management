@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Move uploaded file
             if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $upload_path)) {
                 // Delete old avatar if exists and not default
-                if ($avatar_url && $avatar_url !== 'images/default-avatar.png' && file_exists($avatar_url)) {
+                if ($avatar_url && $avatar_url !== 'images/default-avatar-silhouette.svg' && file_exists($avatar_url)) {
                     unlink($avatar_url);
                 }
                 
@@ -145,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if (file_put_contents($upload_path, $data)) {
                 // Delete old avatar if exists and not default
-                if ($avatar_url && $avatar_url !== 'images/default-avatar.png' && file_exists($avatar_url)) {
+                if ($avatar_url && $avatar_url !== 'images/default-avatar-silhouette.svg' && file_exists($avatar_url)) {
                     unlink($avatar_url);
                 }
                 
@@ -278,7 +278,7 @@ include_once 'includes/header.php';
             <form method="POST" action="edit_profile.php" enctype="multipart/form-data" id="profile-form">
                 <div class="profile-picture-upload">
                     <div class="current-avatar">
-                        <img src="<?php echo !empty($user['avatar_url']) ? htmlspecialchars($user['avatar_url']) : 'images/default-avatar.png'; ?>" alt="Profile Picture" id="avatar-preview">
+                        <img src="<?php echo !empty($user['avatar_url']) ? htmlspecialchars($user['avatar_url']) : 'images/default-avatar-silhouette.svg'; ?>" alt="Profile Picture" id="avatar-preview">
                     </div>
                     <div class="form-group">
                         <label for="profile_picture">Profile Picture</label>
