@@ -12,6 +12,7 @@ $db_host = $config['db_host'];
 $db_name = $config['db_name'];
 $db_user = $config['db_user'];
 $db_pass = $config['db_pass'];
+$forum_db_name = $config['forum_db_name'] ?? $db_name;
 
 // Create database connection
 try {

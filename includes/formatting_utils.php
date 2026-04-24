@@ -96,4 +96,21 @@ function getRaceIconFromCode($raceCode) {
         default:
             return '';
     }
-} 
+}
+
+/**
+ * Short host label for a URL (used next to source / VOD links).
+ */
+function getDomainFromUrl($url) {
+    if (empty($url)) {
+        return '';
+    }
+    $parsedUrl = parse_url($url);
+    if (isset($parsedUrl['host'])) {
+        $domain = preg_replace('/^www\./', '', $parsedUrl['host']);
+
+        return ucfirst($domain);
+    }
+
+    return 'Link';
+}

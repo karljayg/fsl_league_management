@@ -303,7 +303,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         </div>
 
         <!-- Admin Dropdown -->
-        <?php if ($isLoggedIn && ($hasAdminRole || hasNavPermission('manage fsl schedule') || hasNavPermission('edit_matches') || hasNavPermission('faq') || hasNavPermission('manage_permissions') || hasNavPermission('manage_user_roles') || hasNavPermission('manage spider charts'))): ?>
+        <?php if ($isLoggedIn && ($hasAdminRole || hasNavPermission('manage fsl schedule') || hasNavPermission('edit_matches') || hasNavPermission('edit player, team, stats') || hasNavPermission('faq') || hasNavPermission('manage_permissions') || hasNavPermission('manage_user_roles') || hasNavPermission('manage spider charts'))): ?>
         <div class="dropdown">
             <a href="#" class="menu-item button">
                 Admin
@@ -328,6 +328,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
                     <a href="<?= $basePath ?>edit_player_statistics.php" class="dropdown-link">Edit Player Statistics</a>
+                    <a href="<?= $basePath ?>admin_link_user_player.php" class="dropdown-link">Link user to FSL player</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
@@ -439,7 +440,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
             </div>
 
             <!-- Admin Section -->
-            <?php if ($isLoggedIn && ($hasAdminRole || hasNavPermission('manage fsl schedule') || hasNavPermission('edit_matches') || hasNavPermission('faq') || hasNavPermission('manage_permissions') || hasNavPermission('manage_user_roles') || hasNavPermission('manage spider charts'))): ?>
+            <?php if ($isLoggedIn && ($hasAdminRole || hasNavPermission('manage fsl schedule') || hasNavPermission('edit_matches') || hasNavPermission('edit player, team, stats') || hasNavPermission('faq') || hasNavPermission('manage_permissions') || hasNavPermission('manage_user_roles') || hasNavPermission('manage spider charts'))): ?>
             <div class="mobile-section">
                 <h4>Admin</h4>
                 <?php if ($canClearAppCache): ?>
@@ -458,6 +459,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
                 <a href="<?= $basePath ?>edit_player_statistics.php" class="mobile-link">Edit Player Statistics</a>
+                <a href="<?= $basePath ?>admin_link_user_player.php" class="mobile-link">Link user to FSL player</a>
                 <?php endif; ?>
                 
                 <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>

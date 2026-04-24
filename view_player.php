@@ -83,6 +83,7 @@ if (!$playerNotFound) {
         p.Real_Name,
         u.username,
         u.email,
+        u.avatar_url,
         fs.Division,
         fs.Race,
         fs.MapsW,
@@ -541,27 +542,49 @@ function getRaceIconFromCode($raceCode) {
             <h2>Player Information</h2>
             <div class="info-grid">
                 <div class="info-item team-info-item">
-                    <label>Current Team:</label>
-                    <span class="team-display">
-                        <?php if (!empty($playerInfo[0]['Team_Name'])): ?>
-                            <?php $playerTeamLogo = getTeamLogo($playerInfo[0]['Team_Name']); ?>
-                            <?php if ($playerTeamLogo): ?>
-                            <a href="view_team.php?name=<?= urlencode($playerInfo[0]['Team_Name']) ?>">
-                                <img src="<?= htmlspecialchars($playerTeamLogo) ?>" alt="<?= htmlspecialchars($playerInfo[0]['Team_Name']) ?>" class="player-team-logo">
-                            </a>
-                            <?php endif; ?>
-                            <a href="view_team.php?name=<?= urlencode($playerInfo[0]['Team_Name']) ?>" class="team-link">
-                                <?= htmlspecialchars($playerInfo[0]['Team_Name']) ?>
-                            </a>
-                            <?php if (!empty($playerInfo[0]['Team_Role'])): ?>
-                                <span class="team-role-badge <?= strtolower($playerInfo[0]['Team_Role']) ?>">
-                                    <?= htmlspecialchars($playerInfo[0]['Team_Role']) ?>
+                    <div class="view-player-profile-team-line">
+                        <?php if (!empty($playerInfo[0]['username'])): ?>
+                            <?php
+                            $linkedProfileUser = (string) $playerInfo[0]['username'];
+                            $linkedAvatar = !empty($playerInfo[0]['avatar_url'])
+                                ? (string) $playerInfo[0]['avatar_url']
+                                : 'images/default-avatar.png';
+                            $linkedProfileUrl = 'profile.php?user=' . rawurlencode($linkedProfileUser);
+                            ?>
+                            <div class="view-player-profile-team-segment">
+                                <label>Profile:</label>
+                                <span class="team-display">
+                                    <a href="<?= htmlspecialchars($linkedProfileUrl, ENT_QUOTES, 'UTF-8') ?>" class="view-player-profile-link">
+                                        <img src="<?= htmlspecialchars($linkedAvatar, ENT_QUOTES, 'UTF-8') ?>" alt="" class="view-player-profile-avatar" width="48" height="48">
+                                        <span class="view-player-profile-name"><?= htmlspecialchars($linkedProfileUser, ENT_QUOTES, 'UTF-8') ?></span>
+                                    </a>
                                 </span>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            None
+                            </div>
                         <?php endif; ?>
-                    </span>
+                        <div class="view-player-profile-team-segment">
+                            <label>Current Team:</label>
+                            <span class="team-display">
+                                <?php if (!empty($playerInfo[0]['Team_Name'])): ?>
+                                    <?php $playerTeamLogo = getTeamLogo($playerInfo[0]['Team_Name']); ?>
+                                    <?php if ($playerTeamLogo): ?>
+                                    <a href="view_team.php?name=<?= urlencode($playerInfo[0]['Team_Name']) ?>">
+                                        <img src="<?= htmlspecialchars($playerTeamLogo) ?>" alt="<?= htmlspecialchars($playerInfo[0]['Team_Name']) ?>" class="player-team-logo">
+                                    </a>
+                                    <?php endif; ?>
+                                    <a href="view_team.php?name=<?= urlencode($playerInfo[0]['Team_Name']) ?>" class="team-link">
+                                        <?= htmlspecialchars($playerInfo[0]['Team_Name']) ?>
+                                    </a>
+                                    <?php if (!empty($playerInfo[0]['Team_Role'])): ?>
+                                        <span class="team-role-badge <?= strtolower($playerInfo[0]['Team_Role']) ?>">
+                                            <?= htmlspecialchars($playerInfo[0]['Team_Role']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    None
+                                <?php endif; ?>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div class="info-item stats-row">
                     <div class="stats-row-division">
@@ -1119,6 +1142,26 @@ function getRaceIconFromCode($raceCode) {
         grid-column: 1 / -1;
     }
 
+    .view-player-profile-team-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem 1.75rem;
+    }
+
+    .view-player-profile-team-segment {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+    }
+
+    .team-info-item .view-player-profile-team-segment > label {
+        display: inline;
+        margin-bottom: 0;
+        margin-right: 4px;
+    }
+
     .stats-row {
         grid-column: 1 / -1;
         display: flex;
@@ -1189,6 +1232,43 @@ function getRaceIconFromCode($raceCode) {
         border-color: #00d4ff;
         box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
         transform: scale(1.05);
+    }
+
+    .view-player-profile-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        text-decoration: none;
+        color: #ff6f61;
+        font-weight: 600;
+        transition: color 0.2s ease, text-shadow 0.2s ease;
+    }
+
+    .view-player-profile-link:hover {
+        color: #ff8577;
+        text-shadow: 0 0 8px rgba(255, 111, 97, 0.45);
+    }
+
+    .view-player-profile-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid rgba(0, 212, 255, 0.45);
+        flex-shrink: 0;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .view-player-profile-link:hover .view-player-profile-avatar {
+        border-color: #00d4ff;
+        box-shadow: 0 0 12px rgba(0, 212, 255, 0.45);
+        transform: scale(1.04);
+    }
+
+    .view-player-profile-name {
+        color: inherit;
+        font-size: 1.05em;
     }
 
     .matches-grid {

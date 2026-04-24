@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 // Database connection
 require_once 'includes/db.php';
+require_once __DIR__ . '/includes/profile_bio_social.php';
 
 // Connect to database
 try {
@@ -42,7 +43,7 @@ function getMaximumFileUploadSize() {
 $max_upload_size = getMaximumFileUploadSize();
 
 // Get user data
-$stmt = $db->prepare('SELECT id, username, email, role, mmr, race_preference, avatar_url FROM users WHERE id = ?');
+$stmt = $db->prepare('SELECT id, username, email, role, mmr, race_preference, avatar_url, bio, social_links FROM users WHERE id = ?');
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -54,6 +55,9 @@ if (!$user) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $bio = '';
+    $socialJson = null;
+
     $mmr = isset($_POST['mmr']) && $_POST['mmr'] !== '' ? (int)$_POST['mmr'] : null;
     $race_preference = isset($_POST['race_preference']) && $_POST['race_preference'] !== '' ? $_POST['race_preference'] : null;
     $current_password = $_POST['current_password'] ?? '';
@@ -188,24 +192,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Invalid race preference selected';
         }
     }
+
+    $bioRaw = trim((string) ($_POST['bio'] ?? ''));
+    $bio = strip_tags($bioRaw);
+    if (profile_text_len($bio) > PROFILE_BIO_MAX_LEN) {
+        $bio = profile_text_truncate($bio, PROFILE_BIO_MAX_LEN);
+    }
+
+    $socialTypes = isset($_POST['social_type']) && is_array($_POST['social_type']) ? $_POST['social_type'] : [];
+    $socialValues = isset($_POST['social_value']) && is_array($_POST['social_value']) ? $_POST['social_value'] : [];
+    [$socialJson, $socialErr] = profile_socials_from_post($socialTypes, $socialValues);
+    if ($socialErr !== null) {
+        if (!isset($error)) {
+            $error = $socialErr;
+        }
+    }
     
     // Update user data if no errors
     if (!isset($error)) {
         if ($passwordChanged) {
             $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
-            $stmt = $db->prepare('UPDATE users SET mmr = ?, race_preference = ?, password = ?, avatar_url = ? WHERE id = ?');
-            $stmt->execute([$mmr, $race_preference, $password_hash, $avatar_url, $_SESSION['user_id']]);
+            $stmt = $db->prepare('UPDATE users SET mmr = ?, race_preference = ?, password = ?, avatar_url = ?, bio = ?, social_links = ? WHERE id = ?');
+            $stmt->execute([$mmr, $race_preference, $password_hash, $avatar_url, $bio, $socialJson, $_SESSION['user_id']]);
         } else {
-            $stmt = $db->prepare('UPDATE users SET mmr = ?, race_preference = ?, avatar_url = ? WHERE id = ?');
-            $stmt->execute([$mmr, $race_preference, $avatar_url, $_SESSION['user_id']]);
+            $stmt = $db->prepare('UPDATE users SET mmr = ?, race_preference = ?, avatar_url = ?, bio = ?, social_links = ? WHERE id = ?');
+            $stmt->execute([$mmr, $race_preference, $avatar_url, $bio, $socialJson, $_SESSION['user_id']]);
         }
         
         $success = 'Profile updated successfully';
         
         // Refresh user data
-        $stmt = $db->prepare('SELECT id, username, email, role, mmr, race_preference, avatar_url FROM users WHERE id = ?');
+        $stmt = $db->prepare('SELECT id, username, email, role, mmr, race_preference, avatar_url, bio, social_links FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($error)) {
+    $user['bio'] = strip_tags(trim((string) ($_POST['bio'] ?? '')));
+    $pt = isset($_POST['social_type']) && is_array($_POST['social_type']) ? $_POST['social_type'] : [];
+    $pv = isset($_POST['social_value']) && is_array($_POST['social_value']) ? $_POST['social_value'] : [];
+    $socialFormRows = [];
+    for ($i = 0; $i < PROFILE_SOCIAL_MAX_ROWS; $i++) {
+        $socialFormRows[] = [
+            'type' => isset($pt[$i]) ? trim((string) $pt[$i]) : '',
+            'value' => isset($pv[$i]) ? trim((string) $pv[$i]) : '',
+        ];
+    }
+} else {
+    $rawSocial = $user['social_links'] ?? null;
+    if (is_array($rawSocial)) {
+        $rawSocial = json_encode($rawSocial, JSON_UNESCAPED_UNICODE);
+    }
+    $socialFormRows = profile_parse_social_json(is_string($rawSocial) ? $rawSocial : null);
+    while (count($socialFormRows) < PROFILE_SOCIAL_MAX_ROWS) {
+        $socialFormRows[] = ['type' => '', 'value' => ''];
     }
 }
 
@@ -285,6 +326,30 @@ include_once 'includes/header.php';
                         <option value="Random" <?php echo ($user['race_preference'] === 'Random') ? 'selected' : ''; ?>>Random</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="bio">Bio</label>
+                    <textarea id="bio" name="bio" rows="5" maxlength="<?php echo (int) PROFILE_BIO_MAX_LEN; ?>" placeholder="Tell others about yourself (plain text)."><?php echo htmlspecialchars((string) ($user['bio'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    <small class="form-text text-muted">Up to <?php echo (int) PROFILE_BIO_MAX_LEN; ?> characters. HTML is not allowed.</small>
+                </div>
+                <h3 class="password-section-title">Social links (optional)</h3>
+                <p class="form-text text-muted" style="margin-top:-10px;margin-bottom:15px;">Up to <?php echo (int) PROFILE_SOCIAL_MAX_ROWS; ?> links. Paste a full URL when you have one; for X/Twitter, YouTube, etc. you can enter your handle if you prefer.</p>
+                <?php foreach ($socialFormRows as $idx => $sr): ?>
+                    <div class="form-row-social">
+                        <div class="form-group form-group-social-type">
+                            <label for="social_type_<?php echo (int) $idx; ?>">Type</label>
+                            <select id="social_type_<?php echo (int) $idx; ?>" name="social_type[]">
+                                <option value="">—</option>
+                                <?php foreach (PROFILE_SOCIAL_TYPES as $tval => $tlabel): ?>
+                                    <option value="<?php echo htmlspecialchars($tval, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($sr['type'] === $tval) ? 'selected' : ''; ?>><?php echo htmlspecialchars($tlabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-social-value">
+                            <label for="social_value_<?php echo (int) $idx; ?>">URL or handle</label>
+                            <input type="text" id="social_value_<?php echo (int) $idx; ?>" name="social_value[]" maxlength="<?php echo (int) PROFILE_SOCIAL_VALUE_MAX; ?>" value="<?php echo htmlspecialchars($sr['value'], ENT_QUOTES, 'UTF-8'); ?>" placeholder="https://… or @handle">
+                        </div>
+                    </div>
+                <?php endforeach; ?>
                 <h3 class="password-section-title">Change Password (Optional)</h3>
                 <div class="form-group">
                     <label for="current_password">Current Password</label>
@@ -380,7 +445,8 @@ include_once 'includes/header.php';
     }
     
     .form-group input,
-    .form-group select {
+    .form-group select,
+    .form-group textarea {
         width: 100%;
         padding: 12px;
         border: 1px solid rgba(0, 212, 255, 0.3);
@@ -391,12 +457,33 @@ include_once 'includes/header.php';
         transition: all 0.3s ease;
     }
     
+    .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
     .form-group input:focus,
-    .form-group select:focus {
+    .form-group select:focus,
+    .form-group textarea:focus {
         outline: none;
         border-color: #00d4ff;
         box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
         background: rgba(0, 0, 0, 0.7);
+    }
+
+    .form-row-social {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    .form-group-social-type {
+        flex: 0 0 180px;
+        margin-bottom: 0;
+    }
+    .form-group-social-value {
+        flex: 1 1 220px;
+        margin-bottom: 0;
     }
     
     .form-group input:disabled {
