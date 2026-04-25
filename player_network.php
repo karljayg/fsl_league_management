@@ -199,7 +199,7 @@ foreach ($players as $player) {
         $color = $inactiveColors[$player['Team_ID']] ?? '#555555';
     }
     
-    // Check if thumbnail exists (does NOT generate - run generate_thumbnails.php for that)
+    // Check if thumbnail exists (does NOT generate - run generate_missing_player_thumbnails.php for that)
     // Thumbnails are named by sanitized player name (spaces -> underscores, special chars removed)
     $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '', str_replace(' ', '_', $player['Real_Name']));
     $thumbnailPathPng = 'images/player_thumbnails/' . $safeName . '.png';

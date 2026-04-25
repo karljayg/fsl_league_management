@@ -15,9 +15,9 @@ if ($hit === null || (($hit['role'] ?? '') !== 'public')) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Map veto — Watch</title>
+        <title>Map Vetoes and Selections</title>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
         <style>
             body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #e0e0e0; min-height: 100vh; }
             h1 { color: #00d4ff; text-shadow: 0 0 15px rgba(0, 212, 255, 0.45); font-size: 1.35rem; }
@@ -37,70 +37,238 @@ if ($hit === null || (($hit['role'] ?? '') !== 'public')) {
 $session = map_veto_refresh_session((string) ($hit['session']['id'] ?? '')) ?? $hit['session'];
 $pa = is_array($session['player_a'] ?? null) ? (string) ($session['player_a']['display_name'] ?? 'Player A') : 'Player A';
 $pb = is_array($session['player_b'] ?? null) ? (string) ($session['player_b']['display_name'] ?? 'Player B') : 'Player B';
-$mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
+$thumbWatchA = map_veto_player_thumbnail_href($pa);
+$thumbWatchB = map_veto_player_thumbnail_href($pb);
+$mvWatchProgramTitle = 'Map Vetoes and Selections';
+$seasonWatch = trim((string) ($session['season_name'] ?? ''));
+$boWatch = max(1, (int) ($session['best_of'] ?? 1));
+$mvMatchContextLine = $seasonWatch !== ''
+    ? $seasonWatch . ' · Best of ' . $boWatch
+    : 'Best of ' . $boWatch;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map veto — Live<?= htmlspecialchars(' — ' . $pa . ' vs ' . $pb, ENT_QUOTES, 'UTF-8') ?></title>
+    <title><?= htmlspecialchars($mvWatchProgramTitle . ' — ' . $pa . ' vs ' . $pb, ENT_QUOTES, 'UTF-8') ?></title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         html { height: 100%; }
         body.mv-broadcast-root { font-family: 'Inter', sans-serif; background: linear-gradient(145deg, #0a0820 0%, #1a1740 45%, #12102a 100%); color: #e8ecf1; margin: 0; line-height: 1.35; height: 100%; overflow: hidden; }
         .mv-wrap {
-            max-width: 900px; margin: 0 auto; padding: 0.45rem 0.65rem 0.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0.55rem clamp(0.75rem, 2.2vw, 1.25rem) 0.6rem;
             height: 100vh; height: 100dvh;
             box-sizing: border-box;
             display: flex; flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.5rem;
             overflow: hidden;
         }
-        .mv-live-pill { display: inline-block; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.12em; color: #1a1a2e; background: #ff5c5c; padding: 0.12rem 0.38rem; border-radius: 3px; vertical-align: middle; margin-right: 0.25rem; }
-        .mv-banner { font-weight: 800; letter-spacing: .02em; color: #7ee8ff; text-shadow: 0 0 12px rgba(0, 212, 255, 0.35); font-size: clamp(0.95rem, 3.8vw, 1.35rem); line-height: 1.15; }
-        .mv-subtle { color: #98a4b3; font-size: clamp(0.68rem, 2.4vw, 0.82rem); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mv-live-pill {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            color: #1a1a2e;
+            background: #ff5c5c;
+            padding: 0.14rem 0.42rem;
+            border-radius: 4px;
+            vertical-align: middle;
+        }
+        .mv-broadcast-hero {
+            flex-shrink: 0;
+            padding: 0.2rem 0 0.55rem;
+            margin-bottom: 0.05rem;
+            border-bottom: 1px solid rgba(126, 232, 255, 0.18);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+        }
+        .mv-broadcast-topline {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .mv-broadcast-tag {
+            font-size: 0.64rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #8899a8;
+        }
+        .mv-broadcast-title {
+            margin: 0.48rem 0 0.32rem;
+            padding: 0;
+            font-weight: 800;
+            font-size: clamp(1.28rem, 5.8vw, 2.35rem);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            color: #f0f7fc;
+            text-shadow:
+                0 0 28px rgba(0, 212, 255, 0.38),
+                0 2px 0 rgba(0, 0, 0, 0.45);
+        }
+        .mv-broadcast-context {
+            margin: 0;
+            font-size: clamp(0.92rem, 3.1vw, 1.12rem);
+            font-weight: 600;
+            line-height: 1.32;
+            color: #9eb6cc;
+            letter-spacing: 0.01em;
+        }
         .mv-head-row { flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
         .mv-meta-bar {
             flex-shrink: 0;
-            display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.65rem;
-            padding: 0.35rem 0.5rem;
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            font-size: clamp(0.72rem, 2.2vw, 0.82rem);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem 0.85rem;
+            padding: 0.52rem 0.7rem;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(20, 24, 44, 0.92) 0%, rgba(8, 10, 22, 0.88) 100%);
+            border: 1px solid rgba(126, 232, 255, 0.22);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+            font-size: clamp(0.84rem, 2.7vw, 0.98rem);
         }
-        .mv-meta-bar .badge { font-size: 0.68rem; padding: 0.2rem 0.45rem; font-weight: 700; }
-        #phaseBadge { font-size: 0.72rem !important; padding: 0.22rem 0.45rem !important; }
-        #timerRow { font-size: 0.78rem !important; margin: 0 !important; }
+        .mv-meta-bar .badge { font-size: 0.8rem; padding: 0.28rem 0.55rem; font-weight: 800; letter-spacing: 0.04em; }
+        #phaseBadge { font-size: 0.84rem !important; padding: 0.28rem 0.55rem !important; }
+        #timerRow { font-size: 1.02rem !important; margin: 0 !important; font-weight: 800; }
         .mv-phase-inline {
-            font-weight: 700; color: #cfd8e3; flex: 1 1 140px; min-width: 0;
-            line-height: 1.25;
-            max-height: 2.55em;
+            font-weight: 700;
+            color: #e4eaf0;
+            flex: 1 1 200px;
+            min-width: 0;
+            line-height: 1.32;
+            max-height: 2.75em;
             overflow: hidden;
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
         }
-        .mv-players-row { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
-        .mv-broadcast-player {
-            padding: 0.38rem 0.45rem; border-radius: 8px;
-            background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12);
-            text-align: center; min-height: 0;
-            display: flex; flex-direction: column; justify-content: center;
+        .mv-players-row {
+            flex-shrink: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.65rem;
+            margin-top: 0.15rem;
         }
-        .mv-broadcast-player--on { border-color: #2ecfff; box-shadow: 0 0 14px rgba(46, 207, 255, 0.35); background: rgba(0, 212, 255, 0.12); }
-        .mv-broadcast-player-name { font-weight: 800; font-size: clamp(0.78rem, 3.2vw, 1.05rem); line-height: 1.15; word-break: break-word; }
-        .mv-broadcast-player-cap { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.06em; color: #9aa8b8; margin-top: 0.15rem; font-weight: 700; }
-        .mv-section-label { flex-shrink: 0; font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.1em; color: #5eb8ff; font-weight: 800; margin: 0 0 0.15rem 0; }
+        .mv-players-label {
+            grid-column: 1 / -1;
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #6a8aa5;
+            margin: 0 0 -0.1rem 0;
+            padding-left: 0.05rem;
+        }
+        .mv-broadcast-player {
+            padding: 0.65rem 0.6rem 0.55rem;
+            border-radius: 12px;
+            background: linear-gradient(165deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 45%, rgba(0,0,0,0.2) 100%);
+            border: 2px solid rgba(255,255,255,0.14);
+            text-align: center;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 18px rgba(0,0,0,0.25);
+        }
+        .mv-broadcast-player--on {
+            border-color: rgba(74, 214, 255, 0.65);
+            background: linear-gradient(165deg, rgba(0, 212, 255, 0.18) 0%, rgba(0, 100, 140, 0.12) 50%, rgba(0, 0, 0, 0.22) 100%);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.12),
+                0 0 0 1px rgba(46, 207, 255, 0.25),
+                0 0 28px rgba(46, 207, 255, 0.35),
+                0 6px 22px rgba(0, 0, 0, 0.35);
+        }
+        .mv-broadcast-player-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.58rem;
+            min-width: 0;
+            width: 100%;
+        }
+        .mv-broadcast-player-avatar-slot {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .mv-broadcast-player-avatar-slot--empty {
+            display: none;
+        }
+        .mv-broadcast-player-avatar-slot::before {
+            content: '';
+            position: absolute;
+            width: calc(100% + 10px);
+            height: calc(100% + 10px);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.14) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .mv-broadcast-player--on .mv-broadcast-player-avatar-slot::before {
+            background: radial-gradient(circle, rgba(126, 240, 255, 0.22) 0%, transparent 72%);
+        }
+        .mv-broadcast-player-avatar {
+            position: relative;
+            z-index: 1;
+            width: clamp(4.75rem, 19vw, 6.75rem);
+            height: clamp(4.75rem, 19vw, 6.75rem);
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            border: 3px solid rgba(255, 255, 255, 0.35);
+            background: linear-gradient(145deg, #1a2030, #0d1018);
+            box-shadow:
+                0 0 0 1px rgba(0, 0, 0, 0.65),
+                0 6px 20px rgba(0, 0, 0, 0.5),
+                0 0 32px rgba(0, 212, 255, 0.15);
+        }
+        .mv-broadcast-player--on .mv-broadcast-player-avatar {
+            border-color: rgba(180, 245, 255, 0.95);
+            box-shadow:
+                0 0 0 1px rgba(0, 0, 0, 0.55),
+                0 8px 26px rgba(0, 0, 0, 0.45),
+                0 0 36px rgba(46, 207, 255, 0.5),
+                0 0 56px rgba(46, 207, 255, 0.18);
+        }
+        .mv-broadcast-player-text {
+            min-width: 0;
+            width: 100%;
+            text-align: center;
+        }
+        .mv-broadcast-player-name {
+            font-weight: 800;
+            font-size: clamp(0.98rem, 4.1vw, 1.28rem);
+            line-height: 1.18;
+            word-break: break-word;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+        }
+        .mv-broadcast-player-cap {
+            font-size: 0.66rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #a8b8c8;
+            margin-top: 0.14rem;
+            font-weight: 800;
+        }
+        .mv-broadcast-player--on .mv-broadcast-player-cap { color: #c8e8f5; }
+        .mv-section-label { flex-shrink: 0; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: #5eb8ff; font-weight: 800; margin: 0 0 0.2rem 0; }
         .mv-grid-summary {
             flex-shrink: 0;
-            font-size: clamp(0.62rem, 2.3vw, 0.74rem);
+            font-size: clamp(0.72rem, 2.5vw, 0.86rem);
             color: #a8b6c4;
             font-weight: 600;
-            padding: 0 0 0.25rem 0;
-            line-height: 1.3;
+            padding: 0 0 0.3rem 0;
+            line-height: 1.35;
         }
         .mv-grid-summary strong { color: #e8ecf1; font-weight: 700; }
         .mv-mid {
@@ -108,7 +276,7 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
             min-height: 0;
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.48rem;
             overflow: hidden;
         }
         .mv-spotlight {
@@ -116,19 +284,19 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
             min-height: 0;
             display: flex;
             flex-direction: column;
-            gap: 0.35rem;
+            gap: 0.42rem;
             overflow: visible;
         }
         .mv-spot-kicker {
-            font-size: 0.52rem;
+            font-size: 0.58rem;
             font-weight: 900;
             letter-spacing: 0.16em;
             color: #7a93a8;
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.22rem;
         }
         .mv-spot-now-card {
-            border-radius: 10px;
-            padding: 0.5rem 0.6rem;
+            border-radius: 12px;
+            padding: 0.62rem 0.75rem;
             background: rgba(0, 0, 0, 0.4);
             border: 2px solid rgba(255, 255, 255, 0.14);
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
@@ -137,16 +305,16 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         .mv-spot-now-card.mv-spot--order { border-color: rgba(46, 207, 255, 0.55); background: rgba(0, 212, 255, 0.07); }
         .mv-spot-now-card.mv-spot--idle { border-color: rgba(255, 255, 255, 0.12); }
         .mv-spot-now-main {
-            font-size: clamp(0.95rem, 4.2vw, 1.25rem);
+            font-size: clamp(1.05rem, 4.6vw, 1.42rem);
             font-weight: 900;
             line-height: 1.2;
             color: #fff;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.12);
         }
-        .mv-spot-now-sub { font-size: clamp(0.68rem, 2.6vw, 0.82rem); color: #aeb8c4; font-weight: 600; margin-top: 0.25rem; }
+        .mv-spot-now-sub { font-size: clamp(0.76rem, 2.8vw, 0.92rem); color: #aeb8c4; font-weight: 600; margin-top: 0.28rem; }
         .mv-spot-timer-big {
-            margin-top: 0.35rem;
-            font-size: clamp(1.35rem, 6vw, 1.95rem);
+            margin-top: 0.4rem;
+            font-size: clamp(1.48rem, 6.5vw, 2.15rem);
             font-weight: 900;
             letter-spacing: 0.08em;
             color: #7ef0ff;
@@ -172,12 +340,12 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         .mv-map-grid-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 5px; }
         .mv-map-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 0.4rem;
+            grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+            gap: 0.48rem;
             align-content: start;
         }
         .mv-grid-cell {
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
             background: rgba(255, 255, 255, 0.07);
             border: 2px solid rgba(255, 255, 255, 0.14);
@@ -210,7 +378,7 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
             100% { box-shadow: 0 0 0 10px rgba(126, 240, 255, 0); border-color: rgba(255, 255, 255, 0.14); }
         }
         .mv-grid-thumb {
-            height: 58px;
+            height: 70px;
             background: rgba(0, 0, 0, 0.42);
             position: relative;
             flex-shrink: 0;
@@ -218,17 +386,17 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         .mv-grid-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .mv-grid-thumb.mv-grid-thumb--empty {
             display: flex; align-items: center; justify-content: center;
-            color: #697887; font-size: 0.58rem; text-align: center; padding: 0.2rem;
+            color: #697887; font-size: 0.64rem; text-align: center; padding: 0.22rem;
         }
         .mv-grid-badge {
             position: absolute;
-            top: 3px;
-            left: 3px;
-            font-size: 0.52rem;
+            top: 4px;
+            left: 4px;
+            font-size: 0.58rem;
             font-weight: 900;
             letter-spacing: 0.06em;
-            padding: 0.12rem 0.28rem;
-            border-radius: 4px;
+            padding: 0.14rem 0.32rem;
+            border-radius: 5px;
             background: rgba(10, 12, 28, 0.88);
             color: #e8fbff;
         }
@@ -236,38 +404,38 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         .mv-grid-badge.mv-grid-badge--out { background: rgba(80, 80, 90, 0.92); color: #dce4ec; }
         .mv-grid-badge.mv-grid-badge--pool { background: rgba(180, 130, 40, 0.9); color: #1a1420; }
         .mv-grid-meta {
-            padding: 0.28rem 0.32rem 0.35rem;
+            padding: 0.32rem 0.38rem 0.4rem;
             flex: 1 1 auto;
             display: flex;
             flex-direction: column;
-            gap: 0.08rem;
-            min-height: 2.35rem;
+            gap: 0.1rem;
+            min-height: 2.65rem;
         }
         .mv-grid-name {
-            font-size: 0.62rem;
+            font-size: 0.7rem;
             font-weight: 700;
             color: #eef2f7;
-            line-height: 1.2;
+            line-height: 1.22;
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
             overflow: hidden;
         }
         .mv-grid-sub {
-            font-size: 0.52rem;
+            font-size: 0.6rem;
             font-weight: 600;
             color: #9aa8b8;
-            line-height: 1.2;
+            line-height: 1.22;
         }
         .mv-feed {
             flex-shrink: 0;
-            max-height: 3.6rem;
+            max-height: 4.1rem;
             overflow: hidden;
-            font-size: 0.62rem;
+            font-size: 0.7rem;
             color: #a8b6c4;
-            line-height: 1.35;
-            padding: 0.28rem 0.4rem;
-            border-radius: 6px;
+            line-height: 1.4;
+            padding: 0.34rem 0.48rem;
+            border-radius: 8px;
             background: rgba(0, 0, 0, 0.32);
             border: 1px solid rgba(255,255,255,0.06);
         }
@@ -300,12 +468,14 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
 <div class="mv-wrap">
     <div class="mv-head-row">
         <div class="min-w-0" style="flex:1;">
-            <div class="mb-0"><span class="mv-live-pill">LIVE</span><span style="font-size:0.58rem;letter-spacing:0.12em;color:#8899a8;">Broadcast</span></div>
-            <?php if ($mvWatchTitle !== ''): ?>
-                <div class="mv-subtle"><?= htmlspecialchars($mvWatchTitle, ENT_QUOTES, 'UTF-8') ?></div>
-            <?php endif; ?>
-            <div class="mv-banner"><?= htmlspecialchars($pa, ENT_QUOTES, 'UTF-8') ?> <span style="color:#8fa0b0;font-weight:700;">vs</span> <?= htmlspecialchars($pb, ENT_QUOTES, 'UTF-8') ?></div>
-            <div class="mv-subtle"><?= htmlspecialchars((string) ($session['season_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?> · BO<?= (int) ($session['best_of'] ?? 1) ?></div>
+            <header class="mv-broadcast-hero">
+                <div class="mv-broadcast-topline">
+                    <span class="mv-live-pill">LIVE</span>
+                    <span class="mv-broadcast-tag">Broadcast</span>
+                </div>
+                <h1 class="mv-broadcast-title"><?= htmlspecialchars($mvWatchProgramTitle, ENT_QUOTES, 'UTF-8') ?></h1>
+                <p class="mv-broadcast-context"><?= htmlspecialchars($mvMatchContextLine, ENT_QUOTES, 'UTF-8') ?></p>
+            </header>
         </div>
     </div>
 
@@ -315,14 +485,29 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
         <div id="timerRow" class="text-light d-none ml-auto"><span class="mono" id="timerVal">—</span></div>
     </div>
 
-    <div class="mv-players-row">
+    <div class="mv-players-row" aria-label="Competitors">
+        <div class="mv-players-label">Matchup</div>
         <div id="watchPillA" class="mv-broadcast-player">
-            <div id="watchNameA" class="mv-broadcast-player-name"><?= htmlspecialchars($pa, ENT_QUOTES, 'UTF-8') ?></div>
-            <div id="watchCapA" class="mv-broadcast-player-cap"></div>
+            <div class="mv-broadcast-player-inner">
+                <div class="mv-broadcast-player-avatar-slot<?= $thumbWatchA === null ? ' mv-broadcast-player-avatar-slot--empty' : '' ?>">
+                    <img id="watchImgA" class="mv-broadcast-player-avatar<?= $thumbWatchA === null ? ' d-none' : '' ?>"<?= $thumbWatchA !== null ? ' src="' . htmlspecialchars($thumbWatchA, ENT_QUOTES, 'UTF-8') . '"' : '' ?> alt="" decoding="async" width="108" height="108">
+                </div>
+                <div class="mv-broadcast-player-text">
+                    <div id="watchNameA" class="mv-broadcast-player-name"><?= htmlspecialchars($pa, ENT_QUOTES, 'UTF-8') ?></div>
+                    <div id="watchCapA" class="mv-broadcast-player-cap"></div>
+                </div>
+            </div>
         </div>
         <div id="watchPillB" class="mv-broadcast-player">
-            <div id="watchNameB" class="mv-broadcast-player-name"><?= htmlspecialchars($pb, ENT_QUOTES, 'UTF-8') ?></div>
-            <div id="watchCapB" class="mv-broadcast-player-cap"></div>
+            <div class="mv-broadcast-player-inner">
+                <div class="mv-broadcast-player-avatar-slot<?= $thumbWatchB === null ? ' mv-broadcast-player-avatar-slot--empty' : '' ?>">
+                    <img id="watchImgB" class="mv-broadcast-player-avatar<?= $thumbWatchB === null ? ' d-none' : '' ?>"<?= $thumbWatchB !== null ? ' src="' . htmlspecialchars($thumbWatchB, ENT_QUOTES, 'UTF-8') . '"' : '' ?> alt="" decoding="async" width="108" height="108">
+                </div>
+                <div class="mv-broadcast-player-text">
+                    <div id="watchNameB" class="mv-broadcast-player-name"><?= htmlspecialchars($pb, ENT_QUOTES, 'UTF-8') ?></div>
+                    <div id="watchCapB" class="mv-broadcast-player-cap"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -367,6 +552,24 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
     window.__watchPrevActionStep = undefined;
 
     var watchMapDetailBackdrop = document.getElementById('mapDetailBackdrop');
+
+    function setWatchPlayerAvatar(imgEl, player) {
+        if (!imgEl) return;
+        var slot = imgEl.closest('.mv-broadcast-player-avatar-slot');
+        var u = (player && player.thumbnail_url) ? String(player.thumbnail_url) : '';
+        if (u) {
+            imgEl.src = u;
+            imgEl.classList.remove('d-none');
+            if (slot) slot.classList.remove('mv-broadcast-player-avatar-slot--empty');
+        } else {
+            // Do not clear a server-rendered src when the API omits thumbnail_url (first poll
+            // used to wipe avatars). Only hide if there was never a src.
+            if (!imgEl.getAttribute('src')) {
+                imgEl.classList.add('d-none');
+                if (slot) slot.classList.add('mv-broadcast-player-avatar-slot--empty');
+            }
+        }
+    }
 
     function watchMapDetailShow(show) {
         if (!watchMapDetailBackdrop) return;
@@ -493,6 +696,8 @@ $mvWatchTitle = trim((string) ($session['match_title'] ?? ''));
 
         const pa = (state.player_a && state.player_a.display_name) ? state.player_a.display_name : 'Player A';
         const pbName = (state.player_b && state.player_b.display_name) ? state.player_b.display_name : 'Player B';
+        setWatchPlayerAvatar(document.getElementById('watchImgA'), state.player_a);
+        setWatchPlayerAvatar(document.getElementById('watchImgB'), state.player_b);
         const acting = (status === 'live_veto' || status === 'live_order') ? (state.current_turn_side || '') : '';
         const actingName = acting === 'b' ? pbName : (acting === 'a' ? pa : '');
 

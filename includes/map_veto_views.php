@@ -42,6 +42,48 @@ function map_veto_player_display_side(array $session, string $side): string
 }
 
 /**
+ * Web path to a player headshot for map-veto pages (relative to map-veto/*.php).
+ * Same filename rules as player_network.php: images/player_thumbnails/{sanitized}.png|.jpg
+ */
+function map_veto_player_thumbnail_href(string $displayName): ?string
+{
+    $displayName = trim($displayName);
+    if ($displayName === '') {
+        return null;
+    }
+    $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '', str_replace(' ', '_', $displayName));
+    if ($safeName === '') {
+        return null;
+    }
+    $projectRoot = dirname(__DIR__);
+    $baseFs = $projectRoot . '/images/player_thumbnails/' . $safeName;
+    if (is_file($baseFs . '.png')) {
+        return '../images/player_thumbnails/' . $safeName . '.png';
+    }
+    if (is_file($baseFs . '.jpg')) {
+        return '../images/player_thumbnails/' . $safeName . '.jpg';
+    }
+    return null;
+}
+
+/**
+ * @param array<string, mixed>|null $player
+ * @return array<string, mixed>|null
+ */
+function map_veto_player_payload_with_thumbnail(?array $player): ?array
+{
+    if ($player === null) {
+        return null;
+    }
+    $out = $player;
+    $href = map_veto_player_thumbnail_href((string) ($player['display_name'] ?? ''));
+    if ($href !== null) {
+        $out['thumbnail_url'] = $href;
+    }
+    return $out;
+}
+
+/**
  * Veto / map-order progress for UIs (1-based indices for display).
  *
  * @return array{veto_progress: array<string, int>|null, order_progress: array<string, int>|null}
@@ -175,8 +217,12 @@ function map_veto_build_payload(array $session, string $role): array
         'timer_seconds' => (int) ($session['timer_seconds'] ?? 60),
         'paused' => $paused,
         'pause_remaining_seconds' => $paused ? $pauseRem : null,
-        'player_a' => $session['player_a'] ?? null,
-        'player_b' => $session['player_b'] ?? null,
+        'player_a' => map_veto_player_payload_with_thumbnail(
+            isset($session['player_a']) && is_array($session['player_a']) ? $session['player_a'] : null
+        ),
+        'player_b' => map_veto_player_payload_with_thumbnail(
+            isset($session['player_b']) && is_array($session['player_b']) ? $session['player_b'] : null
+        ),
         'higher_side' => (string) ($session['higher_side'] ?? 'a'),
         'lower_side' => (string) ($session['lower_side'] ?? 'b'),
         'current_turn_side' => $turn,

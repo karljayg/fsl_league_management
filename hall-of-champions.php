@@ -120,7 +120,7 @@ include 'includes/header.php';
 
         <header class="title-area text-center">
             <div class="tier-legend-art">
-                <img src="images/hall_of_champions_logo.png" alt="Hall of Champions logo">
+                <img src="images/hall_of_champions_logo_v2.png" alt="Hall of Champions logo">
             </div>
         </header>
 
@@ -139,7 +139,7 @@ include 'includes/header.php';
                         <?php renderTeamBadge('PulledTheBoys'); ?>
                     </p>
                     <ul>
-                        <?php renderPlayerEntry('S', 'tier-s', 'stars-s', '★★', 'TBD'); ?>
+                        <?php renderPlayerEntry('S', 'tier-s', 'stars-s', '★★', 'DarkMenace'); ?>
                         <?php renderPlayerEntry('A', 'tier-a', 'stars-a', '★', 'Jmpz'); ?>
                         <?php renderPlayerEntry('B', 'tier-b', 'stars-b', '•', 'WindShadow'); ?>
                     </ul>

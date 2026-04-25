@@ -179,6 +179,35 @@ $pageTitle = htmlspecialchars($requestedUsername) . "'s Profile";
 include_once 'includes/header.php';
 ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('forum-posts-toggle-btn');
+    var extraItems = document.querySelectorAll('.profile-forum-item--extra');
+    if (!btn) {
+        return;
+    }
+    if (extraItems.length === 0) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    function setExpanded(showAll) {
+        extraItems.forEach(function (item) {
+            item.style.display = showAll ? '' : 'none';
+        });
+        btn.setAttribute('aria-expanded', showAll ? 'true' : 'false');
+        btn.textContent = showAll ? 'Show less' : 'Show all 10';
+    }
+
+    setExpanded(false);
+
+    btn.addEventListener('click', function () {
+        var showAll = btn.getAttribute('aria-expanded') === 'true';
+        setExpanded(!showAll);
+    });
+});
+</script>
+
 <section class="profile-section">
     <?php if (isset($error)): ?>
         <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
@@ -396,12 +425,16 @@ include_once 'includes/header.php';
             <div class="profile-fsl-teaser profile-forum-teaser">
                 <div class="profile-container">
                     <div class="player-info">
-                        <div class="fsl-teaser-heading">
-                            <h2>Recent forum posts</h2>
-                            <p class="fsl-teaser-sub">Latest 10 posts by this account (new topics and replies).</p>
+                        <div class="fsl-teaser-heading profile-forum-heading">
+                            <div>
+                                <h2>Recent forum posts</h2>
+                                <p class="fsl-teaser-sub">Latest 10 posts by this account (new topics and replies).</p>
+                            </div>
+                            <button type="button" id="forum-posts-toggle-btn" class="btn btn-sm btn-outline-info profile-forum-toggle" aria-expanded="false" aria-controls="forum-posts-collapsible">Show all 10</button>
                         </div>
+                        <div id="forum-posts-collapsible">
                         <ul class="profile-forum-list">
-                            <?php foreach ($forumRecentPosts as $fp): ?>
+                            <?php foreach ($forumRecentPosts as $idx => $fp): ?>
                                 <?php
                                 $postId = (int) $fp['id'];
                                 $subj = trim((string) ($fp['subject'] ?? ''));
@@ -418,7 +451,7 @@ include_once 'includes/header.php';
                                     }
                                 }
                                 ?>
-                                <li class="profile-forum-item">
+                                <li class="profile-forum-item<?php echo $idx >= 3 ? ' profile-forum-item--extra' : ''; ?>">
                                     <a class="profile-forum-postlink" href="forum/index.php?postid=<?php echo $postId; ?>"><?php echo htmlspecialchars($subj, ENT_QUOTES, 'UTF-8'); ?></a>
                                     <div class="profile-forum-meta">
                                         <span class="profile-forum-date"><?php echo htmlspecialchars(date('M j, Y g:i A', strtotime($fp['date'])), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -436,6 +469,7 @@ include_once 'includes/header.php';
                         </ul>
                         <div class="view-all-matches fsl-teaser-footer">
                             <a href="forum/index.php" class="view-all-link">Open forum</a>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -666,6 +700,9 @@ include_once 'includes/header.php';
                     padding: 14px 10px;
                     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
                 }
+                .profile-fsl-teaser .profile-forum-item--extra {
+                    display: none;
+                }
                 .profile-fsl-teaser .profile-forum-item:last-child {
                     border-bottom: none;
                 }
@@ -693,7 +730,27 @@ include_once 'includes/header.php';
                 .profile-fsl-teaser .profile-forum-thread {
                     word-break: break-word;
                 }
+                .profile-fsl-teaser .profile-forum-heading {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 0.75rem;
+                }
+                .profile-fsl-teaser .profile-forum-toggle {
+                    white-space: nowrap;
+                    border-color: rgba(0, 212, 255, 0.5);
+                    color: #00d4ff;
+                }
+                .profile-fsl-teaser .profile-forum-toggle:hover {
+                    background: rgba(0, 212, 255, 0.18);
+                    color: #ffffff;
+                    border-color: #00d4ff;
+                }
                 @media (max-width: 768px) {
+                    .profile-fsl-teaser .profile-forum-heading {
+                        flex-direction: column;
+                        align-items: flex-start;
+                    }
                     .profile-fsl-teaser .stats-row {
                         flex-direction: column;
                         align-items: stretch;
