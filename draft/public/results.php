@@ -395,7 +395,7 @@ $teamColors = [
                 <div class="stat-label">Players Left</div>
             </div>
             <div class="stat-item">
-                <div class="stat-value"><?= $session['current_pick_number'] ?? '-' ?></div>
+                <div class="stat-value"><?= $session['status'] === 'completed' ? get_total_scheduled_picks() : ($session['current_pick_number'] ?? '-') ?>/<?= get_total_scheduled_picks() ?></div>
                 <div class="stat-label">Current Pick</div>
             </div>
         </div>

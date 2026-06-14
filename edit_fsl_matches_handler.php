@@ -211,29 +211,32 @@ function handleUpdateMatch($db) {
                         vod = :vod
                         WHERE fsl_match_id = :match_id";
         
-        $stmt = $db->prepare($updateQuery);
-        $stmt->bindParam(':match_id', $matchId);
-        $stmt->bindParam(':season', $_POST['season']);
-        $stmt->bindParam(':season_extra_info', $_POST['season_extra_info']);
-        $stmt->bindParam(':notes', $_POST['notes']);
-        $stmt->bindParam(':t_code', $_POST['t_code']);
-        $stmt->bindParam(':winner_player_id', $winner_player_id);
-        $stmt->bindParam(':winner_race', $winner_race);
-        $stmt->bindParam(':best_of', $_POST['best_of']);
-        $stmt->bindParam(':map_win', $map_win);
-        $stmt->bindParam(':map_loss', $map_loss);
-        $stmt->bindParam(':loser_player_id', $loser_player_id);
-        $stmt->bindParam(':loser_race', $loser_race);
-        $stmt->bindParam(':winner_team_id', $winner_team_id);
-        $stmt->bindParam(':loser_team_id', $loser_team_id);
-        $stmt->bindParam(':source', $_POST['source']);
-        $stmt->bindParam(':vod', $_POST['vod']);
-        $stmt->execute();
-        
-        // Check if any rows were affected
-        if ($stmt->rowCount() === 0) {
+        // Verify match exists (rowCount() after UPDATE is unreliable — MySQL returns 0 when no columns changed)
+        $checkStmt = $db->prepare("SELECT 1 FROM fsl_matches WHERE fsl_match_id = :match_id LIMIT 1");
+        $checkStmt->bindValue(':match_id', $matchId, PDO::PARAM_INT);
+        $checkStmt->execute();
+        if (!$checkStmt->fetchColumn()) {
             throw new Exception("No match found with ID: $matchId");
         }
+
+        $stmt = $db->prepare($updateQuery);
+        $stmt->bindValue(':match_id', $matchId, PDO::PARAM_INT);
+        $stmt->bindValue(':season', $_POST['season']);
+        $stmt->bindValue(':season_extra_info', $_POST['season_extra_info']);
+        $stmt->bindValue(':notes', $_POST['notes']);
+        $stmt->bindValue(':t_code', $_POST['t_code']);
+        $stmt->bindValue(':winner_player_id', $winner_player_id, PDO::PARAM_INT);
+        $stmt->bindValue(':winner_race', $winner_race);
+        $stmt->bindValue(':best_of', $_POST['best_of'], PDO::PARAM_INT);
+        $stmt->bindValue(':map_win', $map_win, PDO::PARAM_INT);
+        $stmt->bindValue(':map_loss', $map_loss, PDO::PARAM_INT);
+        $stmt->bindValue(':loser_player_id', $loser_player_id, PDO::PARAM_INT);
+        $stmt->bindValue(':loser_race', $loser_race);
+        $stmt->bindValue(':winner_team_id', $winner_team_id);
+        $stmt->bindValue(':loser_team_id', $loser_team_id);
+        $stmt->bindValue(':source', $_POST['source']);
+        $stmt->bindValue(':vod', $_POST['vod']);
+        $stmt->execute();
         
         // Commit transaction
         $db->commit();

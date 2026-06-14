@@ -68,3 +68,25 @@ VALUES (
 -- Optional: grant to a role, e.g. admin (role_id = 1)
 -- INSERT IGNORE INTO ws_role_permissions (role_id, permission_id)
 -- SELECT 1, permission_id FROM ws_permissions WHERE permission_name = 'rankings community vote';
+
+-- 2026-05-28: Mark players inactive (S11)
+UPDATE Players SET Status = 'inactive'
+WHERE Real_Name IN (
+    'JudgeFae',
+    'Poellie',
+    'Adastra',
+    'KriMiNal',
+    'PorkSisig',
+    'Instability',
+    'ArduousGem'
+);
+
+-- 2026-05-29: S11 supplemental draft team assignments (12 players)
+-- See s11_draft_team_assignments.sql
+
+-- 2026-05-29: S11 draft player races (FSL_STATISTICS seed for 7 players showing N/A on roster)
+-- See s11_draft_player_races.sql
+
+-- 2026-06-03: Season 11 schedule (GSL + playoffs; Saturday anchor in match_date, Fri/Sat shown in UI)
+-- Team IDs: PulledTheBoys=1, Angry Space Hares=2, PSIOP Gaming=6, Special Tactics=7
+-- Applied on local 2026-06-03; see s11_schedule.sql

@@ -151,11 +151,82 @@ function update_player_status(int $id, string $status): bool {
     return false;
 }
 
+function draft_player_to_team(int $id, int $team_id): bool {
+    $players = get_players();
+    foreach ($players as &$player) {
+        if ($player['id'] === $id) {
+            $player['status'] = 'drafted';
+            $player['team_id'] = $team_id;
+            return save_players($players);
+        }
+    }
+    return false;
+}
+
+function undraft_player(int $id): bool {
+    $players = get_players();
+    foreach ($players as &$player) {
+        if ($player['id'] === $id) {
+            $player['status'] = 'available';
+            $player['team_id'] = null;
+            return save_players($players);
+        }
+    }
+    return false;
+}
+
 /**
  * Calculate bucket index from ranking (1-based buckets of 4)
  */
 function calculate_bucket(int $ranking): int {
     return (int) ceil($ranking / 4);
+}
+
+/**
+ * @return array<string, true>
+ */
+function get_db_inactive_player_names(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+
+    $cache = [];
+    $dbPhp = __DIR__ . '/db.php';
+    if (!is_readable($dbPhp)) {
+        return $cache;
+    }
+
+    try {
+        require_once $dbPhp;
+        /** @var PDO|null $db */
+        if (!isset($db) || !$db instanceof PDO) {
+            return $cache;
+        }
+        $stmt = $db->query("SELECT Real_Name FROM Players WHERE Status = 'inactive'");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $cache[strtolower(trim((string) $row['Real_Name']))] = true;
+        }
+    } catch (Throwable $e) {
+        $cache = [];
+    }
+
+    return $cache;
+}
+
+/**
+ * @param array<int, array<string, mixed>> $players
+ * @return array<int, array<string, mixed>>
+ */
+function annotate_draft_players_db_status(array $players): array {
+    $inactive = get_db_inactive_player_names();
+    foreach ($players as &$player) {
+        $key = strtolower(trim((string) ($player['display_name'] ?? '')));
+        $player['db_inactive'] = isset($inactive[$key]);
+    }
+    unset($player);
+
+    return $players;
 }
 
 // === Events Functions ===
@@ -245,12 +316,32 @@ function get_team_roster(int $team_id): array {
         return ($a['ranking'] ?? 999) - ($b['ranking'] ?? 999);
     });
     
-    return $roster;
+    return annotate_draft_players_db_status($roster);
 }
 
 function get_team_buckets_used(int $team_id): array {
-    $roster = get_team_roster($team_id);
-    return array_map(fn($p) => $p['bucket_index'], $roster);
+    $buckets = [];
+    $players = get_players();
+    $lookup = [];
+    foreach ($players as $player) {
+        $lookup[$player['id']] = $player;
+    }
+
+    // Only buckets from picks made in this draft session — not legacy roster assignments.
+    foreach (get_events() as $event) {
+        if ((int) ($event['team_id'] ?? 0) !== $team_id) {
+            continue;
+        }
+        if (!in_array($event['result'] ?? '', ['PICK', 'ADMIN_ASSIGN'], true)) {
+            continue;
+        }
+        $playerId = $event['player_id'] ?? null;
+        if ($playerId && isset($lookup[$playerId])) {
+            $buckets[] = $lookup[$playerId]['bucket_index'];
+        }
+    }
+
+    return $buckets;
 }
 
 /**

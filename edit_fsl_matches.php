@@ -144,8 +144,14 @@ $matches = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $seasonQuery = "SELECT DISTINCT season FROM fsl_matches ORDER BY season DESC";
 $seasons = $db->query($seasonQuery)->fetchAll(PDO::FETCH_COLUMN);
 
-// Get latest match defaults for pre-filling the add form
-$latestMatch = $db->query("SELECT season, season_extra_info, notes FROM fsl_matches ORDER BY fsl_match_id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+// Get latest match defaults for pre-filling the add form (all fields except players/races)
+$latestMatch = $db->query("
+    SELECT season, season_extra_info, notes, t_code, best_of, map_win, map_loss, source, vod,
+           winner_team_id, loser_team_id
+    FROM fsl_matches
+    ORDER BY fsl_match_id DESC
+    LIMIT 1
+")->fetch(PDO::FETCH_ASSOC) ?: [];
 
 // Include header
 include 'includes/header.php';
@@ -424,7 +430,7 @@ include 'includes/header.php';
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Season *</label>
-                                <input type="number" name="season" class="form-control form-control-lg" required min="1" value="<?php echo !empty($seasons) ? $seasons[0] : '9'; ?>">
+                                <input type="number" name="season" class="form-control form-control-lg" required min="1" value="<?php echo htmlspecialchars($latestMatch['season'] ?? ($seasons[0] ?? '9')); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -433,7 +439,7 @@ include 'includes/header.php';
                                 <select name="t_code" class="form-control form-control-lg">
                                     <option value="">Select Code</option>
                                     <?php foreach ($tournamentCodes as $code => $name): ?>
-                                        <option value="<?php echo $code; ?>" <?php echo ($code == 'A') ? 'selected' : ''; ?>><?php echo htmlspecialchars($name); ?></option>
+                                        <option value="<?php echo $code; ?>" <?php echo (($latestMatch['t_code'] ?? '') == $code) ? 'selected' : ''; ?>><?php echo htmlspecialchars($name); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -443,19 +449,19 @@ include 'includes/header.php';
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Season Extra Info</label>
-                                <input type="text" name="season_extra_info" class="form-control form-control-lg" maxlength="100" placeholder="Team League - Group Stage" value="Team League - Group Stage">
+                                <input type="text" name="season_extra_info" class="form-control form-control-lg" maxlength="100" placeholder="Team League - Group Stage" value="<?php echo htmlspecialchars($latestMatch['season_extra_info'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Best Of *</label>
-                                <input type="number" name="best_of" class="form-control form-control-lg" required min="1" value="3">
+                                <input type="number" name="best_of" class="form-control form-control-lg" required min="1" value="<?php echo htmlspecialchars($latestMatch['best_of'] ?? '3'); ?>">
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Notes</label>
-                        <input type="text" name="notes" class="form-control form-control-lg" maxlength="255" placeholder="Code A: Last Fantasy, Tokamak">
+                        <input type="text" name="notes" class="form-control form-control-lg" maxlength="255" placeholder="Code A: Last Fantasy, Tokamak" value="<?php echo htmlspecialchars($latestMatch['notes'] ?? ''); ?>">
                     </div>
                     <div class="row">
                         <div class="col-md-6">
@@ -480,14 +486,14 @@ include 'includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label>Score A *</label>
-                                <input type="number" name="score_a" class="form-control form-control-lg" required min="0" value="2" onchange="updateModalWinnerIndicator()">
+                                <input type="number" name="score_a" class="form-control form-control-lg" required min="0" value="<?php echo htmlspecialchars($latestMatch['map_win'] ?? '2'); ?>" onchange="updateModalWinnerIndicator()">
                             </div>
                             <div class="form-group">
                                 <label>Team A</label>
                                 <select name="team_a_id" class="form-control form-control-lg modal-team-dropdown">
                                     <option value="">—</option>
                                     <?php foreach ($teams as $tid => $tname): ?>
-                                        <option value="<?php echo $tid; ?>"><?php echo htmlspecialchars($tname); ?></option>
+                                        <option value="<?php echo $tid; ?>" <?php echo (!empty($latestMatch['winner_team_id']) && (string)$latestMatch['winner_team_id'] === (string)$tid) ? 'selected' : ''; ?>><?php echo htmlspecialchars($tname); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -514,14 +520,14 @@ include 'includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label>Score B *</label>
-                                <input type="number" name="score_b" class="form-control form-control-lg" required min="0" value="1" onchange="updateModalWinnerIndicator()">
+                                <input type="number" name="score_b" class="form-control form-control-lg" required min="0" value="<?php echo htmlspecialchars($latestMatch['map_loss'] ?? '1'); ?>" onchange="updateModalWinnerIndicator()">
                             </div>
                             <div class="form-group">
                                 <label>Team B</label>
                                 <select name="team_b_id" class="form-control form-control-lg modal-team-dropdown">
                                     <option value="">—</option>
                                     <?php foreach ($teams as $tid => $tname): ?>
-                                        <option value="<?php echo $tid; ?>"><?php echo htmlspecialchars($tname); ?></option>
+                                        <option value="<?php echo $tid; ?>" <?php echo (!empty($latestMatch['loser_team_id']) && (string)$latestMatch['loser_team_id'] === (string)$tid) ? 'selected' : ''; ?>><?php echo htmlspecialchars($tname); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -534,13 +540,13 @@ include 'includes/header.php';
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Source URL</label>
-                                <input type="url" name="source" class="form-control form-control-lg" maxlength="255" placeholder="https://docs.google.com/..." value="https://www.">
+                                <input type="url" name="source" class="form-control form-control-lg" maxlength="255" placeholder="https://docs.google.com/..." value="<?php echo htmlspecialchars($latestMatch['source'] ?? ''); ?>">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>VOD URL</label>
-                                <input type="url" name="vod" class="form-control form-control-lg" maxlength="255" placeholder="https://www.youtube.com/..." value="https://www.">
+                                <input type="url" name="vod" class="form-control form-control-lg" maxlength="255" placeholder="https://www.youtube.com/..." value="<?php echo htmlspecialchars($latestMatch['vod'] ?? ''); ?>">
                             </div>
                         </div>
                     </div>
@@ -558,23 +564,25 @@ include 'includes/header.php';
     // Player ID -> Team ID for auto-fill when player selection changes
     var playerToTeam = <?php echo json_encode($playerToTeam); ?>;
 
-    // Seed localStorage defaults from latest DB match if not already set
-    (function() {
-        var defaults = <?php echo json_encode([
-            'addMatch_season'            => $latestMatch['season'] ?? '',
-            'addMatch_season_extra_info' => $latestMatch['season_extra_info'] ?? '',
-            'addMatch_notes'             => $latestMatch['notes'] ?? '',
-        ]); ?>;
-        Object.keys(defaults).forEach(function(key) {
-            if (localStorage.getItem(key) === null) {
-                localStorage.setItem(key, defaults[key]);
-            }
-        });
-    })();
+    // Defaults from latest DB match (non-player fields only)
+    var addMatchDefaults = <?php echo json_encode([
+        'season'            => $latestMatch['season'] ?? ($seasons[0] ?? '9'),
+        'season_extra_info' => $latestMatch['season_extra_info'] ?? '',
+        'notes'             => $latestMatch['notes'] ?? '',
+        't_code'            => $latestMatch['t_code'] ?? '',
+        'best_of'           => $latestMatch['best_of'] ?? '3',
+        'score_a'           => $latestMatch['map_win'] ?? '2',
+        'score_b'           => $latestMatch['map_loss'] ?? '1',
+        'source'            => $latestMatch['source'] ?? '',
+        'vod'               => $latestMatch['vod'] ?? '',
+        'team_a_id'         => $latestMatch['winner_team_id'] ?? '',
+        'team_b_id'         => $latestMatch['loser_team_id'] ?? '',
+    ]); ?>;
     
     // Update winner indicator based on scores
     function updateWinnerIndicator(input) {
         const row = input.closest('tr');
+        if (!row) return;
         const matchId = row.getAttribute('data-match-id');
         const scoreA = parseInt(row.querySelector('input[name="score_a"]').value) || 0;
         const scoreB = parseInt(row.querySelector('input[name="score_b"]').value) || 0;
@@ -643,9 +651,9 @@ include 'includes/header.php';
         }
     });
     
-    // Initialize winner indicators on page load
+    // Initialize winner indicators on page load (table rows only, not add-modal form)
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('input[name="score_a"], input[name="score_b"]').forEach(input => {
+        document.querySelectorAll('#matches-table input[name="score_a"], #matches-table input[name="score_b"]').forEach(input => {
             updateWinnerIndicator(input);
         });
     });
@@ -767,16 +775,24 @@ include 'includes/header.php';
     // Show add match form
     function showAddMatchForm() {
         var form = document.getElementById('addMatchForm');
-        // Restore last-used values from localStorage
-        var lastSeason = localStorage.getItem('addMatch_season');
-        var lastExtraInfo = localStorage.getItem('addMatch_season_extra_info');
-        var lastNotes = localStorage.getItem('addMatch_notes');
-        if (lastSeason !== null) form.querySelector('input[name="season"]').value = lastSeason;
-        if (lastExtraInfo !== null) form.querySelector('input[name="season_extra_info"]').value = lastExtraInfo;
-        if (lastNotes !== null) form.querySelector('input[name="notes"]').value = lastNotes;
-        // Always reset teams to blank (—)
-        form.querySelector('select[name="team_a_id"]').value = '';
-        form.querySelector('select[name="team_b_id"]').value = '';
+        var d = addMatchDefaults;
+        form.querySelector('input[name="season"]').value = d.season;
+        form.querySelector('input[name="season_extra_info"]').value = d.season_extra_info;
+        form.querySelector('input[name="notes"]').value = d.notes;
+        form.querySelector('select[name="t_code"]').value = d.t_code;
+        form.querySelector('input[name="best_of"]').value = d.best_of;
+        form.querySelector('input[name="score_a"]').value = d.score_a;
+        form.querySelector('input[name="score_b"]').value = d.score_b;
+        form.querySelector('input[name="source"]').value = d.source;
+        form.querySelector('input[name="vod"]').value = d.vod;
+        form.querySelector('select[name="team_a_id"]').value = d.team_a_id ? String(d.team_a_id) : '';
+        form.querySelector('select[name="team_b_id"]').value = d.team_b_id ? String(d.team_b_id) : '';
+        // Reset player fields only
+        form.querySelector('select[name="player_a_id"]').value = '';
+        form.querySelector('select[name="player_b_id"]').value = '';
+        form.querySelector('select[name="player_a_race"]').value = '';
+        form.querySelector('select[name="player_b_race"]').value = '';
+        updateModalWinnerIndicator();
         $('#addMatchModal').modal('show');
     }
     
@@ -814,11 +830,6 @@ include 'includes/header.php';
             return;
         }
         
-        // Persist season/extra info/notes for next entry
-        localStorage.setItem('addMatch_season', formData.get('season'));
-        localStorage.setItem('addMatch_season_extra_info', formData.get('season_extra_info'));
-        localStorage.setItem('addMatch_notes', formData.get('notes'));
-
         fetch('edit_fsl_matches_handler.php', {
             method: 'POST',
             body: formData

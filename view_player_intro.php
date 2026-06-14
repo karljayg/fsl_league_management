@@ -6,6 +6,8 @@
 
 // Get player name from parent file or default to TEST
 $playerName = isset($introPlayerName) ? $introPlayerName : 'TEST';
+$introPlayerId = isset($introPlayerId) ? (int) $introPlayerId : 0;
+$introVideoUrl = isset($introVideoUrl) ? $introVideoUrl : null;
 
 // Generate unique IDs for this instance
 $uniqueId = isset($uniqueId) ? $uniqueId : uniqid();
@@ -15,30 +17,44 @@ $canvasId = "canvas_" . $uniqueId;
 // Default test video URL
 $defaultVideoUrl = 'https://psistorm.com/stream_production/production_files/video/FSL-logo_FINAL_compressed.mp4';
 
-// If not test mode, get video URL from database
+// Prefer Intro_Url already loaded by view_player.php; fall back to DB lookup by id/name
 $videoUrl = $defaultVideoUrl;
 if ($playerName !== 'TEST') {
-    try {
-        // Use the existing database connection if available
-        if (!isset($db)) {
-            require_once 'includes/db.php';
-            $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
-            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        }
-        
-        // Query to get the Intro_Url field from the Players table
-        $query = "SELECT Intro_Url FROM Players WHERE Real_Name = :playerName";
-        $stmt = $db->prepare($query);
-        $stmt->execute(['playerName' => $playerName]);
-        
-        if ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    if (!empty($introVideoUrl)) {
+        $videoUrl = $introVideoUrl;
+    } else {
+        try {
+            if (!isset($db)) {
+                require_once 'includes/db.php';
+                $db = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
+                $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            }
+
+            $result = null;
+            if (!empty($introPlayerId)) {
+                $stmt = $db->prepare('SELECT Intro_Url FROM Players WHERE Player_ID = :playerId');
+                $stmt->execute(['playerId' => (int) $introPlayerId]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+            if (!$result || empty($result['Intro_Url'])) {
+                $stmt = $db->prepare(
+                    'SELECT Intro_Url FROM Players
+                     WHERE Real_Name = :playerName
+                        OR Player_ID IN (
+                            SELECT Player_ID FROM Player_Aliases WHERE Alias_Name = :playerName
+                        )
+                     LIMIT 1'
+                );
+                $stmt->execute(['playerName' => $playerName]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            }
+
             if (!empty($result['Intro_Url'])) {
                 $videoUrl = $result['Intro_Url'];
             }
+        } catch (PDOException $e) {
+            $videoUrl = $defaultVideoUrl;
         }
-    } catch (PDOException $e) {
-        // On error, fall back to default video
-        $videoUrl = $defaultVideoUrl;
     }
 }
 ?>

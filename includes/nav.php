@@ -254,6 +254,10 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <a href="<?= $basePath ?>fsl_matches.php" class="dropdown-link">Matches</a>
                     <a href="<?= $basePath ?>draft/public" class="dropdown-link">Draft</a>
                     <a href="<?= $basePath ?>faq.php" class="dropdown-link">FAQ</a>
+                    <a href="<?= $basePath ?>playercards.php" class="dropdown-link">Collectible Cards</a>
+                    <a href="<?= $basePath ?>playercards_scenarios.php" class="dropdown-link">Collectible scenarios</a>
+                    <a href="<?= $basePath ?>playercards_revenueshare.php" class="dropdown-link">Collectible pro revenue share</a>
+                    <a href="<?= $basePath ?>playercards_pro.php" class="dropdown-link">Collectible pro talent</a>
                     <a href="<?= $basePath ?>apply.php" class="dropdown-link">Apply</a>
                 </div>
                 
@@ -324,6 +328,10 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit_matches')): ?>
                     <a href="<?= $basePath ?>edit_fsl_matches.php" class="dropdown-link">Edit Matches</a>
+                    <?php endif; ?>
+
+                    <?php if ($hasAdminRole): ?>
+                    <a href="<?= $basePath ?>edit_player.php" class="dropdown-link">Edit FSL Players</a>
                     <?php endif; ?>
                     
                     <?php if ($hasAdminRole || hasNavPermission('edit player, team, stats')): ?>
@@ -412,6 +420,10 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 <a href="<?= $basePath ?>fsl_matches.php" class="mobile-link">Matches</a>
                 <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link">Draft</a>
                 <a href="<?= $basePath ?>faq.php" class="mobile-link">FAQ</a>
+                <a href="<?= $basePath ?>playercards.php" class="mobile-link">Collectible Cards</a>
+                <a href="<?= $basePath ?>playercards_scenarios.php" class="mobile-link">Collectible scenarios</a>
+                <a href="<?= $basePath ?>playercards_revenueshare.php" class="mobile-link">Collectible pro revenue share</a>
+                <a href="<?= $basePath ?>playercards_pro.php" class="mobile-link">Collectible pro talent</a>
                 <a href="<?= $basePath ?>apply.php" class="mobile-link">Apply</a>
                 
                 <div class="mobile-subsection">

@@ -38,17 +38,15 @@ foreach ($teams as $team) {
 }
 
 // Current team name
-$currentTeamName = '';
-if ($session['current_team_id']) {
-    $currentTeam = get_team_by_id($session['current_team_id']);
-    $currentTeamName = $currentTeam ? $currentTeam['name'] : '';
-}
+$onClockTeamId = get_on_clock_team_id();
+$currentTeamName = get_on_clock_team_name();
 
 echo json_encode([
     'version' => get_data_version(),
     'status' => $session['status'],
     'current_pick_number' => $session['current_pick_number'],
-    'current_team_id' => $session['current_team_id'],
+    'active_pick_number' => get_active_pick_number(),
+    'current_team_id' => $onClockTeamId,
     'current_team_name' => $currentTeamName,
     'pick_deadline_at' => $session['pick_deadline_at'],
     'teams' => $teams,

@@ -74,18 +74,14 @@ if (empty($matchId)) {
 $matchQuery = "SELECT 
     fm.*,
     p_w.Real_Name AS winner_name,
-    pa_w.Alias_Name AS winner_alias,
     t_w.Team_Name AS winner_team,
     fm.winner_race AS winner_race,
     p_l.Real_Name AS loser_name,
-    pa_l.Alias_Name AS loser_alias,
     t_l.Team_Name AS loser_team,
     fm.loser_race AS loser_race
 FROM fsl_matches fm
 JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
 JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
-LEFT JOIN Player_Aliases pa_w ON p_w.Player_ID = pa_w.Player_ID
-LEFT JOIN Player_Aliases pa_l ON p_l.Player_ID = pa_l.Player_ID
 LEFT JOIN Teams t_w ON p_w.Team_ID = t_w.Team_ID
 LEFT JOIN Teams t_l ON p_l.Team_ID = t_l.Team_ID
 WHERE fm.fsl_match_id = :matchId";

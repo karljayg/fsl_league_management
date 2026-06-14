@@ -149,12 +149,36 @@ try {
         ];
     }
 
-    // Rankings: name -> rank; rank -> group (S/A/B) from config
+    // Rankings: code tier (S/A/B) from config; skill group (G1..Gn) from rankings.json group or ceil(rank/4)
     $rankingsPath = __DIR__ . '/rankings/rankings.json';
     $rankingsConfigPath = __DIR__ . '/rankings/rankings_config.json';
     $playerRank = [];
-    $playerGroup = [];
+    $playerCodeTier = [];
     $playerGroupNum = [];
+    $rankingsLookup = function ($playerName) use (&$playerRank, &$playerCodeTier, &$playerGroupNum) {
+        $name = trim((string) $playerName);
+        if ($name === '') {
+            return [null, '', null];
+        }
+        if (isset($playerRank[$name])) {
+            return [
+                $playerRank[$name],
+                $playerCodeTier[$name] ?? '',
+                $playerGroupNum[$name] ?? null,
+            ];
+        }
+        $lower = strtolower($name);
+        foreach ($playerRank as $rankedName => $rank) {
+            if (strtolower($rankedName) === $lower) {
+                return [
+                    $rank,
+                    $playerCodeTier[$rankedName] ?? '',
+                    $playerGroupNum[$rankedName] ?? null,
+                ];
+            }
+        }
+        return [null, '', null];
+    };
     if (is_readable($rankingsPath)) {
         $rankingsList = json_decode(file_get_contents($rankingsPath), true);
         if (is_array($rankingsList)) {
@@ -163,23 +187,22 @@ try {
                 $config = json_decode(file_get_contents($rankingsConfigPath), true) ?: [];
             }
             $codeToLevel = ['codeS' => 'S', 'codeA' => 'A', 'codeB' => 'B'];
-            $codeToGroupNum = ['codeS' => 1, 'codeA' => 2, 'codeB' => 3];
             foreach ($rankingsList as $entry) {
                 $name = $entry['name'] ?? '';
                 $rank = isset($entry['rank']) ? (int)$entry['rank'] : null;
                 if ($name !== '') {
                     $playerRank[$name] = $rank;
-                    $group = '';
-                    $gNum = null;
+                    $codeTier = '';
                     foreach ($config as $code => $rng) {
                         if (isset($rng['minRank'], $rng['maxRank']) && $rank !== null && $rank >= $rng['minRank'] && $rank <= $rng['maxRank']) {
-                            $group = $codeToLevel[$code] ?? $code;
-                            $gNum = $codeToGroupNum[$code] ?? null;
+                            $codeTier = $codeToLevel[$code] ?? $code;
                             break;
                         }
                     }
-                    $playerGroup[$name] = $group;
-                    $playerGroupNum[$name] = $gNum;
+                    $playerCodeTier[$name] = $codeTier;
+                    $playerGroupNum[$name] = isset($entry['group'])
+                        ? (int) $entry['group']
+                        : ($rank !== null ? (int) ceil($rank / 4) : null);
                 }
             }
         }
@@ -373,7 +396,7 @@ include_once 'includes/header.php';
     <h1>FSL Team Roster</h1>
 
     <?php
-    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason, $playerRank, $playerGroup, $playerGroupNum) {
+    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason, $rankingsLookup) {
         $teamLogo = getTeamLogo($teamName);
         $rec = $teamRecords[$teamName] ?? [];
         $wins = $rec['wins'] ?? 0;
@@ -386,7 +409,7 @@ include_once 'includes/header.php';
         $captainId = $first['Captain_ID'] ?? null;
         $coCaptainId = $first['Co_Captain_ID'] ?? null;
         // Sort: Captain first, Co-captain second, then by rank/group ascending (best first)
-        usort($players, function ($a, $b) use ($playerRank, $playerGroupNum, $captainId, $coCaptainId) {
+        usort($players, function ($a, $b) use ($rankingsLookup, $captainId, $coCaptainId) {
             $aid = (int)($a['Player_ID'] ?? 0);
             $bid = (int)($b['Player_ID'] ?? 0);
             $aOrder = ($aid === (int)$captainId) ? 1 : (($aid === (int)$coCaptainId) ? 2 : 3);
@@ -397,13 +420,17 @@ include_once 'includes/header.php';
             if ($aOrder !== 3) {
                 return 0;
             }
-            $ra = $playerRank[$a['Player_Name']] ?? PHP_INT_MAX;
-            $rb = $playerRank[$b['Player_Name']] ?? PHP_INT_MAX;
+            [$ra] = $rankingsLookup($a['Player_Name'] ?? '');
+            [$rb] = $rankingsLookup($b['Player_Name'] ?? '');
+            $ra = $ra ?? PHP_INT_MAX;
+            $rb = $rb ?? PHP_INT_MAX;
             if ($ra !== $rb) {
                 return $ra <=> $rb;
             }
-            $ga = $playerGroupNum[$a['Player_Name']] ?? PHP_INT_MAX;
-            $gb = $playerGroupNum[$b['Player_Name']] ?? PHP_INT_MAX;
+            [, , $ga] = $rankingsLookup($a['Player_Name'] ?? '');
+            [, , $gb] = $rankingsLookup($b['Player_Name'] ?? '');
+            $ga = $ga ?? PHP_INT_MAX;
+            $gb = $gb ?? PHP_INT_MAX;
             return $ga <=> $gb;
         });
         ?>
@@ -436,11 +463,9 @@ include_once 'includes/header.php';
           <tbody>
             <?php foreach ($players as $player): ?>
             <?php
-            $rank = $playerRank[$player['Player_Name']] ?? null;
-            $group = $playerGroup[$player['Player_Name']] ?? '';
-            $gNum = $playerGroupNum[$player['Player_Name']] ?? null;
-            $rankLabel = ($rank !== null && $group !== '' && $gNum !== null)
-                ? htmlspecialchars($group) . ' G' . (int)$gNum . ' #' . (int)$rank
+            [$rank, $codeTier, $gNum] = $rankingsLookup($player['Player_Name'] ?? '');
+            $rankLabel = ($rank !== null && $codeTier !== '' && $gNum !== null)
+                ? htmlspecialchars($codeTier) . ' G' . (int)$gNum . ' #' . (int)$rank
                 : ($rank !== null ? '#' . (int)$rank : '—');
             ?>
             <tr>

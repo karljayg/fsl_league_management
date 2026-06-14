@@ -27,11 +27,12 @@ $players = get_players();
 $events = get_events();
 
 // Get current team info
-$currentTeamName = '';
+$onClockTeamId = get_on_clock_team_id();
+$currentTeamName = get_on_clock_team_name();
 $currentTeamLogo = '';
-if ($session['current_team_id']) {
-    $currentTeam = get_team_by_id($session['current_team_id']);
-    $currentTeamName = $currentTeam ? $currentTeam['name'] : '';
+$activePickNumber = get_active_pick_number();
+if ($onClockTeamId) {
+    $currentTeam = get_team_by_id($onClockTeamId);
     $currentTeamLogo = $currentTeam ? ($currentTeam['logo'] ?? '') : '';
 }
 
@@ -232,8 +233,13 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         .team-header {
             padding: 1rem 1.25rem;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .team-header-main {
+            flex: 1;
+            min-width: 0;
         }
         
         .team-panel:nth-child(1) .team-header { background: linear-gradient(135deg, rgba(231, 76, 60, 0.3), transparent); }
@@ -256,7 +262,7 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
             font-weight: 700;
             color: #fff;
             text-decoration: none;
-            flex: 1;
+            display: block;
         }
         
         .team-header .team-name:hover {
@@ -267,9 +273,8 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
             font-family: 'Exo 2', sans-serif;
             font-size: 0.9rem;
             color: #888;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
+            display: inline-block;
+            margin-top: 0.35rem;
         }
         
         .team-roster-list {
@@ -358,6 +363,16 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         }
         .role-marker.captain { color: #ffd700; }
         .role-marker.protected { color: #00d4ff; }
+
+        .roster-player.db-inactive {
+            opacity: 0.5;
+        }
+        .roster-player.db-inactive .player-name,
+        .roster-player.db-inactive .rank,
+        .roster-player.db-inactive .pick-num,
+        .roster-player.db-inactive .group-badge {
+            color: #777;
+        }
         
         /* Sidebar - Available Players Only */
         .sidebar {
@@ -625,7 +640,8 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         <!-- Timer Section -->
         <?php if ($session['status'] === 'live'): ?>
         <div class="timer-section">
-            <div class="on-the-clock-label">On The Clock</div>
+            <?php $totalScheduledPicks = get_total_scheduled_picks(); ?>
+            <div class="on-the-clock-label">Pick <?= (int) $activePickNumber ?> of <?= $totalScheduledPicks ?></div>
             <div class="on-clock-team">
                 <?php if (!empty($currentTeamLogo)): ?>
                 <img src="../../<?= htmlspecialchars($currentTeamLogo) ?>" alt="" class="on-clock-logo">
@@ -636,7 +652,16 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         </div>
         <?php elseif ($session['status'] === 'paused'): ?>
         <div class="timer-section" style="padding: 1rem;">
-            <div class="on-the-clock-label" style="color: #ffc107; font-size: 1.2rem;">⏸ Paused</div>
+            <?php $totalScheduledPicks = get_total_scheduled_picks(); ?>
+            <div class="on-the-clock-label" style="color: #ffc107;">⏸ Paused · Pick <?= (int) $activePickNumber ?> of <?= $totalScheduledPicks ?></div>
+            <?php if ($currentTeamName): ?>
+            <div class="on-clock-team">
+                <?php if (!empty($currentTeamLogo)): ?>
+                <img src="../../<?= htmlspecialchars($currentTeamLogo) ?>" alt="" class="on-clock-logo">
+                <?php endif; ?>
+                <div class="current-team-name"><?= htmlspecialchars($currentTeamName) ?></div>
+            </div>
+            <?php endif; ?>
         </div>
         <?php elseif ($session['status'] === 'setup'): ?>
         <div class="timer-section" style="padding: 1rem;">
@@ -656,20 +681,22 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                 <div class="teams-grid">
                     <?php foreach ($teams as $team): ?>
                         <?php $roster = get_team_roster_by_draft_order($team['id']); ?>
-                        <div class="team-panel <?= $team['id'] === $session['current_team_id'] ? 'on-clock' : '' ?>">
+                        <div class="team-panel <?= $team['id'] === $onClockTeamId ? 'on-clock' : '' ?>">
                             <div class="team-header">
                                 <?php if (!empty($team['logo'])): ?>
                                 <img src="../../<?= htmlspecialchars($team['logo']) ?>" alt="" class="team-logo">
                                 <?php endif; ?>
-                                <a href="../../view_team.php?name=<?= urlencode($team['name']) ?>" class="team-name" target="_blank"><?= htmlspecialchars($team['name']) ?></a>
-                                <span class="pick-count"><?= count($roster) ?> picks</span>
+                                <div class="team-header-main">
+                                    <a href="../../view_team.php?name=<?= urlencode($team['name']) ?>" class="team-name" target="_blank"><?= htmlspecialchars($team['name']) ?></a>
+                                    <div class="pick-count" title="<?= count($roster) ?> on roster"><?= format_team_draft_pick_progress($team['id']) ?> draft picks</div>
+                                </div>
                             </div>
                             <div class="team-roster-list">
                                 <?php if (empty($roster)): ?>
                                     <div class="empty-roster">No picks yet</div>
                                 <?php else: ?>
                                     <?php foreach ($roster as $p): ?>
-                                        <div class="roster-player">
+                                        <div class="roster-player<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>">
                                             <span class="player-info">
                                                 <?php if ($p['pick_number'] !== null): ?>
                                                     <span class="pick-num">#<?= $p['pick_number'] ?></span>

@@ -1,0 +1,147 @@
+FSL voting enable API — draft spec (v0.1)
+Base URL (example): https://psistorm.com/fsl/api/voting (path is up to you; keep it separate from public spider_vote.php if you want.)
+Auth: All endpoints require
+Authorization: Bearer <FSL_VOTING_API_KEY>
+(or X-Api-Key: ...).
+401 if missing/invalid.
+Common success envelope:
+{ "ok": true, "data": { ... } }
+Common error envelope:
+{ "ok": false, "error": "ERROR_CODE", "message": "Human-readable detail" }
+
+1. Resolve “last” match for two players (read-only)
+Use this if the bot wants to preview what would be enabled without writing state.
+GET /matches/resolve
+Query param
+Required
+Description
+player_a
+Yes
+Free text as typed in chat (e.g. DarkMenace)
+player_b
+Yes
+Same
+season
+No
+If omitted, use current season from config
+before
+No
+ISO datetime; only consider matches on/before this instant (default: now)
+
+Success 200 — exactly one unambiguous “last” row:
+{
+ "ok": true,
+ "data": {
+   "fsl_match_id": 12345,
+   "season": 10,
+   "t_code": "A",
+   "played_at": "2026-04-10T18:00:00Z",
+   "winner_player_id": 101,
+   "loser_player_id": 202,
+   "player1": { "id": 101, "real_name": "DarkMenace" },
+   "player2": { "id": 202, "real_name": "NukLeo" },
+   "notes": "Optional label from fsl_matches.notes"
+ }
+}
+Semantics for player1 / player2: Same order as stored in fsl_matches (or explicitly document “sorted by player_id” so vote 1/2 in Player_Attribute_Votes stays consistent with your PHP voter UI).
+Errors (examples):
+HTTP
+error
+When
+400
+MISSING_PARAM
+player_a or player_b missing
+404
+PLAYER_NOT_FOUND
+One name doesn’t resolve to Players (say which)
+404
+MATCH_NOT_FOUND
+No fsl_matches row with both players
+409
+AMBIGUOUS_NAME
+One string matches multiple active players (return candidates in details)
+
+Optional 409 AMBIGUOUS_MATCH if your “last” rule still returns ties (rare if you define “last” = max fsl_match_id for that pair in season).
+
+2. Enable voting for this pair (what allow_votes A B should call)
+POST /sessions/enable
+Body (JSON):
+{
+ "player_a": "DarkMenace",
+ "player_b": "NukLeo",
+ "season": 10,
+ "requested_by": "twitch_login_of_moderator",
+ "channel": "twitch_channel_name"
+}
+season optional (default current). requested_by / channel optional audit fields.
+Server behavior (recommended):
+Resolve the same way as GET /matches/resolve.
+Persist a short-lived voting window row, e.g. voting_sessions keyed by (fsl_match_id) or (channel, expires_at) with fsl_match_id, enabled_at, enabled_by, expires_at.
+Return the same match payload plus session metadata.
+Success 200:
+{
+ "ok": true,
+ "data": {
+   "session_id": "uuid-or-int",
+   "expires_at": "2026-04-10T22:00:00Z",
+   "fsl_match_id": 12345,
+   "season": 10,
+   "t_code": "A",
+   "player1": { "id": 101, "real_name": "DarkMenace" },
+   "player2": { "id": 202, "real_name": "NukLeo" }
+ }
+}
+Errors: Same as resolve, plus e.g. 409 VOTING_ALREADY_OPEN on same match if you disallow double-enable (or define idempotent 200 with same session—your choice; spec should say which).
+
+3. Check whether voting is open (optional, for bot or web)
+GET /sessions/active
+Query
+Description
+channel
+Optional: per-channel window
+fsl_match_id
+Optional: direct check
+
+Success 200 — open:
+{
+ "ok": true,
+ "data": {
+   "active": true,
+   "session_id": "...",
+   "expires_at": "...",
+   "fsl_match_id": 12345,
+   "player1": { "id": 101, "real_name": "DarkMenace" },
+   "player2": { "id": 202, "real_name": "NukLeo" }
+ }
+}
+Success 200 — nothing open:
+{ "ok": true, "data": { "active": false } }
+
+4. Submit attribute votes (only if you want the bot to write votes)
+If voting stays entirely on spider_vote.php with reviewer tokens, you omit this and the spec stops at enable + resolve. If the bot (or a small form) posts votes:
+POST /votes
+Body:
+{
+ "fsl_match_id": 12345,
+ "reviewer_token": "reviewer_unique_url_token",
+ "votes": {
+   "micro": 1,
+   "macro": 2,
+   "clutch": 0,
+   "creativity": 1,
+   "aggression": 2,
+   "strategy": 1
+ }
+}
+Values 0|1|2 per your spec (1 = player1 won attribute, etc.).
+Success 200:
+{ "ok": true, "data": { "updated": true } }
+Errors: 401, 404 MATCH_NOT_FOUND, 403 VOTING_CLOSED, 403 INVALID_REVIEWER, 409 DUPLICATE if you don’t allow upsert (or 200 if you use upsert—again, state it clearly).
+
+What to tell the implementer explicitly
+Definition of “last” match: e.g. “highest fsl_match_id where the two Players appear as winner/loser (either order) and season = X.”
+Name resolution: exact Real_Name, case-insensitive, or LIKE—and when to return AMBIGUOUS_NAME with a candidate list.
+Idempotency of POST /sessions/enable.
+Whether enabling is only a bot-side flag (in-memory) vs DB voting_sessions (better if the website also needs to know what’s open).
+
+

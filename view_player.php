@@ -81,6 +81,7 @@ if (!$playerNotFound) {
     $playerQuery = "SELECT 
         p.Player_ID,
         p.Real_Name,
+        p.Intro_Url,
         u.username,
         u.email,
         u.avatar_url,
@@ -149,14 +150,10 @@ if (!$playerNotFound) {
     $matchesQuery = "SELECT 
         fm.*,
         p_w.Real_Name AS winner_name,
-        pa_w.Alias_Name AS winner_alias,
-        p_l.Real_Name AS loser_name,
-        pa_l.Alias_Name AS loser_alias
+        p_l.Real_Name AS loser_name
     FROM fsl_matches fm
     JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
     JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
-    LEFT JOIN Player_Aliases pa_w ON p_w.Player_ID = pa_w.Player_ID
-    LEFT JOIN Player_Aliases pa_l ON p_l.Player_ID = pa_l.Player_ID
     WHERE winner_player_id = (SELECT Player_ID FROM Players WHERE Real_Name = :playerName)
        OR loser_player_id = (SELECT Player_ID FROM Players WHERE Real_Name = :playerName)
     ORDER BY fsl_match_id DESC
@@ -530,8 +527,10 @@ function getRaceIconFromCode($raceCode) {
         <?php endif; ?>
     </center></h1>
     <div style="width: 100%; height: 200px; position: relative; background: rgb(0, 0, 0); border-radius: 10px; overflow: hidden; margin-bottom: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
-        <?php 
-        $introPlayerName = $playerName;
+        <?php
+        $introPlayerName = $playerInfo[0]['Real_Name'] ?? $playerName;
+        $introPlayerId = (int)($playerInfo[0]['Player_ID'] ?? 0);
+        $introVideoUrl = $playerInfo[0]['Intro_Url'] ?? null;
         include 'view_player_intro.php';
         ?>
     </div>

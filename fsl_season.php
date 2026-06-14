@@ -343,10 +343,11 @@ include_once 'includes/header.php';
 <body>
     <div class="container">
         <h1>FSL Season History</h1>
-        <p class="page-subtitle">10 Seasons &nbsp;·&nbsp; 2020 – 2026 &nbsp;·&nbsp; PSISTORM Gaming</p>
+        <p class="page-subtitle">11 Seasons &nbsp;·&nbsp; 2020 – 2026 &nbsp;·&nbsp; PSISTORM Gaming</p>
 
         <!-- Season quick-nav -->
         <nav class="season-nav">
+            <a href="#11" class="tl">S11</a>
             <a href="#10" class="tl">S10</a>
             <a href="#9" class="tl">S9</a>
             <a href="#8" class="tl">S8</a>
@@ -368,6 +369,30 @@ include_once 'includes/header.php';
 
         <!-- ═══════════════════════ TEAM LEAGUE ERA ═══════════════════════ -->
         <div class="era-divider">⚔ Team League Era</div>
+
+        <!-- ── Season 11 ── -->
+        <div class="season tl" id="11">
+            <div class="season-header">
+                <div class="season-num">11</div>
+                <div class="season-title-group">
+                    <h2>Friday Broadcasts &amp; Fresh Draftees</h2>
+                    <p class="season-meta-line">Jun – Aug 2026 &nbsp;·&nbsp; GSL Group Stage + Ladder Playoff &nbsp;·&nbsp; <em>In progress</em></p>
+                </div>
+            </div>
+
+            <p class="season-desc">Season 11 keeps the S10 GSL-style group and playoff ladder with a scheduling change: each team match can be played on <strong>Friday and/or Saturday</strong> (7:00 PM Friday or 12:00 PM Saturday, US Eastern). The supplemental draft added new faces across all four teams — including <a href="view_player.php?name=Darkblade">Darkblade</a>, <a href="view_player.php?name=Cubano">Cubano</a>, <a href="view_player.php?name=FRost">FRost</a>, <a href="view_player.php?name=Infestor-x">Infestor-x</a>, <a href="view_player.php?name=SunnyD">SunnyD</a>, and <a href="view_player.php?name=BeanTheBard">BeanTheBard</a> — alongside returning picks such as <a href="view_player.php?name=MedicJr">MedicJr</a>, <a href="view_player.php?name=RegreT">RegreT</a>, and <a href="view_player.php?name=Parkanian">Parkanian</a>.</p>
+
+            <p class="season-link"><a href="fsl_schedule.php?season=11">View Season 11 Standings &amp; Schedule →</a></p>
+
+            <div class="results">
+                <strong>Opening matches (scheduled):</strong><br>
+                Wk1 <a href="view_team.php?name=Angry+Space+Hares">Angry Space Hares</a> vs <a href="view_team.php?name=Special+Tactics">Special Tactics</a> &nbsp;·&nbsp;
+                Wk2 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> vs <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a><br><br>
+                <strong>What's new:</strong><br>
+                Friday and/or Saturday team-match broadcast windows<br>
+                Supplemental draft — 12 players assigned to the four active rosters
+            </div>
+        </div>
 
         <!-- ── Season 10 ── -->
         <div class="season tl" id="10">

@@ -153,12 +153,8 @@ $matchesQuery = "SELECT
     m.map_loss,
     m.loser_player_id,
     m.loser_race,
-    COALESCE(w_alias.Alias_ID, 
-        (SELECT MIN(pa.Alias_ID) FROM Player_Aliases pa WHERE pa.Player_ID = m.winner_player_id)
-    ) AS winner_alias_id,
-    COALESCE(l_alias.Alias_ID, 
-        (SELECT MIN(pa.Alias_ID) FROM Player_Aliases pa WHERE pa.Player_ID = m.loser_player_id)
-    ) AS loser_alias_id,
+    (SELECT MIN(pa.Alias_ID) FROM Player_Aliases pa WHERE pa.Player_ID = m.winner_player_id) AS winner_alias_id,
+    (SELECT MIN(pa.Alias_ID) FROM Player_Aliases pa WHERE pa.Player_ID = m.loser_player_id) AS loser_alias_id,
     CASE 
         WHEN m.t_code LIKE '%S%' THEN 'S'
         WHEN m.t_code LIKE '%A%' THEN 'A'
@@ -167,11 +163,7 @@ $matchesQuery = "SELECT
         ELSE 'A' -- Default to 'A' if no division is found
     END AS division
 FROM 
-    fsl_matches m
-LEFT JOIN 
-    Player_Aliases w_alias ON m.winner_player_id = w_alias.Player_ID
-LEFT JOIN 
-    Player_Aliases l_alias ON m.loser_player_id = l_alias.Player_ID";
+    fsl_matches m";
 
 $matches = $conn->query($matchesQuery);
 
@@ -248,6 +240,35 @@ while ($match = $matches->fetch_assoc()) {
 }
 
 echo "<p class='info'>Processed $processedCount matches with $errorCount errors.</p>";
+
+// -------------------------------------------------------
+// Refresh rankings/rankings.json (season_* / alltime_* from fsl_matches, same as rankings admin)
+// -------------------------------------------------------
+$rankingsJsonNote = '';
+$rankingsFile = __DIR__ . '/rankings/rankings.json';
+if (!is_readable($rankingsFile)) {
+    $rankingsJsonNote = '<p class="info"><strong>rankings.json:</strong> File not readable; skipped refresh.</p>';
+} else {
+    require_once __DIR__ . '/rankings/rankings_enrich.php';
+    $raw = file_get_contents($rankingsFile);
+    $rankings = is_string($raw) ? json_decode($raw, true) : null;
+    if (!is_array($rankings) || $rankings === []) {
+        $rankingsJsonNote = '<p class="info"><strong>rankings.json:</strong> Empty or invalid JSON; skipped refresh.</p>';
+    } else {
+        try {
+            $rankings = enrich_rankings_with_records($rankings, $db);
+            $written = @file_put_contents($rankingsFile, json_encode($rankings, JSON_PRETTY_PRINT), LOCK_EX);
+            if ($written === false) {
+                $rankingsJsonNote = '<p class="error"><strong>rankings.json:</strong> Could not write file (check permissions).</p>';
+            } else {
+                $rankingsJsonNote = '<p class="success"><strong>rankings.json:</strong> Refreshed season and all-time map/set counts from <code>fsl_matches</code>.</p>';
+            }
+        } catch (Throwable $e) {
+            $rankingsJsonNote = '<p class="error"><strong>rankings.json refresh failed:</strong> ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+    }
+}
+echo $rankingsJsonNote;
 
 // -------------------------------------------------------
 // Close connection and complete

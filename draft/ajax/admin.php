@@ -157,7 +157,15 @@ try {
 
     switch ($action) {
         case 'start':
-            $response['success'] = start_draft();
+            if (!get_session()) {
+                $response = ['success' => false, 'error' => 'No draft session found in draft/data/session.json'];
+            } elseif ((get_session()['status'] ?? '') !== 'setup') {
+                $response = ['success' => false, 'error' => 'Draft is not in setup status (current: ' . (get_session()['status'] ?? 'unknown') . '). Use Resume if paused.'];
+            } elseif (!start_draft()) {
+                $response = ['success' => false, 'error' => 'Failed to start draft — check that draft/data/ is writable by the web server'];
+            } else {
+                $response['success'] = true;
+            }
             break;
             
         case 'pause':

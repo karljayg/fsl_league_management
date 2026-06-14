@@ -40,7 +40,10 @@ if ($teamId) {
 }
 
 if (!empty($playerFilter)) {
-    $whereConditions[] = "(p.Real_Name LIKE :playerFilter OR pa.Alias_Name LIKE :playerFilter)";
+    $whereConditions[] = "(p.Real_Name LIKE :playerFilter OR EXISTS (
+        SELECT 1 FROM Player_Aliases pa
+        WHERE pa.Player_ID = p.Player_ID AND pa.Alias_Name LIKE :playerFilter
+    ))";
     $params['playerFilter'] = '%' . $playerFilter . '%';
 }
 
@@ -59,16 +62,7 @@ if (!empty($whereConditions)) {
     $rosterQuery .= " WHERE " . implode(' AND ', $whereConditions);
 }
 
-// Add LEFT JOIN for Player_Aliases if player filter is used
-if (!empty($playerFilter)) {
-    $rosterQuery = str_replace(
-        "FROM Players p",
-        "FROM Players p LEFT JOIN Player_Aliases pa ON p.Player_ID = pa.Player_ID",
-        $rosterQuery
-    );
-}
-
-$rosterQuery .= " ORDER BY 
+$rosterQuery .= " ORDER BY
     CASE WHEN p.Status = 'active' THEN 1 ELSE 2 END, 
     t.Team_Name, s.Division, p.Real_Name
 ";
@@ -357,6 +351,7 @@ include_once 'includes/header.php';
       <thead>
         <tr>
           <th>Player Name</th>
+          <th>Status</th>
           <th>Team</th>
           <th>Race</th>
           <th>Division</th>
@@ -379,6 +374,7 @@ include_once 'includes/header.php';
                 <br><a href="player_analysis.php?tab=spider&player=<?= $player['Player_ID'] ?>" class="spider-link">📊 Spider Chart</a>
               <?php endif; ?>
             </td>
+            <td><?= htmlspecialchars(isset($player['Status']) ? ucfirst((string) $player['Status']) : 'N/A') ?></td>
             <td>
               <?php if (!empty($player['Team_Name'])): ?>
                 <a href="view_team.php?name=<?= urlencode($player['Team_Name']) ?>" class="team-link">
@@ -465,9 +461,9 @@ include_once 'includes/header.php';
       
       playerRows.forEach(row => {
         const playerName = row.children[0].textContent.toLowerCase(); // Player Name column
-        const team = row.children[1].textContent.toLowerCase(); // Team column
-        const race = row.children[2].textContent; // Race column
-        const division = row.children[3].textContent; // Division column
+        const team = row.children[2].textContent.toLowerCase(); // Team column (after Status)
+        const race = row.children[3].textContent; // Race column
+        const division = row.children[4].textContent; // Division column
         
         const raceMatch = raceValue === 'all' || race === raceValue;
         const divisionMatch = divisionValue === 'all' || division === divisionValue;

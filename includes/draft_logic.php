@@ -7,12 +7,158 @@
 require_once __DIR__ . '/data.php';
 
 /**
+ * Count completed draft picks for a team (PICK + ADMIN_ASSIGN).
+ */
+function count_team_draft_picks(int $team_id): int {
+    $count = 0;
+    foreach (get_events() as $event) {
+        if ((int) ($event['team_id'] ?? 0) === $team_id
+            && in_array($event['result'] ?? '', ['PICK', 'ADMIN_ASSIGN'], true)) {
+            $count++;
+        }
+    }
+    return $count;
+}
+
+/**
+ * Per-team pick cap from session (null = unlimited).
+ */
+function get_team_pick_limit(int $team_id): ?int {
+    $session = get_session();
+    $limits = $session['team_pick_limits'] ?? null;
+    if (!is_array($limits)) {
+        return null;
+    }
+    if (isset($limits[$team_id])) {
+        return (int) $limits[$team_id];
+    }
+    if (isset($limits[(string) $team_id])) {
+        return (int) $limits[(string) $team_id];
+    }
+    return null;
+}
+
+/**
+ * Whether a team may still make a draft pick under pick limits.
+ */
+function team_can_make_draft_pick(int $team_id): bool {
+    $limit = get_team_pick_limit($team_id);
+    if ($limit === null) {
+        return true;
+    }
+    return count_team_draft_picks($team_id) < $limit;
+}
+
+/**
+ * How many S11 draft picks this team is scheduled to make.
+ */
+function get_team_scheduled_pick_count(int $team_id): ?int {
+    $limit = get_team_pick_limit($team_id);
+    if ($limit !== null) {
+        return $limit;
+    }
+
+    $session = get_session();
+    $schedule = $session['pick_schedule'] ?? null;
+    if (!is_array($schedule) || $schedule === []) {
+        return null;
+    }
+
+    $count = 0;
+    foreach ($schedule as $scheduledTeamId) {
+        if ((int) $scheduledTeamId === $team_id) {
+            $count++;
+        }
+    }
+
+    return $count > 0 ? $count : null;
+}
+
+/**
+ * Total picks in this draft session.
+ */
+function get_total_scheduled_picks(): int {
+    $session = get_session();
+    if (!empty($session['total_picks'])) {
+        return (int) $session['total_picks'];
+    }
+
+    $schedule = $session['pick_schedule'] ?? null;
+    if (is_array($schedule) && $schedule !== []) {
+        return count($schedule);
+    }
+
+    return count(get_teams()) * 3;
+}
+
+/**
+ * Label for draft picks made vs allotted (e.g. "0/5").
+ */
+function format_team_draft_pick_progress(int $team_id): string {
+    $total = get_team_scheduled_pick_count($team_id);
+    $made = count_team_draft_picks($team_id);
+    if ($total === null) {
+        return $made . ' picks';
+    }
+
+    return $made . '/' . $total;
+}
+
+/**
+ * Pick number currently on the clock (live or paused).
+ */
+function get_active_pick_number(): ?int {
+    $session = get_session();
+    if (!in_array($session['status'] ?? '', ['live', 'paused'], true)) {
+        return null;
+    }
+    $pick = (int) ($session['current_pick_number'] ?? 0);
+    return $pick > 0 ? $pick : null;
+}
+
+/**
+ * Team ID on the clock — falls back to pick_schedule when current_team_id is unset.
+ */
+function get_on_clock_team_id(): ?int {
+    $session = get_session();
+    if (!in_array($session['status'] ?? '', ['live', 'paused'], true)) {
+        return null;
+    }
+
+    if (!empty($session['current_team_id'])) {
+        return (int) $session['current_team_id'];
+    }
+
+    $pick = get_active_pick_number();
+    if ($pick === null) {
+        return null;
+    }
+
+    return get_team_for_pick($pick, $session['draft_order'] ?? []);
+}
+
+function get_on_clock_team_name(): string {
+    $teamId = get_on_clock_team_id();
+    if (!$teamId) {
+        return '';
+    }
+    $team = get_team_by_id($teamId);
+    return $team ? $team['name'] : '';
+}
+
+/**
  * Calculate which team picks at a given pick number using snake draft
  * @param int $pick_number 1-based pick number
  * @param array $draft_order Array of team IDs in Round 1 order [1,2,3,4]
  * @return int Team ID
  */
 function get_team_for_pick(int $pick_number, array $draft_order): int {
+    $session = get_session();
+    $schedule = $session['pick_schedule'] ?? null;
+    if (is_array($schedule) && isset($schedule[$pick_number - 1])) {
+        return (int) $schedule[$pick_number - 1];
+    }
+
     $n = count($draft_order);
     $round = (int) floor(($pick_number - 1) / $n) + 1;
     $index = ($pick_number - 1) % $n;
@@ -38,8 +184,25 @@ function can_team_draft_player(int $team_id, array $player): bool {
  * Get players eligible for a team to pick
  */
 function get_eligible_players_for_team(int $team_id): array {
-    $available = get_available_players();
-    return array_filter($available, fn($p) => can_team_draft_player($team_id, $p));
+    $available = array_values(get_available_players());
+    if ($available === []) {
+        return [];
+    }
+
+    $strict = array_values(array_filter(
+        $available,
+        fn($p) => can_team_draft_player($team_id, $p)
+    ));
+    if ($strict !== []) {
+        return $strict;
+    }
+
+    // Team still has pick slots but every remaining player shares a draft bucket — allow any pick.
+    if (team_can_make_draft_pick($team_id)) {
+        return $available;
+    }
+
+    return [];
 }
 
 /**
@@ -60,8 +223,15 @@ function make_pick(int $team_id, int $player_id, string $made_by = 'TEAM'): arra
         return ['success' => false, 'error' => 'Player not available'];
     }
     
-    if ($made_by === 'TEAM' && !can_team_draft_player($team_id, $player)) {
-        return ['success' => false, 'error' => 'Bucket rule violation'];
+    if ($made_by === 'TEAM') {
+        $eligibleIds = array_map(fn($p) => $p['id'], get_eligible_players_for_team($team_id));
+        if (!in_array($player_id, $eligibleIds, true)) {
+            return ['success' => false, 'error' => 'Player not eligible for this team'];
+        }
+    }
+
+    if (!team_can_make_draft_pick($team_id)) {
+        return ['success' => false, 'error' => 'Team has reached its pick limit'];
     }
     
     // Record the pick
@@ -73,8 +243,8 @@ function make_pick(int $team_id, int $player_id, string $made_by = 'TEAM'): arra
         'made_by' => $made_by
     ]);
     
-    // Update player status
-    update_player_status($player_id, 'drafted');
+    // Update player status and team
+    draft_player_to_team($player_id, $team_id);
     
     // Advance draft (only for regular picks, not admin assigns during pause)
     if ($made_by !== 'ADMIN' || $session['status'] === 'live') {
@@ -111,35 +281,44 @@ function skip_team(string $reason, string $made_by = 'SYSTEM'): bool {
 /**
  * Advance to next pick
  */
+function complete_draft_session(): void {
+    $session = get_session();
+    $session['status'] = 'completed';
+    $session['current_team_id'] = null;
+    $session['pick_deadline_at'] = null;
+    save_session($session);
+    add_audit('SYSTEM', 'DRAFT_COMPLETED', []);
+}
+
 function advance_draft(): void {
     $session = get_session();
     $available = get_available_players();
-    
-    // Check if draft should complete
+    $totalPicks = (int) ($session['total_picks'] ?? 0);
+    $nextPick = $session['current_pick_number'] + 1;
+
     if (count($available) === 0) {
-        $session['status'] = 'completed';
-        $session['current_team_id'] = null;
-        $session['pick_deadline_at'] = null;
-        save_session($session);
-        add_audit('SYSTEM', 'DRAFT_COMPLETED', []);
+        complete_draft_session();
         return;
     }
-    
-    // Move to next pick
-    $session['current_pick_number']++;
+
+    if ($totalPicks > 0 && $nextPick > $totalPicks) {
+        $session['status'] = 'paused';
+        $session['pick_deadline_at'] = null;
+        save_session($session);
+        add_audit('SYSTEM', 'DRAFT_PAUSED_INCOMPLETE', ['remaining' => count($available)]);
+        return;
+    }
+
+    $session['current_pick_number'] = $nextPick;
     $session['current_team_id'] = get_team_for_pick(
-        $session['current_pick_number'], 
+        $session['current_pick_number'],
         $session['draft_order']
     );
-    
-    // Reset timer
     $session['pick_deadline_at'] = date('c', time() + $session['seconds_per_pick']);
-    
     save_session($session);
-    
-    // Auto-skip if no eligible players
-    if (!team_has_eligible_picks($session['current_team_id'])) {
-        skip_team('NO_ELIGIBLE_PLAYERS', 'SYSTEM');
+
+    if (!team_can_make_draft_pick($session['current_team_id'])) {
+        skip_team('PICK_LIMIT_REACHED', 'SYSTEM');
     }
 }
 
@@ -195,7 +374,9 @@ function apply_captain_protected_assignments(): int {
  */
 function start_draft(): bool {
     $session = get_session();
-    if ($session['status'] !== 'setup') return false;
+    if (!$session || ($session['status'] ?? '') !== 'setup') {
+        return false;
+    }
     
     // Apply Captain/Protected assignments before starting
     apply_captain_protected_assignments();
@@ -203,9 +384,12 @@ function start_draft(): bool {
     $session['status'] = 'live';
     $session['current_pick_number'] = 1;
     $session['current_team_id'] = get_team_for_pick(1, $session['draft_order']);
+    $session['seconds_per_pick'] = (int) ($session['seconds_per_pick'] ?? 120);
     $session['pick_deadline_at'] = date('c', time() + $session['seconds_per_pick']);
     
-    save_session($session);
+    if (!save_session($session)) {
+        return false;
+    }
     add_audit('ADMIN', 'DRAFT_STARTED', []);
     
     // Check for immediate skip needed
@@ -271,7 +455,7 @@ function undo_last(): array {
     
     // Restore player if was a pick
     if (in_array($event['result'], ['PICK', 'ADMIN_ASSIGN']) && $event['player_id']) {
-        update_player_status($event['player_id'], 'available');
+        undraft_player($event['player_id']);
     }
     
     // Remove the event

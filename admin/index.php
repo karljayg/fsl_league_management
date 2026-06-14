@@ -85,11 +85,9 @@ $players = get_players();
 $events = get_events();
 
 // Get current team name
-$currentTeamName = '';
-if ($session['current_team_id']) {
-    $currentTeam = get_team_by_id($session['current_team_id']);
-    $currentTeamName = $currentTeam ? $currentTeam['name'] : '';
-}
+$onClockTeamId = get_on_clock_team_id();
+$currentTeamName = get_on_clock_team_name();
+$activePickNumber = get_active_pick_number();
 
 $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . 
            '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['REQUEST_URI']);
@@ -116,7 +114,7 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
 
         <?php if ($session['status'] === 'live' || $session['status'] === 'paused'): ?>
         <div class="draft-timer">
-            <div class="on-the-clock">On the clock: <span class="team-name"><?= htmlspecialchars($currentTeamName) ?></span></div>
+            <div class="on-the-clock">Pick <?= (int) $activePickNumber ?> of <?= get_total_scheduled_picks() ?> · On the clock: <span class="team-name"><?= htmlspecialchars($currentTeamName) ?></span></div>
             <div class="timer-display" id="timer">--:--</div>
         </div>
         <?php endif; ?>
@@ -169,14 +167,14 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                 <h2>Teams</h2>
                 <?php foreach ($teams as $team): ?>
                     <?php $roster = get_team_roster($team['id']); ?>
-                    <div class="team-card <?= $team['id'] === $session['current_team_id'] ? 'on-clock' : '' ?>">
+                    <div class="team-card <?= $team['id'] === $onClockTeamId ? 'on-clock' : '' ?>">
                         <div class="team-card-header">
                             <a href="../../view_team.php?name=<?= urlencode($team['name']) ?>" class="team-name team-link" target="_blank"><?= htmlspecialchars($team['name']) ?></a>
-                            <span class="team-pick-count"><?= count($roster) ?> picks</span>
                         </div>
+                        <div class="team-pick-count" title="<?= count($roster) ?> on roster"><?= format_team_draft_pick_progress($team['id']) ?> draft picks</div>
                         <div class="team-roster">
                             <?php foreach ($roster as $p): ?>
-                                <div class="player-entry">
+                                <div class="player-entry<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>">
                                     <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="player-link" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
                                     <span class="player-bucket">G<?= $p['bucket_index'] ?></span>
                                 </div>
@@ -346,13 +344,24 @@ Rank,Name,Race,Notes
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ action, token: adminToken })
             })
-            .then(r => r.json())
+            .then(async (r) => {
+                const text = await r.text();
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Server returned non-JSON (HTTP ' + r.status + '): ' + text.slice(0, 200));
+                }
+            })
             .then(data => {
                 if (data.success) {
                     location.reload();
                 } else {
                     alert(data.error || 'Action failed');
                 }
+            })
+            .catch(err => {
+                console.error('adminAction failed:', err);
+                alert('Request failed: ' + err.message);
             });
         }
         

@@ -129,20 +129,20 @@
 }
 
 .team-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.15rem;
 }
 
 .team-name {
     font-weight: 600;
     font-size: 1.1rem;
+    display: block;
 }
 
 .team-pick-count {
+    display: block;
     font-size: 0.85rem;
     color: var(--text-secondary);
+    margin-bottom: 0.5rem;
 }
 
 .team-roster {
@@ -159,6 +159,14 @@
 
 .team-roster .player-entry:last-child {
     border-bottom: none;
+}
+
+.team-roster .player-entry.db-inactive {
+    opacity: 0.5;
+}
+
+.team-roster .player-entry.db-inactive .player-link {
+    color: #777;
 }
 
 /* Players Panel */

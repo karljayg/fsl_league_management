@@ -246,6 +246,20 @@ function getYouTubeVideoId($url) {
     return null;
 }
 
+/** S11+: Friday and/or Saturday play window (times fixed; dates from Saturday anchor in match_date) */
+function formatSchedulePlayWindow($season, $matchDateStr) {
+    if ((int) $season < 11 || empty($matchDateStr)) {
+        return null;
+    }
+    $sat = new DateTime($matchDateStr);
+    $fri = clone $sat;
+    $fri->modify('-1 day');
+    return [
+        'fri_label' => $fri->format('l, F j, Y'),
+        'sat_label' => $sat->format('l, F j, Y'),
+    ];
+}
+
 // Find the next match (first non-completed match)
 $nextMatchWeek = null;
 foreach ($season9Schedule as $match) {
@@ -340,10 +354,10 @@ echo "<!-- Data: $cacheStatus -->\n";
                     $n1 = $match['team1_name'] ?? null;
                     $n2 = $match['team2_name'] ?? null;
                     if ($n1 && $n1 !== 'TBD' && !isset($standings[$n1])) {
-                        $standings[$n1] = ['wins' => 0, 'losses' => 0];
+                        $standings[$n1] = ['wins' => 0, 'losses' => 0, 'total_wins' => 0];
                     }
                     if ($n2 && $n2 !== 'TBD' && !isset($standings[$n2])) {
-                        $standings[$n2] = ['wins' => 0, 'losses' => 0];
+                        $standings[$n2] = ['wins' => 0, 'losses' => 0, 'total_wins' => 0];
                     }
                 }
                 
@@ -358,12 +372,31 @@ echo "<!-- Data: $cacheStatus -->\n";
                         }
                     }
                 }
+
+                // Total wins = map wins from completed team matches (2nd tiebreaker)
+                foreach ($season9Schedule as $match) {
+                    if ($match['status'] !== 'completed') {
+                        continue;
+                    }
+                    if ($match['team1_score'] === null || $match['team2_score'] === null) {
+                        continue;
+                    }
+                    $n1 = $match['team1_name'] ?? null;
+                    $n2 = $match['team2_name'] ?? null;
+                    if ($n1 && $n1 !== 'TBD' && isset($standings[$n1])) {
+                        $standings[$n1]['total_wins'] += (int) $match['team1_score'];
+                    }
+                    if ($n2 && $n2 !== 'TBD' && isset($standings[$n2])) {
+                        $standings[$n2]['total_wins'] += (int) $match['team2_score'];
+                    }
+                }
                 
-                // Sort by wins (desc), then losses (asc), then alphabetical by team name
+                // Sort by team wins (desc), total wins (desc), losses (asc), then alphabetical
                 uksort($standings, function($nameA, $nameB) use ($standings) {
                     $a = $standings[$nameA];
                     $b = $standings[$nameB];
                     if ($a['wins'] != $b['wins']) return $b['wins'] - $a['wins'];
+                    if ($a['total_wins'] != $b['total_wins']) return $b['total_wins'] - $a['total_wins'];
                     if ($a['losses'] != $b['losses']) return $a['losses'] - $b['losses'];
                     return strcasecmp($nameA, $nameB);
                 });
@@ -385,6 +418,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                             <th>Wins</th>
                             <th>Losses</th>
                             <th>Win %</th>
+                            <th>Map Wins</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -410,6 +444,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                                 <td class="wins"><?= $record['wins'] ?></td>
                                 <td class="losses"><?= $record['losses'] ?></td>
                                 <td class="win-percentage"><?= $winPercentage ?>%</td>
+                                <td class="map-wins"><?= $record['total_wins'] ?></td>
                             </tr>
                         <?php 
                         $rank++;
@@ -421,6 +456,9 @@ echo "<!-- Data: $cacheStatus -->\n";
 
         <div class="season-info">
             <h2>Season Format</h2>
+            <?php if ((int) $currentSeason >= 11): ?>
+            <p class="season-play-window-note">Each team match may be played on <strong>Friday and/or Saturday</strong> (7:00 PM Friday or 12:00 PM Saturday, <span class="timezone">US Eastern</span>).</p>
+            <?php endif; ?>
             <div class="season-format-content">
                 <a href="images/FSL_GSL_format_season10.png" target="_blank" class="season-format-image-wrap">
                     <img src="images/FSL_GSL_format_season10.png" alt="FSL GSL Format Season 10" class="season-format-image">
@@ -445,6 +483,15 @@ echo "<!-- Data: $cacheStatus -->\n";
                     <div class="match-header">
                         <div class="week-info">
                             <h3>Week <?= $match['week_number'] ?></h3>
+                            <?php $playWindow = formatSchedulePlayWindow($match['season'], $match['match_date']); ?>
+                            <?php if ($playWindow): ?>
+                            <p class="match-date play-window">
+                                <span class="play-window-label">Play window · <span class="timezone">US Eastern</span></span>
+                                <span class="play-window-times">Friday and/or Saturday</span>
+                                <span class="play-window-times-detail">7:00 PM Friday · 12:00 PM Saturday</span>
+                                <span class="play-window-days"><?= htmlspecialchars($playWindow['fri_label']) ?> · <?= htmlspecialchars($playWindow['sat_label']) ?></span>
+                            </p>
+                            <?php else: ?>
                             <p class="match-date">
                                 <?php 
                                 if ($match['match_date']) {
@@ -455,6 +502,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                                 }
                                 ?>
                             </p>
+                            <?php endif; ?>
                         </div>
                         <div class="match-status <?= $match['status'] ?>">
                             <?= ucfirst($match['status']) ?>
@@ -988,6 +1036,11 @@ echo "<!-- Data: $cacheStatus -->\n";
         color: #00d4ff;
         font-weight: bold;
     }
+
+    .standings .map-wins {
+        color: #ffc107;
+        font-weight: bold;
+    }
     
     .team-cell {
         display: flex;
@@ -1063,6 +1116,17 @@ echo "<!-- Data: $cacheStatus -->\n";
         text-align: center;
         margin: 0 0 20px 0;
         font-size: 1.5em;
+    }
+
+    .season-play-window-note {
+        text-align: center;
+        margin: 0 0 18px 0;
+        color: #ccc;
+        line-height: 1.5;
+    }
+
+    .season-play-window-note strong {
+        color: #00d4ff;
     }
     
     .season-format-content {
@@ -1140,6 +1204,36 @@ echo "<!-- Data: $cacheStatus -->\n";
     .match-date {
         color: #ccc;
         margin: 5px 0 0 0;
+    }
+
+    .match-date.play-window {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        line-height: 1.45;
+    }
+
+    .play-window-label {
+        color: #00d4ff;
+        font-size: 0.85em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .play-window-times {
+        color: #e8e8e8;
+        font-weight: 600;
+    }
+
+    .play-window-times-detail {
+        color: #bbb;
+        font-size: 0.92em;
+    }
+
+    .play-window-days {
+        color: #aaa;
+        font-size: 0.95em;
     }
     
     .timezone {

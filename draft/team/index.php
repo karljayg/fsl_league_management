@@ -469,6 +469,15 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
         .my-roster-item .name:hover {
             color: #a29bfe;
         }
+
+        .my-roster-item.db-inactive,
+        .other-team-roster .roster-name.db-inactive {
+            opacity: 0.5;
+        }
+        .my-roster-item.db-inactive .name,
+        .other-team-roster .roster-name.db-inactive {
+            color: #777;
+        }
         
         .empty-roster {
             color: #555;
@@ -611,7 +620,7 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
             <?php endif; ?>
             <div class="my-team-info">
                 <h2><?= htmlspecialchars($team['name']) ?></h2>
-                <div class="picks-count"><?= count($myRoster) ?> player<?= count($myRoster) !== 1 ? 's' : '' ?> drafted</div>
+                <div class="picks-count"><?= format_team_draft_pick_progress($team['id']) ?> draft picks · <?= count($myRoster) ?> on roster</div>
             </div>
         </div>
         
@@ -700,7 +709,7 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
                         <div class="empty-roster">No players drafted yet</div>
                     <?php else: ?>
                         <?php foreach ($myRoster as $p): ?>
-                            <div class="my-roster-item">
+                            <div class="my-roster-item<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>">
                                 <div class="player-info">
                                     <span class="rank"><?= $p['ranking'] ?></span>
                                     <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="name" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
@@ -743,11 +752,11 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
                                 <img src="../../<?= htmlspecialchars($t['logo']) ?>" alt="" class="other-team-logo">
                                 <?php endif; ?>
                                 <a href="../../view_team.php?name=<?= urlencode($t['name']) ?>" class="other-team-name" target="_blank"><?= htmlspecialchars($t['name']) ?></a>
-                                <span class="other-team-count"><?= count($roster) ?></span>
+                                <span class="other-team-count" title="<?= count($roster) ?> on roster"><?= format_team_draft_pick_progress($t['id']) ?></span>
                             </div>
                             <div class="other-team-roster">
                                 <?php foreach ($roster as $p): ?>
-                                    <span><?= htmlspecialchars($p['display_name']) ?></span>
+                                    <span class="roster-name<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>"><?= htmlspecialchars($p['display_name']) ?></span>
                                 <?php endforeach; ?>
                                 <?php if (empty($roster)): ?>
                                     <span style="font-style: italic;">No picks</span>

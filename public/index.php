@@ -346,6 +346,15 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
         }
         .role-marker.captain { color: #ffd700; }
         .role-marker.protected { color: #00d4ff; }
+
+        .roster-player.db-inactive {
+            opacity: 0.5;
+        }
+        .roster-player.db-inactive .player-name,
+        .roster-player.db-inactive .rank,
+        .roster-player.db-inactive .group-badge {
+            color: #777;
+        }
         
         /* Sidebar - Available Players Only */
         .sidebar {
@@ -641,7 +650,7 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                                     <div class="empty-roster">No picks yet</div>
                                 <?php else: ?>
                                     <?php foreach ($roster as $p): ?>
-                                        <div class="roster-player">
+                                        <div class="roster-player<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>">
                                             <span class="player-info">
                                                 <span class="rank"><?= $p['ranking'] ?></span>
                                                 <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="player-name" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
