@@ -23,10 +23,38 @@ function enrich_rankings_with_records(array $rankings, PDO $db): array
     }, $rankings)));
     $defaults = ['season_gw' => 0, 'season_gl' => 0, 'season_sw' => 0, 'season_sl' => 0, 'alltime_gw' => 0, 'alltime_gl' => 0, 'alltime_sw' => 0, 'alltime_sl' => 0];
     $records = [];
+    $nameToRace = [];
+    if (!empty($names)) {
+        $racePlaceholders = implode(',', array_fill(0, count($names), '?'));
+        $raceStmt = $db->prepare("
+            SELECT p.Real_Name, fs.Race
+            FROM Players p
+            JOIN FSL_STATISTICS fs ON p.Player_ID = fs.Player_ID
+            WHERE p.Real_Name IN ($racePlaceholders)
+            ORDER BY p.Real_Name, (fs.MapsW + fs.MapsL) DESC, FIELD(fs.Division, 'S', 'A', 'B')
+        ");
+        $raceStmt->execute(array_values($names));
+        while ($row = $raceStmt->fetch(PDO::FETCH_ASSOC)) {
+            $realName = trim((string) ($row['Real_Name'] ?? ''));
+            if ($realName === '' || isset($nameToRace[$realName])) {
+                continue;
+            }
+            $race = trim((string) ($row['Race'] ?? ''));
+            if ($race !== '') {
+                $nameToRace[$realName] = $race;
+                $nameToRace[strtolower($realName)] = $race;
+            }
+        }
+    }
     if (empty($names) || $currentSeason === null) {
         foreach ($rankings as $i => $p) {
             foreach ($defaults as $k => $v) {
                 $rankings[$i][$k] = $v;
+            }
+            $name = trim((string) ($p['name'] ?? ''));
+            $race = $nameToRace[$name] ?? $nameToRace[strtolower($name)] ?? null;
+            if ($race !== null) {
+                $rankings[$i]['race'] = $race;
             }
             $rank = (int) ($rankings[$i]['rank'] ?? $i + 1);
             $rankings[$i]['group'] = (int) ceil($rank / 4);
@@ -83,6 +111,10 @@ function enrich_rankings_with_records(array $rankings, PDO $db): array
         $rec = $records[$name] ?? $records[strtolower($name)] ?? $defaults;
         foreach ($defaults as $k => $v) {
             $rankings[$i][$k] = $rec[$k];
+        }
+        $race = $nameToRace[$name] ?? $nameToRace[strtolower($name)] ?? null;
+        if ($race !== null) {
+            $rankings[$i]['race'] = $race;
         }
         $rank = (int) ($rankings[$i]['rank'] ?? $i + 1);
         $rankings[$i]['group'] = (int) ceil($rank / 4);
