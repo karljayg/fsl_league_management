@@ -6,6 +6,7 @@
 require_once __DIR__ . '/includes/team_logo.php';
 require_once __DIR__ . '/includes/db.php';
 require_once __DIR__ . '/includes/season_utils.php';
+require_once __DIR__ . '/includes/map_veto_store.php';
 
 $teamA = isset($_GET['teamA']) ? trim((string) $_GET['teamA']) : '';
 $teamB = isset($_GET['teamB']) ? trim((string) $_GET['teamB']) : '';
@@ -23,9 +24,33 @@ $logoB = $teamB ? getTeamLogo($teamB, '256px') : null;
 
 $currentSeason = getCurrentSeason($db);
 $displaySeason = isset($_GET['season']) ? (int) $_GET['season'] : $currentSeason;
+$displayWeek = isset($_GET['week']) ? (int) $_GET['week'] : 0;
 $lineupDateRaw = isset($_GET['date']) ? trim((string) $_GET['date']) : date('Y-m-d');
 $lineupDate = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $lineupDateRaw)) ? $lineupDateRaw : date('Y-m-d');
 $lineupDateFormatted = date('F j, Y', strtotime($lineupDate));
+$lineupWeekLabel = '';
+if ($displayWeek > 0) {
+    try {
+        $stmt = $db->prepare('SELECT match_date FROM fsl_schedule WHERE season = ? AND week_number = ? LIMIT 1');
+        $stmt->execute([$displaySeason, $displayWeek]);
+        $matchDateStr = $stmt->fetchColumn();
+        if ($matchDateStr) {
+            if ((int) $displaySeason >= 11) {
+                $sat = new DateTime((string) $matchDateStr);
+                $fri = clone $sat;
+                $fri->modify('-1 day');
+                $lineupWeekLabel = 'Week ' . $displayWeek . ' · Fri ' . $fri->format('M j') . ' / Sat ' . $sat->format('M j, Y');
+            } else {
+                $dt = new DateTime((string) $matchDateStr);
+                $lineupWeekLabel = 'Week ' . $displayWeek . ' · ' . $dt->format('M j, Y g:i A') . ' ET';
+            }
+        } else {
+            $lineupWeekLabel = 'Week ' . $displayWeek;
+        }
+    } catch (PDOException $e) {
+        $lineupWeekLabel = 'Week ' . $displayWeek;
+    }
+}
 $teamRecordA = ['season' => ['w' => 0, 'l' => 0], 'overall' => ['w' => 0, 'l' => 0]];
 $teamRecordB = ['season' => ['w' => 0, 'l' => 0], 'overall' => ['w' => 0, 'l' => 0]];
 $playerRecords = [];
@@ -169,6 +194,51 @@ function groupForRankPdf($rank, $ppg) {
     return (int) ceil($rank / $ppg);
 }
 
+$mapNameById = [];
+foreach (map_veto_load_maps() as $m) {
+    $id = isset($m['id']) ? (string) $m['id'] : '';
+    if ($id !== '') {
+        $mapNameById[$id] = (string) ($m['name'] ?? $id);
+    }
+}
+function lineupPdfMapLabel($mapId, array $mapNameById): string {
+    $mapId = trim((string) $mapId);
+    if ($mapId === '') {
+        return '';
+    }
+    return $mapNameById[$mapId] ?? $mapId;
+}
+function lineupPdfDayLabel($day): string {
+    $day = strtolower(trim((string) $day));
+    if ($day === 'friday') {
+        return 'Fri 7 PM ET';
+    }
+    if ($day === 'saturday') {
+        return 'Sat 12 PM ET';
+    }
+    return '';
+}
+function lineupPdfSlotMeta(array $s, array $mapNameById): string {
+    $parts = [];
+    $day = lineupPdfDayLabel($s['broadcastDay'] ?? '');
+    if ($day !== '') {
+        $parts[] = $day;
+    }
+    $map1 = lineupPdfMapLabel($s['map1'] ?? '', $mapNameById);
+    $map2 = lineupPdfMapLabel($s['map2'] ?? '', $mapNameById);
+    if ($map1 !== '' || $map2 !== '') {
+        $mapParts = [];
+        if ($map1 !== '') {
+            $mapParts[] = 'M1: ' . $map1;
+        }
+        if ($map2 !== '') {
+            $mapParts[] = 'M2: ' . $map2;
+        }
+        $parts[] = implode(' · ', $mapParts);
+    }
+    return implode(' · ', $parts);
+}
+
 $raceIcons = ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'];
 $title = $teamA && $teamB ? htmlspecialchars($teamA) . ' vs ' . htmlspecialchars($teamB) . ' – Lineup' : 'FSL Lineup';
 
@@ -248,6 +318,7 @@ if ($outputHtml) {
         .lineup-table .player-record { font-size: 0.75rem; color: #888; margin-top: 0.15rem; }
         .lineup-table .player-record .record-num { color: #fff; }
         .lineup-table .line-type-tag { font-size: 0.7rem; color: #00b894; margin-left: 0.35rem; }
+        .lineup-table .slot-meta { font-size: 0.75rem; color: #888; margin-top: 0.2rem; }
         .lineup-pdf-table-wrap { background: rgba(0, 0, 0, 0.25); border-radius: 10px; overflow: hidden; border: 1px solid rgba(108, 92, 231, 0.2); }
         table.lineup-table { width: 100%; border-collapse: collapse; }
         .lineup-table th, .lineup-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.08); }
@@ -327,7 +398,7 @@ if ($outputHtml) {
                 <span class="team-record">Season <?= $displaySeason ?>: <span class="record-num"><?= $teamRecordB['season']['w'] ?>-<?= $teamRecordB['season']['l'] ?></span> · Alltime: <span class="record-num"><?= $teamRecordB['overall']['w'] ?>-<?= $teamRecordB['overall']['l'] ?></span></span>
             </div>
         </div>
-        <p class="lineup-pdf-meta">Lineup date: <?= htmlspecialchars($lineupDateFormatted) ?> · Season <?= (int) $displaySeason ?> · Rule: ±<?= (int) $rule ?> groups · <?= (int) $playersPerGroup ?> players per group</p>
+        <p class="lineup-pdf-meta"><?= $lineupWeekLabel !== '' ? htmlspecialchars($lineupWeekLabel) : ('Lineup date: ' . htmlspecialchars($lineupDateFormatted)) ?> · Season <?= (int) $displaySeason ?> · Rule: ±<?= (int) $rule ?> groups · <?= (int) $playersPerGroup ?> players per group</p>
     </div>
 
     <div class="lineup-pdf-table-wrap">
@@ -338,6 +409,7 @@ if ($outputHtml) {
                 <th>Team A</th>
                 <th class="col-vs">vs</th>
                 <th>Team B</th>
+                <th>Day / Maps</th>
             </tr>
         </thead>
         <tbody>
@@ -365,6 +437,7 @@ if ($outputHtml) {
                     $namesB = array_filter([$b1, $b2]);
                     $displayA = count($namesA) ? implode(' & ', $namesA) : '—';
                     $displayB = count($namesB) ? implode(' & ', $namesB) : '—';
+                    $slotMeta = lineupPdfSlotMeta($s, $mapNameById);
             ?>
             <tr class="<?= $rowClass ?>">
                 <td class="col-slot"><?= $i ?></td>
@@ -387,6 +460,7 @@ if ($outputHtml) {
                     </div>
                     <?php endif; ?>
                 </td>
+                <td class="slot-meta"><?= $slotMeta !== '' ? htmlspecialchars($slotMeta) : '—' ?></td>
             </tr>
             <?php
                 else:
@@ -400,6 +474,7 @@ if ($outputHtml) {
                     $rowClass = $rowGroup ? ' pdf-row-g' . $rowGroup : '';
                     $displayA = $a !== '' ? $a : '—';
                     $displayB = $b !== '' ? $b : '—';
+                    $slotMeta = lineupPdfSlotMeta($s, $mapNameById);
                     $iconA = $playerA && isset($raceIcons[$playerA['race']]) ? $raceIcons[$playerA['race']] : 'random_icon.png';
                     $iconB = $playerB && isset($raceIcons[$playerB['race']]) ? $raceIcons[$playerB['race']] : 'random_icon.png';
             ?>
@@ -436,6 +511,7 @@ if ($outputHtml) {
                     <?php endif; ?>
                     <?php endif; ?>
                 </td>
+                <td class="slot-meta"><?= $slotMeta !== '' ? htmlspecialchars($slotMeta) : '—' ?></td>
             </tr>
             <?php endif; $i++; endforeach; ?>
             <?php while ($i <= 10): ?>
@@ -444,6 +520,7 @@ if ($outputHtml) {
                 <td class="player-cell"><div class="player-name">—</div></td>
                 <td class="col-vs">vs</td>
                 <td class="player-cell"><div class="player-name">—</div></td>
+                <td class="slot-meta">—</td>
             </tr>
             <?php $i++; endwhile; ?>
         </tbody>
