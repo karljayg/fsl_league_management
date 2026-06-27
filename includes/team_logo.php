@@ -66,3 +66,42 @@ function getTeamLogo($teamName, $size = '256px') {
     $placeholderPath = dirname(__DIR__) . '/' . TEAM_LOGO_PLACEHOLDER;
     return file_exists($placeholderPath) ? TEAM_LOGO_PLACEHOLDER : null;
 }
+
+/**
+ * Get the short acronym for a team name (used by rankings).
+ * Returns null when the name does not map to a known team.
+ *
+ * @param string|null $teamName Team_Name as stored in the Teams table
+ * @return string|null 2-3 letter acronym, or null if unknown
+ */
+function getTeamAcronym($teamName) {
+    if ($teamName === null || $teamName === '') {
+        return null;
+    }
+    $teamName = trim(preg_replace('/\s+/', ' ', (string) $teamName));
+
+    // Team_Name (and known variants) => acronym
+    $acronymMap = [
+        'Special Tactics' => 'ST',
+        'Angry Space Hares' => 'ASH',
+        'PSIOP Gaming' => 'POG',
+        'PulledTheBoys' => 'PTB',
+        'Pulled The Boys' => 'PTB',
+        // Inactive / defunct
+        'Cheesy Nachos' => 'CN',
+        'CheesyNachos' => 'CN',
+        'Infinite Cyclists' => 'IC',
+        'Rages Raiders' => 'RR',
+        "Rage's Raiders" => 'RR',
+    ];
+
+    if (isset($acronymMap[$teamName])) {
+        return $acronymMap[$teamName];
+    }
+    foreach ($acronymMap as $key => $val) {
+        if (strcasecmp($key, $teamName) === 0) {
+            return $val;
+        }
+    }
+    return null;
+}

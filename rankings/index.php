@@ -33,11 +33,70 @@ function enrich_rankings_with_records(array $rankings, PDO $db): array
     }, $rankings)));
     $defaults = ['season_gw' => 0, 'season_gl' => 0, 'season_sw' => 0, 'season_sl' => 0, 'alltime_gw' => 0, 'alltime_gl' => 0, 'alltime_sw' => 0, 'alltime_sl' => 0];
     $records = [];
+    $nameToRace = [];
+    if (!empty($names)) {
+        $racePlaceholders = implode(',', array_fill(0, count($names), '?'));
+        $raceStmt = $db->prepare("
+            SELECT p.Real_Name, fs.Race
+            FROM Players p
+            JOIN FSL_STATISTICS fs ON p.Player_ID = fs.Player_ID
+            WHERE p.Real_Name IN ($racePlaceholders)
+            ORDER BY p.Real_Name, (fs.MapsW + fs.MapsL) DESC, FIELD(fs.Division, 'S', 'A', 'B')
+        ");
+        $raceStmt->execute(array_values($names));
+        while ($row = $raceStmt->fetch(PDO::FETCH_ASSOC)) {
+            $realName = trim((string) ($row['Real_Name'] ?? ''));
+            if ($realName === '' || isset($nameToRace[$realName])) {
+                continue;
+            }
+            $race = trim((string) ($row['Race'] ?? ''));
+            if ($race !== '') {
+                $nameToRace[$realName] = $race;
+                $nameToRace[strtolower($realName)] = $race;
+            }
+        }
+    }
+    // Team acronym per player, from the same Players -> Teams source fsl_teams.php uses.
+    // Players row missing entirely => 'Null'; player with no Team_ID => 'FA'.
+    $nameToTeam = [];
+    if (!empty($names)) {
+        $teamPlaceholders = implode(',', array_fill(0, count($names), '?'));
+        $teamStmt = $db->prepare("
+            SELECT p.Real_Name, p.Team_ID, t.Team_Name
+            FROM Players p
+            LEFT JOIN Teams t ON p.Team_ID = t.Team_ID
+            WHERE p.Real_Name IN ($teamPlaceholders)
+        ");
+        $teamStmt->execute(array_values($names));
+        while ($row = $teamStmt->fetch(PDO::FETCH_ASSOC)) {
+            $realName = trim((string) ($row['Real_Name'] ?? ''));
+            if ($realName === '' || isset($nameToTeam[$realName])) {
+                continue;
+            }
+            $teamName = trim((string) ($row['Team_Name'] ?? ''));
+            if (empty($row['Team_ID']) || $teamName === '') {
+                $acronym = 'FA';
+            } else {
+                $acronym = getTeamAcronym($teamName) ?? 'FA';
+            }
+            $nameToTeam[$realName] = $acronym;
+            $nameToTeam[strtolower($realName)] = $acronym;
+        }
+    }
+    $resolveTeam = static function (string $name) use ($nameToTeam): string {
+        return $nameToTeam[$name] ?? $nameToTeam[strtolower($name)] ?? 'Null';
+    };
     if (empty($names) || $currentSeason === null) {
         foreach ($rankings as $i => $p) {
             foreach ($defaults as $k => $v) {
                 $rankings[$i][$k] = $v;
             }
+            $name = trim((string) ($p['name'] ?? ''));
+            $race = $nameToRace[$name] ?? $nameToRace[strtolower($name)] ?? null;
+            if ($race !== null) {
+                $rankings[$i]['race'] = $race;
+            }
+            $rankings[$i]['team'] = $resolveTeam($name);
             $rank = (int) ($rankings[$i]['rank'] ?? $i + 1);
             $rankings[$i]['group'] = (int) ceil($rank / 4);
         }
@@ -94,6 +153,11 @@ function enrich_rankings_with_records(array $rankings, PDO $db): array
         foreach ($defaults as $k => $v) {
             $rankings[$i][$k] = $rec[$k];
         }
+        $race = $nameToRace[$name] ?? $nameToRace[strtolower($name)] ?? null;
+        if ($race !== null) {
+            $rankings[$i]['race'] = $race;
+        }
+        $rankings[$i]['team'] = $resolveTeam($name);
         $rank = (int) ($rankings[$i]['rank'] ?? $i + 1);
         $rankings[$i]['group'] = (int) ceil($rank / 4);
     }
