@@ -1133,6 +1133,7 @@ $raceIcons = [
                 <button type="button" class="code-tier-edit-btn" onclick="openCodeTierModal()" title="Edit Code tier ranges"><i class="fas fa-cog"></i> Edit ranges</button>
                 <button type="button" class="code-tier-edit-btn" onclick="refreshRecords()" title="Reload W-L from DB and save to rankings file"><i class="fas fa-sync-alt"></i> Refresh records</button>
                 <?php endif; ?>
+                <a href="tournament.php" class="code-tier-edit-btn" title="Challenger tournament signup &amp; bracket" style="text-decoration:none;display:inline-block;"><i class="fas fa-sitemap"></i> Challenger Bracket</a>
             </p>
         </div>
 

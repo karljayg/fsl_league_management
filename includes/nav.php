@@ -250,6 +250,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link">Teams</a>
                     <a href="<?= $basePath ?>fsl_roster.php" class="dropdown-link">Players</a>
                     <a href="<?= $basePath ?>rankings" class="dropdown-link">Rankings</a>
+                    <a href="<?= $basePath ?>rankings/tournament.php" class="dropdown-link">Challenger Bracket</a>
                     <a href="<?= $basePath ?>lineup_planner.php" class="dropdown-link">Lineup Planner</a>
                     <a href="<?= $basePath ?>fsl_matches.php" class="dropdown-link">Matches</a>
                     <a href="<?= $basePath ?>draft/public" class="dropdown-link">Draft</a>
@@ -416,6 +417,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link">Teams</a>
                 <a href="<?= $basePath ?>fsl_roster.php" class="mobile-link">Players</a>
                 <a href="<?= $basePath ?>rankings" class="mobile-link">Rankings</a>
+                <a href="<?= $basePath ?>rankings/tournament.php" class="mobile-link">Challenger Bracket</a>
                 <a href="<?= $basePath ?>lineup_planner.php" class="mobile-link">Lineup Planner</a>
                 <a href="<?= $basePath ?>fsl_matches.php" class="mobile-link">Matches</a>
                 <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link">Draft</a>
