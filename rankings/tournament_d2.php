@@ -495,32 +495,133 @@ function tournament_bracket_to_d2(array $bracket, string $title = 'FSL Individua
 }
 
 /**
- * Render D2 source to an SVG file. Returns absolute SVG path or null on failure.
+ * Normalize export format: png|svg (default png).
+ */
+function tournament_d2_normalize_format(?string $format): string
+{
+    $format = strtolower(trim((string) $format));
+    return $format === 'svg' ? 'svg' : 'png';
+}
+
+/**
+ * Normalize scale percent to 100|50|25 (default 50).
+ */
+function tournament_d2_normalize_scale_pct($scale): int
+{
+    $n = (int) $scale;
+    if ($n === 100 || $n === 25) {
+        return $n;
+    }
+    return 50;
+}
+
+/**
+ * @return float d2 --scale value
+ */
+function tournament_d2_scale_factor(int $scalePct): float
+{
+    return max(0.01, $scalePct / 100.0);
+}
+
+/**
+ * Output basename for a format+scale combo (no directory).
+ */
+function tournament_d2_export_basename(string $format, int $scalePct): string
+{
+    $format = tournament_d2_normalize_format($format);
+    $scalePct = tournament_d2_normalize_scale_pct($scalePct);
+    return 'challenger_bracket_s' . $scalePct . '.' . $format;
+}
+
+/**
+ * Convert an SVG file to PNG using the best available local tool.
  *
  * @param array{error?: string}|null $err
  */
-function tournament_d2_render_svg(string $d2Source, string $svgPath, ?array &$err = null): ?string
+function tournament_d2_svg_to_png(string $svgPath, string $pngPath, ?array &$err = null): bool
+{
+    $err = $err ?? [];
+    $candidates = [
+        ['rsvg-convert', ['-o', $pngPath, $svgPath]],
+        ['magick', [$svgPath, $pngPath]],
+        ['convert', [$svgPath, $pngPath]],
+    ];
+    // macOS fallback
+    if (is_executable('/usr/bin/sips')) {
+        $candidates[] = ['/usr/bin/sips', ['-s', 'format', 'png', $svgPath, '--out', $pngPath]];
+    }
+
+    foreach ($candidates as [$bin, $args]) {
+        $resolved = $bin;
+        if ($bin[0] !== '/') {
+            $which = trim((string) shell_exec('command -v ' . escapeshellarg($bin) . ' 2>/dev/null'));
+            if ($which === '' || !is_executable($which)) {
+                continue;
+            }
+            $resolved = $which;
+        } elseif (!is_executable($resolved)) {
+            continue;
+        }
+
+        $cmd = escapeshellcmd($resolved);
+        foreach ($args as $a) {
+            $cmd .= ' ' . escapeshellarg($a);
+        }
+        $cmd .= ' 2>&1';
+        $out = [];
+        $code = 0;
+        exec($cmd, $out, $code);
+        if ($code === 0 && is_file($pngPath) && filesize($pngPath) > 0) {
+            return true;
+        }
+        @unlink($pngPath);
+    }
+
+    $err['error'] = 'PNG conversion failed. Install rsvg-convert (librsvg2-tools) or ImageMagick. '
+        . 'See rankings/README.md (Amazon Linux: sudo dnf install -y librsvg2-tools).';
+    return false;
+}
+
+/**
+ * Render D2 source to SVG or PNG at a given scale.
+ * Returns absolute output path or null on failure.
+ *
+ * @param array{format?:string,scale?:int|float}|null $opts
+ * @param array{error?: string}|null $err
+ */
+function tournament_d2_render(string $d2Source, string $outDir, ?array $opts = null, ?array &$err = null): ?string
 {
     $err = [];
+    $opts = is_array($opts) ? $opts : [];
+    $format = tournament_d2_normalize_format($opts['format'] ?? 'png');
+    $scalePct = tournament_d2_normalize_scale_pct($opts['scale'] ?? 50);
+    $scale = tournament_d2_scale_factor($scalePct);
+
     $bin = tournament_d2_binary();
     if ($bin === '') {
-        $err['error'] = 'd2 CLI not found. Install with: brew install d2';
+        $err['error'] = 'd2 CLI not found. Install with: curl -fsSL https://d2lang.com/install.sh | sudo sh -s -- --prefix /usr/local (see rankings/README.md)';
         return null;
     }
 
-    $dir = dirname($svgPath);
-    if (!is_dir($dir) && !mkdir($dir, 0775, true) && !is_dir($dir)) {
+    if (!is_dir($outDir) && !mkdir($outDir, 0775, true) && !is_dir($outDir)) {
         $err['error'] = 'Could not create output directory';
         return null;
     }
 
-    $d2Path = preg_replace('/\.svg$/i', '.d2', $svgPath) ?: ($svgPath . '.d2');
+    $base = 'challenger_bracket_s' . $scalePct;
+    $d2Path = $outDir . '/' . $base . '.d2';
+    $svgPath = $outDir . '/' . $base . '.svg';
+    $pngPath = $outDir . '/' . $base . '.png';
+    $finalPath = $format === 'png' ? $pngPath : $svgPath;
+
     if (file_put_contents($d2Path, $d2Source) === false) {
         $err['error'] = 'Could not write .d2 source';
         return null;
     }
 
-    $cmd = escapeshellcmd($bin) . ' --theme 200 --pad 24 '
+    // Always render SVG first (reliable). PNG via d2 direct or SVG→PNG converter.
+    $cmd = escapeshellcmd($bin)
+        . ' --theme 200 --pad 24 --scale ' . escapeshellarg((string) $scale) . ' '
         . escapeshellarg($d2Path) . ' ' . escapeshellarg($svgPath) . ' 2>&1';
     $out = [];
     $code = 0;
@@ -529,5 +630,42 @@ function tournament_d2_render_svg(string $d2Source, string $svgPath, ?array &$er
         $err['error'] = 'd2 render failed: ' . implode("\n", $out);
         return null;
     }
-    return $svgPath;
+
+    if ($format === 'svg') {
+        return $svgPath;
+    }
+
+    // Prefer SVG→PNG converters. d2's native PNG path pulls Playwright and needs a
+    // writable HOME/.cache for the Apache/httpd user — fragile on shared hosts.
+    $convErr = [];
+    if (tournament_d2_svg_to_png($svgPath, $pngPath, $convErr)) {
+        return $pngPath;
+    }
+
+    $err['error'] = $convErr['error'] ?? 'PNG render failed';
+    return null;
+}
+
+/**
+ * Backward-compatible SVG helper (100% scale).
+ *
+ * @param array{error?: string}|null $err
+ */
+function tournament_d2_render_svg(string $d2Source, string $svgPath, ?array &$err = null): ?string
+{
+    $dir = dirname($svgPath);
+    $path = tournament_d2_render($d2Source, $dir, ['format' => 'svg', 'scale' => 100], $err);
+    if ($path === null) {
+        return null;
+    }
+    // If caller asked for a specific filename, copy/rename when different.
+    if (realpath($path) !== realpath($svgPath) && $path !== $svgPath) {
+        if (!@copy($path, $svgPath)) {
+            $err = $err ?? [];
+            $err['error'] = 'Could not write SVG to requested path';
+            return null;
+        }
+        return $svgPath;
+    }
+    return $path;
 }

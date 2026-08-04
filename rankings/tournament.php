@@ -1895,9 +1895,14 @@ $totalCount = count($rankings);
         <button type="button" class="tour-btn ghost" id="rosterToggleBtn" onclick="toggleRoster()">
             <i class="fas fa-users"></i> <span id="rosterToggleLabel">Show field</span>
         </button>
-        <a class="tour-btn ghost" href="tournament_diagram.php" target="_blank" rel="noopener noreferrer" title="Render D2 bracket image">
+        <a class="tour-btn ghost" href="tournament_diagram.php?action=view&amp;format=png&amp;scale=50" target="_blank" rel="noopener noreferrer" title="Open latest bracket diagram (PNG @ 50%)">
             <i class="fas fa-project-diagram"></i> Bracket diagram
         </a>
+        <?php if ($canEdit): ?>
+        <a class="tour-btn ghost" href="tournament_diagram.php" target="_blank" rel="noopener noreferrer" title="Regenerate D2 bracket image">
+            <i class="fas fa-sync-alt"></i> Update diagram
+        </a>
+        <?php endif; ?>
         <?php if ($canEdit): ?>
         <button type="button" class="tour-btn" onclick="bulkParticipation(true)"><i class="fas fa-check-double"></i> All in</button>
         <button type="button" class="tour-btn ghost" onclick="bulkParticipation(false)"><i class="fas fa-times"></i> All out</button>

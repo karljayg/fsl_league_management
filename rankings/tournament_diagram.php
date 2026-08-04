@@ -1,7 +1,7 @@
 <?php
 /**
  * FSL Individual Championships — D2 bracket diagram (image only).
- * Reads live tournament data, renders SVG via d2, opens in a new tab.
+ * Renders PNG (default) or SVG at 100/50/25% scale via d2.
  */
 
 ob_start();
@@ -11,11 +11,23 @@ require_once __DIR__ . '/voting_logic.php';
 require_once __DIR__ . '/tournament_logic.php';
 require_once __DIR__ . '/tournament_d2.php';
 
+$canEdit = false;
+$uid = '';
+if (isset($_SESSION['user_id'])) {
+    $uid = trim((string) $_SESSION['user_id']);
+    if ($uid !== '') {
+        $canEdit = rankings_user_has_permission($db, $uid, RANKINGS_PERM_SUPER);
+    }
+}
+
 $rankingsFile = __DIR__ . '/rankings.json';
 $outDir = __DIR__ . '/diagrams';
-$svgName = 'challenger_bracket.svg';
-$svgFs = $outDir . '/' . $svgName;
-$svgWeb = 'diagrams/' . $svgName;
+
+$format = tournament_d2_normalize_format($_GET['format'] ?? $_POST['format'] ?? 'png');
+$scalePct = tournament_d2_normalize_scale_pct($_GET['scale'] ?? $_POST['scale'] ?? 100);
+$exportName = tournament_d2_export_basename($format, $scalePct);
+$exportFs = $outDir . '/' . $exportName;
+$exportWeb = 'diagrams/' . $exportName;
 
 $rankings = [];
 if (is_readable($rankingsFile)) {
@@ -52,14 +64,34 @@ $bracket = tournament_build_bracket($rankings, $state, $codeTiers);
 $d2Ok = tournament_d2_binary() !== '';
 $inCount = (int) ($bracket['participant_count'] ?? 0);
 $totalCount = count($rankings);
-$updatedAt = is_file($svgFs) ? date('Y-m-d H:i:s', (int) filemtime($svgFs)) : null;
+$updatedAt = is_file($exportFs) ? date('Y-m-d H:i:s', (int) filemtime($exportFs)) : null;
+
+$viewQs = 'action=view&format=' . rawurlencode($format) . '&scale=' . (int) $scalePct;
 
 $action = trim((string) ($_GET['action'] ?? $_POST['action'] ?? ''));
 
-if ($action === 'svg' || $action === 'render') {
+if ($action === 'svg' || $action === 'render' || $action === 'export') {
+    if (!$canEdit) {
+        if ($action === 'render') {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => false, 'error' => 'Permission denied'], JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Permission denied';
+        exit;
+    }
+    // Allow override on render POST/GET
+    $format = tournament_d2_normalize_format($_GET['format'] ?? $_POST['format'] ?? $format);
+    $scalePct = tournament_d2_normalize_scale_pct($_GET['scale'] ?? $_POST['scale'] ?? $scalePct);
+    $exportName = tournament_d2_export_basename($format, $scalePct);
+    $exportFs = $outDir . '/' . $exportName;
+
     $d2 = tournament_bracket_to_d2($bracket, 'FSL Individual Championships');
     $err = [];
-    $path = tournament_d2_render_svg($d2, $svgFs, $err);
+    $path = tournament_d2_render($d2, $outDir, ['format' => $format, 'scale' => $scalePct], $err);
     if ($path === null) {
         $msg = $err['error'] ?? 'Render failed';
         if ($action === 'render') {
@@ -73,11 +105,16 @@ if ($action === 'svg' || $action === 'render') {
         echo $msg;
         exit;
     }
-    // Stable share URL (cache-bust lives on the SVG src inside the viewer)
-    $url = '?action=view';
+    $url = '?action=view&format=' . rawurlencode($format) . '&scale=' . (int) $scalePct;
     if ($action === 'render') {
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => true, 'url' => $url], JSON_UNESCAPED_SLASHES);
+        echo json_encode([
+            'ok' => true,
+            'url' => $url,
+            'format' => $format,
+            'scale' => $scalePct,
+            'file' => basename($path),
+        ], JSON_UNESCAPED_SLASHES);
         exit;
     }
     header('Location: ' . $url, true, 302);
@@ -85,27 +122,67 @@ if ($action === 'svg' || $action === 'render') {
 }
 
 if ($action === 'view') {
-    if (!is_file($svgFs)) {
-        header('Location: ?action=svg', true, 302);
+    if (!is_file($exportFs)) {
+        if ($canEdit) {
+            header(
+                'Location: ?action=export&format=' . rawurlencode($format) . '&scale=' . (int) $scalePct,
+                true,
+                302
+            );
+            exit;
+        }
+        http_response_code(404);
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><title>FSL Bracket</title></head><body style="background:#070b14;color:#edf2ff;font-family:system-ui;padding:48px;text-align:center">'
+            . '<p>Bracket diagram not generated yet for this format/size.</p>'
+            . '<p style="color:#9aa7bd">Ask an admin to update the diagram.</p>'
+            . '</body></html>';
         exit;
     }
-    // Keep share link stable; bust browser cache on the image via mtime.
-    $src = htmlspecialchars($svgWeb . '?v=' . (string) filemtime($svgFs), ENT_QUOTES, 'UTF-8');
+    $src = htmlspecialchars($exportWeb . '?v=' . (string) filemtime($exportFs), ENT_QUOTES, 'UTF-8');
+    $pct = (int) $scalePct;
     header('Content-Type: text/html; charset=utf-8');
     header('Cache-Control: no-store, no-cache, must-revalidate');
     echo '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>'
         . '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
         . '<title>FSL Bracket</title><style>'
         . 'html,body{margin:0;padding:0;background:#070b14;}'
-        . 'body{overflow-x:hidden;}'
-        . 'img{display:block;width:100vw;height:auto;max-width:none;}'
-        . '</style></head><body>'
-        . '<img src="' . $src . '" alt="FSL Individual Championships bracket" width="100%"/>'
-        . '</body></html>';
+        . 'body{min-height:100vh;}'
+        . '.wrap{padding:12px 0 48px;text-align:center;overflow-x:auto;}'
+        . 'img{display:inline-block;width:auto;height:auto;max-width:none;vertical-align:top;}'
+        . '.bar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;'
+        . 'align-items:center;padding:8px 12px;background:rgba(7,11,20,.92);border-bottom:1px solid rgba(255,255,255,.08);'
+        . 'font:600 13px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;}'
+        . '.bar a,.bar span{color:#c8d0e0;text-decoration:none;padding:6px 10px;border-radius:999px;'
+        . 'border:1px solid rgba(255,255,255,.12);}'
+        . '.bar a:hover{color:#fff;border-color:rgba(162,155,254,.5);}'
+        . '.bar .on{color:#fff;background:rgba(108,92,231,.35);border-color:rgba(162,155,254,.55);}'
+        . '</style></head><body><div class="bar">';
+    foreach (['png' => 'PNG', 'svg' => 'SVG'] as $f => $label) {
+        $cls = $f === $format ? ' class="on"' : '';
+        echo '<a' . $cls . ' href="?action=view&amp;format=' . $f . '&amp;scale=' . $pct . '">' . $label . '</a>';
+    }
+    echo '<span aria-hidden="true">·</span>';
+    foreach ([100, 50, 25] as $s) {
+        $cls = $s === $pct ? ' class="on"' : '';
+        echo '<a' . $cls . ' href="?action=view&amp;format=' . htmlspecialchars($format) . '&amp;scale=' . $s . '">' . $s . '%</a>';
+    }
+    if ($canEdit) {
+        echo '<a href="?action=export&amp;format=' . htmlspecialchars($format) . '&amp;scale=' . $pct . '">Regenerate</a>';
+    }
+    echo '</div><div class="wrap">'
+        . '<img src="' . $src . '" alt="FSL Individual Championships bracket"/>'
+        . '</div></body></html>';
     exit;
 }
 
 if ($action === 'd2') {
+    if (!$canEdit) {
+        http_response_code(403);
+        header('Content-Type: text/plain; charset=utf-8');
+        echo 'Permission denied';
+        exit;
+    }
     header('Content-Type: text/plain; charset=utf-8');
     echo tournament_bracket_to_d2($bracket, 'FSL Individual Championships');
     exit;
@@ -148,11 +225,22 @@ if ($action === 'd2') {
     padding: 20px;
     margin-bottom: 16px;
   }
-  .row { display: flex; flex-wrap: wrap; gap: 10px 18px; color: var(--muted); font-size: .92rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px 18px; color: var(--muted); font-size: .92rem; align-items: center; }
   .row strong { color: var(--text); }
   .ok { color: var(--ready); }
   .bad { color: #ff8f9a; }
-  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; align-items: center; }
+  label.opt {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--muted); font-size: .9rem;
+  }
+  select {
+    background: #0d1320;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
   .btn {
     display: inline-flex; align-items: center; gap: 8px;
     border: 1px solid rgba(162,155,254,.45);
@@ -192,42 +280,58 @@ if ($action === 'd2') {
   <div class="wrap">
     <h1>Bracket diagram</h1>
     <p class="sub">
-      Reads the live Challenger / Individual Championships field and scores, renders a D2 SVG,
-      then opens the image in a new tab. Not an interactive UI — just the picture.
+      <?php if ($canEdit): ?>
+      Renders the live Challenger field to a PNG (default) or SVG at 100% / 50% / 25% scale.
+      Regenerating is admin-only (it can take a while).
+      <?php else: ?>
+      View the latest published bracket diagram. Format/size switches use already-generated images.
+      <?php endif; ?>
     </p>
 
     <div class="card">
       <div class="row">
         <span><strong>Field:</strong> <?= (int) $inCount ?> / <?= (int) $totalCount ?> in</span>
+        <?php if ($canEdit): ?>
         <span><strong>d2 CLI:</strong>
           <?php if ($d2Ok): ?>
             <span class="ok">ready</span>
           <?php else: ?>
-            <span class="bad">missing</span> (install with <code>brew install d2</code>)
+            <span class="bad">missing</span>
           <?php endif; ?>
         </span>
-        <span><strong>Last SVG:</strong> <?= $updatedAt ? htmlspecialchars($updatedAt) : 'not generated yet' ?></span>
+        <?php endif; ?>
+        <span><strong>Last file:</strong> <?= $updatedAt ? htmlspecialchars($exportName . ' · ' . $updatedAt) : 'not generated yet' ?></span>
       </div>
 
       <div class="actions">
+        <label class="opt">Format
+          <select id="fmtSelect">
+            <option value="png" <?= $format === 'png' ? 'selected' : '' ?>>PNG</option>
+            <option value="svg" <?= $format === 'svg' ? 'selected' : '' ?>>SVG</option>
+          </select>
+        </label>
+        <label class="opt">Size
+          <select id="scaleSelect">
+            <option value="100" <?= $scalePct === 100 ? 'selected' : '' ?>>100%</option>
+            <option value="50" <?= $scalePct === 50 ? 'selected' : '' ?>>50%</option>
+            <option value="25" <?= $scalePct === 25 ? 'selected' : '' ?>>25%</option>
+          </select>
+        </label>
+        <?php if ($canEdit): ?>
         <button type="button" class="btn" id="openBtn" <?= $d2Ok ? '' : 'disabled' ?>>
-          Update &amp; open bracket image
+          Update &amp; open
         </button>
-        <a class="btn secondary" href="tournament.php">Live bracket UI</a>
-        <?php if (is_file($svgFs)): ?>
-        <a class="btn secondary" href="?action=view" target="_blank" rel="noopener noreferrer">Open latest diagram</a>
         <?php endif; ?>
+        <a class="btn secondary" href="tournament.php">Live bracket UI</a>
+        <a class="btn secondary" id="openLatest" href="?<?= htmlspecialchars($viewQs) ?>" target="_blank" rel="noopener noreferrer">Open latest</a>
+        <?php if ($canEdit): ?>
         <a class="btn secondary" href="?action=d2" target="_blank" rel="noopener noreferrer">View .d2 source</a>
+        <?php endif; ?>
       </div>
       <div class="err" id="errBox"></div>
       <p class="note">
-        Opens a full-window viewer (SVG scaled to the browser) after a fresh render from
-        <code>rankings.json</code> + <code>tournament_state.json</code>.
-        Only Code B / A / S (overall) champs are labeled.
-        Stable share link (always latest):
-        <a class="link" href="?action=view" target="_blank" rel="noopener noreferrer">?action=view</a>
-        · regenerate:
-        <a class="link" href="?action=svg" target="_blank" rel="noopener noreferrer">?action=svg</a>
+        Share link (PNG @ 50%):
+        <a class="link" href="?action=view&amp;format=png&amp;scale=50" target="_blank" rel="noopener noreferrer">?action=view</a>
       </p>
     </div>
   </div>
@@ -236,6 +340,20 @@ if ($action === 'd2') {
 (function () {
   const btn = document.getElementById('openBtn');
   const err = document.getElementById('errBox');
+  const fmt = document.getElementById('fmtSelect');
+  const scale = document.getElementById('scaleSelect');
+  const latest = document.getElementById('openLatest');
+
+  function qs() {
+    return 'format=' + encodeURIComponent(fmt.value) + '&scale=' + encodeURIComponent(scale.value);
+  }
+  function syncLatest() {
+    if (latest) latest.href = '?action=view&' + qs();
+  }
+  if (fmt) fmt.addEventListener('change', syncLatest);
+  if (scale) scale.addEventListener('change', syncLatest);
+  syncLatest();
+
   if (!btn) return;
   btn.addEventListener('click', async function () {
     err.style.display = 'none';
@@ -244,7 +362,7 @@ if ($action === 'd2') {
     const label = btn.textContent;
     btn.textContent = 'Rendering…';
     try {
-      const res = await fetch('?action=render', { credentials: 'same-origin' });
+      const res = await fetch('?action=render&' + qs(), { credentials: 'same-origin' });
       const text = await res.text();
       let data;
       try { data = JSON.parse(text); } catch (e) {
