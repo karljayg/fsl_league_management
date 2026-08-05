@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="FSL Season 10 full review — PulledTheBoys three-peat, GSL group + ladder, Feb–Mar 2026." name="description"/>
+<title>FSL Season 10 — Full Season Review</title>
+<style>
+    :root {
+      --bg: #071019;
+      --panel: #0e1a27;
+      --panel-2: #132333;
+      --text: #edf5ff;
+      --muted: #9db0c4;
+      --line: rgba(255,255,255,.10);
+      --cyan: #42d9ff;
+      --blue: #6d8dff;
+      --gold: #ffcc66;
+      --green: #53e3a6;
+      --red: #ff7285;
+      --purple: #b38cff;
+      --shadow: 0 20px 50px rgba(0,0,0,.28);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(66,217,255,.12), transparent 30%),
+        radial-gradient(circle at 88% 10%, rgba(179,140,255,.10), transparent 28%),
+        linear-gradient(180deg, #071019 0%, #08131e 48%, #06101a 100%);
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 78px 0 54px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero::after {
+      content: "FSL 10";
+      position: absolute;
+      right: -12px;
+      top: -36px;
+      font-size: clamp(7rem, 20vw, 17rem);
+      font-weight: 900;
+      letter-spacing: -.08em;
+      color: rgba(255,255,255,.025);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(66,217,255,.26);
+      background: rgba(66,217,255,.07);
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      font-size: .76rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 20px 0 10px;
+      max-width: 900px;
+      font-size: clamp(2.55rem, 7vw, 6.2rem);
+      line-height: .96;
+      letter-spacing: -.055em;
+    }
+
+    h1 span {
+      display: block;
+      color: transparent;
+      background: linear-gradient(90deg, var(--cyan), #b9eaff 50%, var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .subtitle {
+      margin: 0 0 26px;
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      color: var(--muted);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.45fr .75fr;
+      gap: 28px;
+      align-items: end;
+    }
+
+    .lede {
+      max-width: 820px;
+      margin: 0;
+      font-size: 1.06rem;
+      color: #d4e0ec;
+    }
+
+    .meta-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(14,26,39,.72);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+
+    .meta-card strong { color: var(--gold); }
+    .meta-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 30px;
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+    }
+
+    .stat b { display: block; font-size: 1.7rem; line-height: 1; }
+    .stat span { display: block; margin-top: 7px; color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(7,16,25,.82);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-inner {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 12px 0;
+      scrollbar-width: none;
+    }
+    .nav-inner::-webkit-scrollbar { display: none; }
+    .nav a {
+      white-space: nowrap;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+    .nav a:hover { background: var(--panel-2); color: var(--text); }
+
+    main { padding: 38px 0 70px; }
+    section { scroll-margin-top: 80px; margin: 0 0 46px; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .kicker { color: var(--cyan); font-size: .78rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    h2 { margin: 3px 0 0; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: -.035em; }
+    .section-note { max-width: 440px; color: var(--muted); font-size: .9rem; text-align: right; }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(19,35,51,.92), rgba(12,24,36,.95));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .bracket { padding: 22px; overflow-x: auto; }
+    .bracket-grid {
+      min-width: 930px;
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr .85fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .round {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--line);
+    }
+    .round h3 { margin: 0 0 12px; font-size: .9rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+    .match {
+      margin-top: 11px;
+      padding: 13px;
+      border-radius: 13px;
+      background: #0b1723;
+      border: 1px solid var(--line);
+    }
+    .match:first-of-type { margin-top: 0; }
+    .match-top { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .78rem; }
+    .team-row { display: flex; justify-content: space-between; gap: 12px; padding-top: 7px; font-weight: 750; }
+    .winner { color: var(--green); }
+    .pending { border-color: rgba(255,204,102,.25); }
+    .pending .match-top { color: var(--gold); }
+    .final { display: grid; place-items: center; text-align: center; min-height: 100%; background: radial-gradient(circle at 50% 30%, rgba(255,204,102,.09), transparent 55%), rgba(255,255,255,.025); }
+    .trophy { font-size: 2.2rem; }
+
+    .seed-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .seed {
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.025);
+    }
+    .seed b { color: var(--gold); }
+    .seed small { display: block; color: var(--muted); margin-top: 4px; }
+
+    .team-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .team-card { padding: 22px; position: relative; overflow: hidden; }
+    .team-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent, var(--cyan)); }
+    .team-card h3 { margin: 0; font-size: 1.35rem; }
+    .team-card .tagline { color: var(--muted); margin: 3px 0 13px; }
+    .record { display: inline-block; padding: 5px 9px; border-radius: 8px; background: rgba(255,255,255,.06); font-weight: 800; font-size: .84rem; }
+    .team-card p { color: #c9d7e4; }
+    .team-card p:last-child { margin-bottom: 0; }
+    .callout { border-left: 3px solid var(--accent, var(--cyan)); padding-left: 13px; color: var(--text) !important; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .09em; background: rgba(255,255,255,.025); }
+    tr:last-child td { border-bottom: 0; }
+    td strong { color: var(--text); }
+    .good { color: var(--green); font-weight: 800; }
+    .bad { color: var(--red); font-weight: 800; }
+    .rank { color: var(--gold); font-weight: 900; }
+
+    .story-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+    .stack { display: grid; gap: 18px; }
+    .mini { padding: 20px; }
+    .mini h3 { margin: 0 0 12px; font-size: 1rem; text-transform: uppercase; letter-spacing: .08em; color: var(--cyan); }
+    .mini ul { margin: 0; padding-left: 18px; color: #c8d5e2; }
+    .mini li + li { margin-top: 8px; }
+
+    .rankings { padding: 0; overflow: hidden; }
+    .rank-row { display: grid; grid-template-columns: 55px 1.3fr 55px 70px 1.5fr; gap: 12px; align-items: center; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+    .rank-row:last-child { border-bottom: 0; }
+    .rank-row.header { color: var(--muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .09em; background: rgba(255,255,255,.03); }
+    .race-pill { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.07); font-weight: 900; }
+
+    .footer {
+      padding: 28px 0 44px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero-grid, .story-grid { grid-template-columns: 1fr; }
+      .stats, .seed-list { grid-template-columns: repeat(2, 1fr); }
+      .team-cards { grid-template-columns: 1fr; }
+      .section-head { align-items: start; flex-direction: column; }
+      .section-note { text-align: left; }
+      .rank-row { grid-template-columns: 42px 1fr 42px 52px; }
+      .rank-row > :last-child { grid-column: 2 / -1; color: var(--muted); }
+      .rank-row.header > :last-child { display: none; }
+    }
+
+    @media (max-width: 520px) {
+      .wrap { width: min(100% - 22px, 1180px); }
+      .hero { padding-top: 48px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat { padding: 14px; }
+      .panel, .team-card { border-radius: 15px; }
+    }
+
+    @media print {
+      :root { --text: #101820; --muted: #4c5b66; --line: #d9e0e5; }
+      body { background: #fff; color: #101820; }
+      .nav { display: none; }
+      .hero { padding-top: 24px; }
+      .hero::after { display: none; }
+      .panel, .team-card, .meta-card { box-shadow: none; background: #fff; break-inside: avoid; }
+      .match { background: #fff; }
+      h1 span { color: #101820; -webkit-text-fill-color: initial; }
+      section { break-inside: avoid; }
+    }
+  
+
+    .notice { padding: 22px; border-left: 4px solid var(--gold); }
+    .notice h3 { margin: 0 0 8px; color: var(--gold); }
+    .notice p { margin: 8px 0 0; color: #d4e0ec; }
+    .method-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:16px; }
+    .method-item { padding:16px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.025); }
+    .method-item strong { color:var(--cyan); display:block; margin-bottom:5px; }
+    .score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+    .score-card { padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.025); }
+    .score-card b { font-size:1.15rem; }
+    .score-card span { display:block; color:var(--muted); font-size:.86rem; margin-top:4px; }
+    .slot-log { margin:14px 0 0; padding:0; list-style:none; }
+    .slot-log li { display:grid; grid-template-columns:140px 1fr; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line); color:#c9d7e4; }
+    .slot-log li:last-child { border-bottom:0; }
+    .slot-log strong { color:var(--text); }
+    .encourage { color:#dbe8f5 !important; background:rgba(83,227,166,.055); border-radius:12px; padding:12px 14px; }
+    @media (max-width:820px){ .method-grid,.score-grid{grid-template-columns:1fr 1fr;} }
+    @media (max-width:520px){ .method-grid,.score-grid{grid-template-columns:1fr;} .slot-log li{grid-template-columns:1fr;gap:2px;} }
+
+    .table-wrap .rank-player { display:flex; align-items:center; gap:10px; }
+    .table-wrap .player-thumb { width:32px; height:32px; flex:0 0 32px; border-radius:8px; }
+    .external-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(66,217,255,.42); text-underline-offset: .18em; text-decoration-thickness: 1px; transition: color .18s ease, text-decoration-color .18s ease, background-color .18s ease; border-radius: 4px; }
+    .external-link::after { content: " ↗"; font-size: .72em; opacity: .58; white-space: nowrap; }
+    .external-link:hover, .external-link:focus-visible { color: var(--cyan); text-decoration-color: currentColor; background: rgba(66,217,255,.07); outline: none; }
+    .team-link { font-weight: inherit; }
+    .source-link { color: var(--cyan); }
+    @media print { .external-link { text-decoration: none; } .external-link::after { content: ""; } }
+
+
+    /* Official FSL branding assets */
+    .team-brand-head { display:flex; align-items:center; gap:15px; margin-bottom:12px; padding-right:8px; }
+    .team-brand-copy { min-width:0; flex:1; }
+    .team-brand-copy h3 { margin:0; }
+    .team-logo { width:74px; height:74px; flex:0 0 74px; object-fit:cover; border-radius:17px; border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 24px rgba(0,0,0,.28); background:#071019; }
+    .team-logo:hover { transform:translateY(-2px); transition:transform .18s ease; }
+    .team-logo-mini { width:34px; height:34px; object-fit:cover; border-radius:9px; border:1px solid rgba(255,255,255,.14); vertical-align:middle; margin-right:8px; box-shadow:0 5px 12px rgba(0,0,0,.2); }
+    .seed-title { display:flex; align-items:center; gap:2px; }
+    .featured-players { display:flex; flex-wrap:wrap; gap:10px; margin:15px 0 4px; }
+    .player-chip { display:flex; align-items:center; gap:8px; min-width:0; padding:6px 10px 6px 6px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); text-decoration:none; color:var(--text); font-size:.78rem; font-weight:800; }
+    .player-chip::after { content:none !important; }
+    .player-chip:hover { border-color:rgba(66,217,255,.42); background:rgba(66,217,255,.08); color:var(--cyan); }
+    .player-thumb { width:34px; height:34px; flex:0 0 34px; object-fit:cover; object-position:center top; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:#0b1723; }
+    .rank-player { display:flex; align-items:center; gap:10px; min-width:0; }
+    .rank-thumb { width:38px; height:38px; flex:0 0 38px; object-fit:cover; object-position:center top; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:#0b1723; }
+    .hero-team-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:18px; }
+    .hero-team { display:flex; align-items:center; gap:10px; padding:9px; border-radius:13px; border:1px solid var(--line); background:rgba(14,26,39,.58); text-decoration:none; color:var(--text); font-size:.78rem; font-weight:800; }
+    .hero-team::after { content:none !important; }
+    .hero-team:hover { background:rgba(66,217,255,.07); border-color:rgba(66,217,255,.28); color:var(--cyan); }
+    .hero-team img { width:38px; height:38px; object-fit:cover; border-radius:9px; }
+    .asset-credit { margin-top:12px; color:var(--muted); font-size:.78rem; }
+    @media (max-width:820px){ .hero-team-strip{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:520px){ .team-logo{width:62px;height:62px;flex-basis:62px}.hero-team-strip{grid-template-columns:1fr 1fr}.hero-team span{font-size:.72rem}.rank-thumb{width:32px;height:32px;flex-basis:32px} }
+    @media print { .team-logo,.team-logo-mini,.player-thumb,.rank-thumb,.hero-team img { box-shadow:none; } }
+
+    .player-mention {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      vertical-align: middle;
+      text-decoration: none !important;
+      font-weight: 750;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .player-mention::after { content: none !important; }
+    .player-mention:hover { color: var(--cyan); }
+    .inline-thumb {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      border: 1px solid rgba(255,255,255,.16);
+      background: #0b1723;
+    }
+    .mention-meta {
+      color: var(--muted);
+      font-size: .78em;
+      font-weight: 700;
+    }
+    .group-pill {
+      display: inline-grid;
+      place-items: center;
+      min-width: 34px;
+      height: 30px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: rgba(66,217,255,.1);
+      border: 1px solid rgba(66,217,255,.22);
+      color: var(--cyan);
+      font-weight: 900;
+      font-size: .78rem;
+    }
+    .rankings .rank-row {
+      grid-template-columns: 55px 1.35fr 48px 52px 55px 1.45fr;
+    }
+    @media (max-width: 820px) {
+      .rankings .rank-row { grid-template-columns: 42px 1fr 42px 48px; }
+      .rankings .rank-row > :nth-child(5) { display:none; }
+      .rankings .rank-row > :last-child { grid-column: 2 / -1; color: var(--muted); }
+      .rankings .rank-row.header > :nth-child(5),
+      .rankings .rank-row.header > :last-child { display: none; }
+    }
+    .seed small .player-mention { font-size: .86em; }
+    .slot-log .player-mention { font-weight: 800; }
+
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+<div class="eyebrow">Season complete · Feb 7 – Mar 28, 2026</div>
+<h1><img src="https://psistorm.com/fsl/images/fsl_sc2_logo_small.png" height="40%" width="40%"> Season 10 <span>The Three-Peat</span></h1>
+<p class="subtitle">GSL group stage + ladder playoffs — full season review</p>
+<div class="hero-grid">
+<p class="lede"><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a> closed Season 10 as Team League champions, beating <a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a> 10–8 in the Grand Finals on March 28 and locking a third straight title (Seasons 8–10). Season 10 debuted the GSL-style group stage to set seeds, then a three-week playoff ladder. Power rankings did not exist yet — this review sticks to schedule and match results only.</p>
+<div class="meta-card"><p><strong>Compiled from:</strong> <a class="source-link external-link" href="https://psistorm.com/fsl/fsl_schedule.php" rel="noopener noreferrer" target="_blank">fsl_schedule</a>, <a class="source-link external-link" href="https://psistorm.com/fsl/fsl_matches.php" rel="noopener noreferrer" target="_blank">fsl_matches</a>, Players/Teams, and <a class="source-link external-link" href="https://psistorm.com/fsl/fsl_season.php?season=10" rel="noopener noreferrer" target="_blank">season history</a>.</p>
+<p style="margin-top:8px"><strong>Not used:</strong> rankings.json / voting log (unavailable for Season 10).</p>
+<p style="margin-top:8px"><strong>Scoring basis:</strong> map points (1v1, Ace, 2v2). A 1–1 Bo2 is a split — one map each, no sweep.</p></div>
+</div>
+<div class="stats">
+<div class="stat"><b>8</b><span>Series</span></div>
+<div class="stat"><b>3–2</b><span>PTB series</span></div>
+<div class="stat"><b>10–8</b><span>Grand Final</span></div>
+<div class="stat"><b>3×</b><span>Titles in a row</span></div>
+</div>
+<div class="hero-team-strip">
+<a class="hero-team" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank"><img alt="PulledTheBoys logo" class="" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><span>PTB · Champions</span></a>
+<a class="hero-team" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank"><img alt="PSIOP Gaming logo" class="" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/><span>POG · Seed 1 / Finalist</span></a>
+<a class="hero-team" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank"><img alt="Angry Space Hares logo" class="" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><span>ASH · Seed 2</span></a>
+<a class="hero-team" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank"><img alt="Special Tactics logo" class="" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/><span>ST · Seed 3</span></a>
+</div>
+</div></header>
+
+<nav class="nav"><div class="wrap nav-inner">
+<a href="#bracket">Bracket</a><a href="#teams">Team notes</a><a href="#players">Player lines</a><a href="#individuals">Individuals</a>
+</div></nav>
+
+<main class="wrap">
+
+<section id="bracket">
+<div class="section-head"><div><div class="kicker">01 · Path to the title</div><h2>Group stage &amp; playoffs</h2></div>
+<div class="section-note">Weeks 1–5 set seeds. Weeks 6–8 were the ladder. Seed 1 (<a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">POG</a>) earned the Finals berth from the winners side.</div></div>
+<div class="panel bracket"><div class="bracket-grid">
+<div class="round"><h3>Group · Weeks 1–5</h3>
+<div class="match"><div class="match-top"><span>Wk1 · Opening Match 1</span><span>2026-02-07</span></div><div class="team-row winner"><span><img alt="Special Tactics logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank" title="Open Special Tactics on PSISTORM FSL">ST</a></span><span>7</span></div><div class="team-row"><span><img alt="PulledTheBoys logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></span><span>3</span></div></div>
+<div class="match"><div class="match-top"><span>Wk2 · Opening Match 2</span><span>2026-02-14</span></div><div class="team-row winner"><span><img alt="PSIOP Gaming logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></span><span>7</span></div><div class="team-row"><span><img alt="Angry Space Hares logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></span><span>6</span></div></div>
+<div class="match"><div class="match-top"><span>Wk3 · Winners → Seed 1</span><span>2026-02-21</span></div><div class="team-row"><span><img alt="Special Tactics logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank" title="Open Special Tactics on PSISTORM FSL">ST</a></span><span>2</span></div><div class="team-row winner"><span><img alt="PSIOP Gaming logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></span><span>8</span></div></div>
+<div class="match"><div class="match-top"><span>Wk4 · Losers → Seed 4</span><span>TBD</span></div><div class="team-row"><span><img alt="PulledTheBoys logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></span><span>4</span></div><div class="team-row winner"><span><img alt="Angry Space Hares logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></span><span>8</span></div></div>
+<div class="match"><div class="match-top"><span>Wk5 · Elimination → Seeds 2 & 3</span><span>2026-03-07</span></div><div class="team-row"><span><img alt="Special Tactics logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank" title="Open Special Tactics on PSISTORM FSL">ST</a></span><span>5</span></div><div class="team-row winner"><span><img alt="Angry Space Hares logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></span><span>7</span></div></div>
+</div>
+<div class="round"><h3>Ladder · Weeks 6–8</h3>
+<div class="match"><div class="match-top"><span>Wk6 · Playoff: Seed 3 vs Seed 4</span><span>2026-03-14</span></div><div class="team-row"><span><img alt="Special Tactics logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank" title="Open Special Tactics on PSISTORM FSL">ST</a></span><span>2</span></div><div class="team-row winner"><span><img alt="PulledTheBoys logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></span><span>10</span></div></div>
+<div class="match"><div class="match-top"><span>Wk7 · Playoff: vs Seed 2</span><span>2026-03-21</span></div><div class="team-row winner"><span><img alt="PulledTheBoys logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></span><span>8</span></div><div class="team-row"><span><img alt="Angry Space Hares logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></span><span>4</span></div></div>
+<div class="match"><div class="match-top"><span>Wk8 · Grand Finals vs Seed 1</span><span>2026-03-28</span></div><div class="team-row"><span><img alt="PSIOP Gaming logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></span><span>8</span></div><div class="team-row winner"><span><img alt="PulledTheBoys logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></span><span>10</span></div></div>
+</div>
+<div class="round final"><div class="trophy">🏆</div>
+<h3 style="margin-top:10px;color:var(--gold)">Champions</h3>
+<p style="margin:8px 0 0;font-size:1.2rem;font-weight:900"><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></p>
+<p style="color:var(--muted);margin:6px 0 0">def. <a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a> 10–8<br/>March 28, 2026</p>
+<p style="color:var(--muted);margin:14px 0 0;font-size:.85rem">Third straight Team League title</p>
+</div>
+</div>
+<div class="seed-list">
+<div class="seed"><b>#1 <img alt="PSIOP Gaming logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></b><small>Winners bracket · Finals</small></div>
+<div class="seed"><b>#2 <img alt="Angry Space Hares logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></b><small>Elim winner · lost Wk7</small></div>
+<div class="seed"><b>#3 <img alt="Special Tactics logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></b><small>Elim loser · lost Wk6</small></div>
+<div class="seed"><b>#4 <img alt="PulledTheBoys logo" class="team-logo-mini" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></b><small>Losers bracket · champions</small></div>
+</div>
+<p style="margin:14px 4px 0;color:var(--muted);font-size:.82rem">Final standings by series: PTB 3–2 · POG 2–1 · ASH 2–2 · ST 1–3.</p>
+</div>
+</section>
+
+<section id="teams">
+<div class="section-head"><div><div class="kicker">02 · Club form</div><h2>Team notes</h2></div>
+<div class="section-note">Series records and map totals from completed schedule rows.</div></div>
+<div class="team-cards">
+
+<article class="panel team-card" style="--accent:var(--gold)">
+<div class="team-brand-head"><a href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank"><img alt="PulledTheBoys logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PulledTheBoys_256px.png"/></a>
+<div class="team-brand-copy"><h3><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></h3><div class="tagline">Champions · Seed 4 climb</div></div></div>
+<span class="record">3–2 series · 35–29 maps</span>
+<div class="featured-players"><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=AntoineQ" rel="noopener noreferrer" target="_blank" title="Open AntoineQ"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/AntoineQ.png"/><span>AntoineQ</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=MvonLipwig" rel="noopener noreferrer" target="_blank" title="Open MvonLipwig"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=SaraNghae" rel="noopener noreferrer" target="_blank" title="Open SaraNghae"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/SaraNghae.png"/><span>SaraNghae</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=ChienPwn" rel="noopener noreferrer" target="_blank" title="Open ChienPwn"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=MonkeyShaman" rel="noopener noreferrer" target="_blank" title="Open MonkeyShaman"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/MonkeyShaman.png"/><span>MonkeyShaman</span></a></div>
+<p class="callout">Opened with a 3–7 loss to ST, dropped the losers match to ASH, then ripped the ladder: 10–2 over ST, 8–4 over ASH, and 10–8 over POG in the Finals. The three-peat was earned the hard way — from Seed 4.</p>
+</article>
+
+<article class="panel team-card" style="--accent:var(--purple)">
+<div class="team-brand-head"><a href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank"><img alt="PSIOP Gaming logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/></a>
+<div class="team-brand-copy"><h3><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PSIOP%20Gaming" rel="noopener noreferrer" target="_blank" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></h3><div class="tagline">Seed 1 · Grand Final</div></div></div>
+<span class="record">2–1 series · 23–18 maps</span>
+<div class="featured-players"><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Jmpz" rel="noopener noreferrer" target="_blank" title="Open Jmpz"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Crankytoaster" rel="noopener noreferrer" target="_blank" title="Open Crankytoaster"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=WindShadow" rel="noopener noreferrer" target="_blank" title="Open WindShadow"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/WindShadow.png"/><span>WindShadow</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=NuKLeO" rel="noopener noreferrer" target="_blank" title="Open NuKLeO"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/NuKLeO.png"/><span>NuKLeO</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=HurtnTime" rel="noopener noreferrer" target="_blank" title="Open HurtnTime"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/HurtnTime.png"/><span>HurtnTime</span></a></div>
+<p class="callout">Took Opening 2 in an Ace (<a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Crankytoaster" rel="noopener noreferrer" target="_blank" title="Open Crankytoaster on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a> over <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=PossiblyMayB" rel="noopener noreferrer" target="_blank" title="Open PossiblyMayB on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/PossiblyMayB.png"/><span>PossiblyMayB</span></a>), crushed ST 8–2 for Seed 1, then came one series short in the Finals. <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Jmpz" rel="noopener noreferrer" target="_blank" title="Open Jmpz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a> was a map machine all season.</p>
+</article>
+
+<article class="panel team-card" style="--accent:var(--cyan)">
+<div class="team-brand-head"><a href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank"><img alt="Angry Space Hares logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/></a>
+<div class="team-brand-copy"><h3><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Angry%20Space%20Hares" rel="noopener noreferrer" target="_blank" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></h3><div class="tagline">Seed 2 · Semifinal exit</div></div></div>
+<span class="record">2–2 series · 25–24 maps</span>
+<div class="featured-players"><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=GreatArchon" rel="noopener noreferrer" target="_blank" title="Open GreatArchon"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Chat-Omic" rel="noopener noreferrer" target="_blank" title="Open Chat-Omic"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Adastra" rel="noopener noreferrer" target="_blank" title="Open Adastra"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Adastra.png"/><span>Adastra</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=PossiblyMayB" rel="noopener noreferrer" target="_blank" title="Open PossiblyMayB"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/PossiblyMayB.png"/><span>PossiblyMayB</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Nachoz" rel="noopener noreferrer" target="_blank" title="Open Nachoz"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Nachoz.png"/><span>Nachoz</span></a></div>
+<p class="callout">Beat PTB and ST to lock Seeds 2/3 territory, then ran into a surging PTB in Week 7. <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=GreatArchon" rel="noopener noreferrer" target="_blank" title="Open GreatArchon on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a> led the team-league map table; <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Chat-Omic" rel="noopener noreferrer" target="_blank" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a> stayed hot until the individual Code S final.</p>
+</article>
+
+<article class="panel team-card" style="--accent:var(--red)">
+<div class="team-brand-head"><a href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank"><img alt="Special Tactics logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/FSL_team_square_logo_SpecialTactics_256px.png"/></a>
+<div class="team-brand-copy"><h3><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=Special%20Tactics" rel="noopener noreferrer" target="_blank" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></h3><div class="tagline">Seed 3 · Early statement, late fade</div></div></div>
+<span class="record">1–3 series · 16–28 maps</span>
+<div class="featured-players"><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Greeempire" rel="noopener noreferrer" target="_blank" title="Open Greeempire"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Greeempire.png"/><span>Greeempire</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=SgtABC" rel="noopener noreferrer" target="_blank" title="Open SgtABC"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/SgtABC.png"/><span>SgtABC</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=Fenrir" rel="noopener noreferrer" target="_blank" title="Open Fenrir"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Fenrir.png"/><span>Fenrir</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=JudgeFae" rel="noopener noreferrer" target="_blank" title="Open JudgeFae"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/JudgeFae.png"/><span>JudgeFae</span></a><a class="player-chip" href="https://psistorm.com/fsl/view_player.php?name=SCVSir" rel="noopener noreferrer" target="_blank" title="Open SCVSir"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/SCVSir.png"/><span>SCVSir</span></a></div>
+<p class="callout">Shocked PTB 7–3 in Week 1, then lost the winners match, the elim match, and the first playoff series. The opening still shaped the bracket — PTB had to climb the losers path.</p>
+</article>
+
+</div>
+</section>
+
+<section id="players">
+<div class="section-head"><div><div class="kicker">03 · Map ledger</div><h2>Player lines</h2></div>
+<div class="section-note">Team League only. 2v2 maps credited to each named player. Showmatches excluded.</div></div>
+<div class="panel table-wrap">
+<table>
+<thead><tr><th>Player</th><th>Maps</th><th>Diff</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/GreatArchon.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=GreatArchon" rel="noopener noreferrer" target="_blank">GreatArchon</a></strong></div></td><td class="good">8–2</td><td>+6</td><td>5 slots · e.g. GreatArchon 2–0 Crankytoaster</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Jmpz.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=Jmpz" rel="noopener noreferrer" target="_blank">Jmpz</a></strong></div></td><td class="good">7–1</td><td>+6</td><td>4 slots · e.g. Jmpz 2–0 PorkSisig</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Chat-Omic.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=Chat-Omic" rel="noopener noreferrer" target="_blank">Chat-Omic</a></strong></div></td><td class="good">5–1</td><td>+4</td><td>3 slots · e.g. Chat-Omic 1–1 HarOuz</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/SaraNghae.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=SaraNghae" rel="noopener noreferrer" target="_blank">SaraNghae</a></strong></div></td><td class="good">5–1</td><td>+4</td><td>3 slots · e.g. SaraNghae 2–0 KriMiNal</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/AntoineQ.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=AntoineQ" rel="noopener noreferrer" target="_blank">AntoineQ</a></strong></div></td><td class="good">5–3</td><td>+2</td><td>4 slots · e.g. Chat-Omic 2–0 AntoineQ</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/ChienPwn.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=ChienPwn" rel="noopener noreferrer" target="_blank">ChienPwn</a></strong></div></td><td class="good">5–3</td><td>+2</td><td>4 slots · e.g. Fenrir 1–1 ChienPwn</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Greeempire.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=Greeempire" rel="noopener noreferrer" target="_blank">Greeempire</a></strong></div></td><td class="good">5–3</td><td>+2</td><td>4 slots · e.g. Greeempire 2–0 LittleReaper</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/MvonLipwig.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=MvonLipwig" rel="noopener noreferrer" target="_blank">MvonLipwig</a></strong></div></td><td class="good">5–3</td><td>+2</td><td>4 slots · e.g. Nachoz 2–0 MvonLipwig</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/LittleReaper.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=LittleReaper" rel="noopener noreferrer" target="_blank">LittleReaper</a></strong></div></td><td class="bad">5–7</td><td>-2</td><td>6 slots · e.g. Greeempire 2–0 LittleReaper</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/SCVSir.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=SCVSir" rel="noopener noreferrer" target="_blank">SCVSir</a></strong></div></td><td class="bad">5–7</td><td>-2</td><td>6 slots · e.g. SCVSir, Cyan 1–1 LittleReaper, MonkeyShaman</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/WindShadow.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=WindShadow" rel="noopener noreferrer" target="_blank">WindShadow</a></strong></div></td><td class="good">4–0</td><td>+4</td><td>2 slots · e.g. WindShadow 2–0 SgtABC</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/CrankyToaster.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=Crankytoaster" rel="noopener noreferrer" target="_blank">Crankytoaster</a></strong></div></td><td class="good">4–3</td><td>+1</td><td>4 slots · e.g. GreatArchon 2–0 Crankytoaster</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/PossiblyMayB.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=PossiblyMayB" rel="noopener noreferrer" target="_blank">PossiblyMayB</a></strong></div></td><td class="good">4–3</td><td>+1</td><td>4 slots · e.g. PossiblyMayB 1–1 HurtnTime</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/MonkeyShaman.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=MonkeyShaman" rel="noopener noreferrer" target="_blank">MonkeyShaman</a></strong></div></td><td class="">4–4</td><td>+0</td><td>4 slots · e.g. SgtABC 2–0 MonkeyShaman</td></tr><tr><td><div class="rank-player"><img alt="" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Papella.png"/><strong><a class="player-link external-link" href="https://psistorm.com/fsl/view_player.php?name=Papella" rel="noopener noreferrer" target="_blank">Papella</a></strong></div></td><td class="">4–4</td><td>+0</td><td>4 slots · e.g. JudgeFae 1–1 Papella</td></tr>
+</tbody>
+</table>
+</div>
+<div class="story-grid" style="margin-top:18px">
+<div class="panel mini"><h3>Standouts</h3>
+<ul>
+<li><strong><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=GreatArchon" rel="noopener noreferrer" target="_blank" title="Open GreatArchon on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a></strong> — 8–2 team-league maps; carried ASH through group and into the semis.</li>
+<li><strong><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Jmpz" rel="noopener noreferrer" target="_blank" title="Open Jmpz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a></strong> — 7–1; Ace-adjacent reliability for Seed 1 POG and later Code A champion.</li>
+<li><strong><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=WindShadow" rel="noopener noreferrer" target="_blank" title="Open WindShadow on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/WindShadow.png"/><span>WindShadow</span></a></strong> — 4–0 in logged team-league maps, then Code B champion.</li>
+<li><strong><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=AntoineQ" rel="noopener noreferrer" target="_blank" title="Open AntoineQ on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/AntoineQ.png"/><span>AntoineQ</span></a> / <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=MvonLipwig" rel="noopener noreferrer" target="_blank" title="Open MvonLipwig on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a> / <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=SaraNghae" rel="noopener noreferrer" target="_blank" title="Open SaraNghae on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/SaraNghae.png"/><span>SaraNghae</span></a></strong> — PTB’s playoff map core on the Seed 4 run.</li>
+</ul></div>
+<div class="stack">
+<div class="panel mini"><h3>Ace &amp; pressure</h3>
+<ul class="slot-log">
+<li><strong>Wk2 Ace</strong><span><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Crankytoaster" rel="noopener noreferrer" target="_blank" title="Open Crankytoaster on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a> 1–0 <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=PossiblyMayB" rel="noopener noreferrer" target="_blank" title="Open PossiblyMayB on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/PossiblyMayB.png"/><span>PossiblyMayB</span></a> — POG takes Opening 2, 7–6</span></li>
+<li><strong>Wk8 Finals</strong><span>Eight 1v1 slots, no 2v2 on the sheet — PTB 10–8</span></li>
+<li><strong>Wk6 demolition</strong><span>PTB 10–2 ST with three 2v2 lines on the schedule note</span></li>
+</ul></div>
+<div class="panel mini encourage"><h3>Read the log</h3>
+<p style="margin:0;color:#dbe8f5">Full per-slot audit: <code>articles/season_10_player_game_log.txt</code> · fact pack: <code>articles/season_10_full_extract.json</code></p>
+</div>
+</div>
+</div>
+</section>
+
+<section id="individuals">
+<div class="section-head"><div><div class="kicker">04 · Side brackets</div><h2>Individual championships</h2></div>
+<div class="section-note">Historical Code S / A / B brackets from fsl_matches. Not power rankings.</div></div>
+<div class="score-grid">
+<div class="score-card"><b><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=DarkMenace" rel="noopener noreferrer" target="_blank" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a></b><span>Code S champion · final 3–0 vs <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Chat-Omic" rel="noopener noreferrer" target="_blank" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a></span></div>
+<div class="score-card"><b><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Jmpz" rel="noopener noreferrer" target="_blank" title="Open Jmpz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a></b><span>Code A champion · final 2–0 vs <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Papella" rel="noopener noreferrer" target="_blank" title="Open Papella on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Papella.png"/><span>Papella</span></a></span></div>
+<div class="score-card"><b><a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=WindShadow" rel="noopener noreferrer" target="_blank" title="Open WindShadow on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/WindShadow.png"/><span>WindShadow</span></a></b><span>Code B champion · final 2–1 vs <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=MonkeyShaman" rel="noopener noreferrer" target="_blank" title="Open MonkeyShaman on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/MonkeyShaman.png"/><span>MonkeyShaman</span></a></span></div>
+<div class="score-card"><b><a class="team-link external-link" href="https://psistorm.com/fsl/view_team.php?name=PulledTheBoys" rel="noopener noreferrer" target="_blank" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></b><span>Team League · three-peat complete</span></div>
+</div>
+<p style="margin-top:16px;color:var(--muted);font-size:.9rem">Season history page had briefly listed Code S as TBD; match rows show <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=DarkMenace" rel="noopener noreferrer" target="_blank" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> closing Code S over <a class="player-mention external-link" href="https://psistorm.com/fsl/view_player.php?name=Chat-Omic" rel="noopener noreferrer" target="_blank" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="https://psistorm.com/fsl/images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a> 3–0.</p>
+</section>
+
+</main>
+<footer class="footer"><div class="wrap">
+FSL Season 10 full review · playbook test (no rankings) · generated from schedule/matches extract · <a class="source-link external-link" href="https://psistorm.com/fsl/fsl_season.php?season=10" rel="noopener noreferrer" target="_blank">Season 10 on PSISTORM</a>
+</div></footer>
+</body></html>

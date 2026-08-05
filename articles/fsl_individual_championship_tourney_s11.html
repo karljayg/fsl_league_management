@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="FSL Individual Championships is coming — sign up on the Forum. Favorites, rematches, and the climb to G1. First matches Friday and early Saturday next week." name="description"/>
+<title>FSL Individual Championships — Sign Up &amp; Matchup Preview</title>
+<style>
+
+    :root {
+      --bg: #071019;
+      --panel: #0e1a27;
+      --panel-2: #132333;
+      --text: #edf5ff;
+      --muted: #9db0c4;
+      --line: rgba(255,255,255,.10);
+      --cyan: #42d9ff;
+      --blue: #6d8dff;
+      --gold: #ffcc66;
+      --green: #53e3a6;
+      --red: #ff7285;
+      --purple: #b38cff;
+      --shadow: 0 20px 50px rgba(0,0,0,.28);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(66,217,255,.12), transparent 30%),
+        radial-gradient(circle at 88% 10%, rgba(179,140,255,.10), transparent 28%),
+        linear-gradient(180deg, #071019 0%, #08131e 48%, #06101a 100%);
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 78px 0 54px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero::after {
+      content: "FSL 11";
+      position: absolute;
+      right: -12px;
+      top: -36px;
+      font-size: clamp(7rem, 20vw, 17rem);
+      font-weight: 900;
+      letter-spacing: -.08em;
+      color: rgba(255,255,255,.025);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(66,217,255,.26);
+      background: rgba(66,217,255,.07);
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      font-size: .76rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 20px 0 10px;
+      max-width: 900px;
+      font-size: clamp(2.55rem, 7vw, 6.2rem);
+      line-height: .96;
+      letter-spacing: -.055em;
+    }
+
+    h1 span {
+      display: block;
+      color: transparent;
+      background: linear-gradient(90deg, var(--cyan), #b9eaff 50%, var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .subtitle {
+      margin: 0 0 26px;
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      color: var(--muted);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.45fr .75fr;
+      gap: 28px;
+      align-items: end;
+    }
+
+    .lede {
+      max-width: 820px;
+      margin: 0;
+      font-size: 1.06rem;
+      color: #d4e0ec;
+    }
+
+    .meta-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(14,26,39,.72);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+
+    .meta-card strong { color: var(--gold); }
+    .meta-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 30px;
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+    }
+
+    .stat b { display: block; font-size: 1.7rem; line-height: 1; }
+    .stat span { display: block; margin-top: 7px; color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(7,16,25,.82);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-inner {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 12px 0;
+      scrollbar-width: none;
+    }
+    .nav-inner::-webkit-scrollbar { display: none; }
+    .nav a {
+      white-space: nowrap;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+    .nav a:hover { background: var(--panel-2); color: var(--text); }
+
+    main { padding: 38px 0 70px; }
+    section { scroll-margin-top: 80px; margin: 0 0 46px; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .kicker { color: var(--cyan); font-size: .78rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    h2 { margin: 3px 0 0; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: -.035em; }
+    .section-note { max-width: 440px; color: var(--muted); font-size: .9rem; text-align: right; }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(19,35,51,.92), rgba(12,24,36,.95));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .bracket { padding: 22px; overflow-x: auto; }
+    .bracket-grid {
+      min-width: 930px;
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr .85fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .round {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--line);
+    }
+    .round h3 { margin: 0 0 12px; font-size: .9rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+    .match {
+      margin-top: 11px;
+      padding: 13px;
+      border-radius: 13px;
+      background: #0b1723;
+      border: 1px solid var(--line);
+    }
+    .match:first-of-type { margin-top: 0; }
+    .match-top { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .78rem; }
+    .team-row { display: flex; justify-content: space-between; gap: 12px; padding-top: 7px; font-weight: 750; }
+    .winner { color: var(--green); }
+    .pending { border-color: rgba(255,204,102,.25); }
+    .pending .match-top { color: var(--gold); }
+    .final { display: grid; place-items: center; text-align: center; min-height: 100%; background: radial-gradient(circle at 50% 30%, rgba(255,204,102,.09), transparent 55%), rgba(255,255,255,.025); }
+    .trophy { font-size: 2.2rem; }
+
+    .seed-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .seed {
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.025);
+    }
+    .seed b { color: var(--gold); }
+    .seed small { display: block; color: var(--muted); margin-top: 4px; }
+
+    .team-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .team-card { padding: 22px; position: relative; overflow: hidden; }
+    .team-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent, var(--cyan)); }
+    .team-card h3 { margin: 0; font-size: 1.35rem; }
+    .team-card .tagline { color: var(--muted); margin: 3px 0 13px; }
+    .record { display: inline-block; padding: 5px 9px; border-radius: 8px; background: rgba(255,255,255,.06); font-weight: 800; font-size: .84rem; }
+    .team-card p { color: #c9d7e4; }
+    .team-card p:last-child { margin-bottom: 0; }
+    .callout { border-left: 3px solid var(--accent, var(--cyan)); padding-left: 13px; color: var(--text) !important; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .09em; background: rgba(255,255,255,.025); }
+    tr:last-child td { border-bottom: 0; }
+    td strong { color: var(--text); }
+    .good { color: var(--green); font-weight: 800; }
+    .bad { color: var(--red); font-weight: 800; }
+    .rank { color: var(--gold); font-weight: 900; }
+
+    .story-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+    .stack { display: grid; gap: 18px; }
+    .mini { padding: 20px; }
+    .mini h3 { margin: 0 0 12px; font-size: 1rem; text-transform: uppercase; letter-spacing: .08em; color: var(--cyan); }
+    .mini ul { margin: 0; padding-left: 18px; color: #c8d5e2; }
+    .mini li + li { margin-top: 8px; }
+
+    .rankings { padding: 0; overflow: hidden; }
+    .rank-row { display: grid; grid-template-columns: 55px 1.3fr 55px 70px 1.5fr; gap: 12px; align-items: center; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+    .rank-row:last-child { border-bottom: 0; }
+    .rank-row.header { color: var(--muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .09em; background: rgba(255,255,255,.03); }
+    .race-pill { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.07); font-weight: 900; }
+
+    .footer {
+      padding: 28px 0 44px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero-grid, .story-grid { grid-template-columns: 1fr; }
+      .stats, .seed-list { grid-template-columns: repeat(2, 1fr); }
+      .team-cards { grid-template-columns: 1fr; }
+      .section-head { align-items: start; flex-direction: column; }
+      .section-note { text-align: left; }
+      .rank-row { grid-template-columns: 42px 1fr 42px 52px; }
+      .rank-row > :last-child { grid-column: 2 / -1; color: var(--muted); }
+      .rank-row.header > :last-child { display: none; }
+    }
+
+    @media (max-width: 520px) {
+      .wrap { width: min(100% - 22px, 1180px); }
+      .hero { padding-top: 48px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat { padding: 14px; }
+      .panel, .team-card { border-radius: 15px; }
+    }
+
+    @media print {
+      :root { --text: #101820; --muted: #4c5b66; --line: #d9e0e5; }
+      body { background: #fff; color: #101820; }
+      .nav { display: none; }
+      .hero { padding-top: 24px; }
+      .hero::after { display: none; }
+      .panel, .team-card, .meta-card { box-shadow: none; background: #fff; break-inside: avoid; }
+      .match { background: #fff; }
+      h1 span { color: #101820; -webkit-text-fill-color: initial; }
+      section { break-inside: avoid; }
+    }
+  
+
+    .notice { padding: 22px; border-left: 4px solid var(--gold); }
+    .notice h3 { margin: 0 0 8px; color: var(--gold); }
+    .notice p { margin: 8px 0 0; color: #d4e0ec; }
+    .method-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:16px; }
+    .method-item { padding:16px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.025); }
+    .method-item strong { color:var(--cyan); display:block; margin-bottom:5px; }
+    .score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+    .score-card { padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.025); }
+    .score-card b { font-size:1.15rem; }
+    .score-card span { display:block; color:var(--muted); font-size:.86rem; margin-top:4px; }
+    .slot-log { margin:14px 0 0; padding:0; list-style:none; }
+    .slot-log li { display:grid; grid-template-columns:140px 1fr; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line); color:#c9d7e4; }
+    .slot-log li:last-child { border-bottom:0; }
+    .slot-log strong { color:var(--text); }
+    .encourage { color:#dbe8f5 !important; background:rgba(83,227,166,.055); border-radius:12px; padding:12px 14px; }
+    @media (max-width:820px){ .method-grid,.score-grid{grid-template-columns:1fr 1fr;} }
+    @media (max-width:520px){ .method-grid,.score-grid{grid-template-columns:1fr;} .slot-log li{grid-template-columns:1fr;gap:2px;} }
+
+    .table-wrap .rank-player { display:flex; align-items:center; gap:10px; }
+    .table-wrap .player-thumb { width:32px; height:32px; flex:0 0 32px; border-radius:8px; }
+    .external-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(66,217,255,.42); text-underline-offset: .18em; text-decoration-thickness: 1px; transition: color .18s ease, text-decoration-color .18s ease, background-color .18s ease; border-radius: 4px; }
+    .external-link::after { content: " ↗"; font-size: .72em; opacity: .58; white-space: nowrap; }
+    .external-link:hover, .external-link:focus-visible { color: var(--cyan); text-decoration-color: currentColor; background: rgba(66,217,255,.07); outline: none; }
+    .team-link { font-weight: inherit; }
+    .source-link { color: var(--cyan); }
+    @media print { .external-link { text-decoration: none; } .external-link::after { content: ""; } }
+
+
+    /* Official FSL branding assets */
+    .team-brand-head { display:flex; align-items:center; gap:15px; margin-bottom:12px; padding-right:8px; }
+    .team-brand-copy { min-width:0; flex:1; }
+    .team-brand-copy h3 { margin:0; }
+    .team-logo { width:74px; height:74px; flex:0 0 74px; object-fit:cover; border-radius:17px; border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 24px rgba(0,0,0,.28); background:#071019; }
+    .team-logo:hover { transform:translateY(-2px); transition:transform .18s ease; }
+    .team-logo-mini { width:34px; height:34px; object-fit:cover; border-radius:9px; border:1px solid rgba(255,255,255,.14); vertical-align:middle; margin-right:8px; box-shadow:0 5px 12px rgba(0,0,0,.2); }
+    .seed-title { display:flex; align-items:center; gap:2px; }
+    .featured-players { display:flex; flex-wrap:wrap; gap:10px; margin:15px 0 4px; }
+    .player-chip { display:flex; align-items:center; gap:8px; min-width:0; padding:6px 10px 6px 6px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); text-decoration:none; color:var(--text); font-size:.78rem; font-weight:800; }
+    .player-chip::after { content:none !important; }
+    .player-chip:hover { border-color:rgba(66,217,255,.42); background:rgba(66,217,255,.08); color:var(--cyan); }
+    .player-thumb { width:34px; height:34px; flex:0 0 34px; object-fit:cover; object-position:center top; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:#0b1723; }
+    .rank-player { display:flex; align-items:center; gap:10px; min-width:0; }
+    .rank-thumb { width:38px; height:38px; flex:0 0 38px; object-fit:cover; object-position:center top; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:#0b1723; }
+    .hero-team-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:18px; }
+    .hero-team { display:flex; align-items:center; gap:10px; padding:9px; border-radius:13px; border:1px solid var(--line); background:rgba(14,26,39,.58); text-decoration:none; color:var(--text); font-size:.78rem; font-weight:800; }
+    .hero-team::after { content:none !important; }
+    .hero-team:hover { background:rgba(66,217,255,.07); border-color:rgba(66,217,255,.28); color:var(--cyan); }
+    .hero-team img { width:38px; height:38px; object-fit:cover; border-radius:9px; }
+    .asset-credit { margin-top:12px; color:var(--muted); font-size:.78rem; }
+    @media (max-width:820px){ .hero-team-strip{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:520px){ .team-logo{width:62px;height:62px;flex-basis:62px}.hero-team-strip{grid-template-columns:1fr 1fr}.hero-team span{font-size:.72rem}.rank-thumb{width:32px;height:32px;flex-basis:32px} }
+    @media print { .team-logo,.team-logo-mini,.player-thumb,.rank-thumb,.hero-team img { box-shadow:none; } }
+
+    .player-mention {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      vertical-align: middle;
+      text-decoration: none !important;
+      font-weight: 750;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .player-mention::after { content: none !important; }
+    .player-mention:hover { color: var(--cyan); }
+    .inline-thumb {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      border: 1px solid rgba(255,255,255,.16);
+      background: #0b1723;
+    }
+    .mention-meta {
+      color: var(--muted);
+      font-size: .78em;
+      font-weight: 700;
+    }
+    .group-pill {
+      display: inline-grid;
+      place-items: center;
+      min-width: 34px;
+      height: 30px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: rgba(66,217,255,.1);
+      border: 1px solid rgba(66,217,255,.22);
+      color: var(--cyan);
+      font-weight: 900;
+      font-size: .78rem;
+    }
+    .rankings .rank-row {
+      grid-template-columns: 55px 1.35fr 48px 52px 55px 1.45fr;
+    }
+    @media (max-width: 820px) {
+      .rankings .rank-row { grid-template-columns: 42px 1fr 42px 48px; }
+      .rankings .rank-row > :nth-child(5) { display:none; }
+      .rankings .rank-row > :last-child { grid-column: 2 / -1; color: var(--muted); }
+      .rankings .rank-row.header > :nth-child(5),
+      .rankings .rank-row.header > :last-child { display: none; }
+    }
+    .seed small .player-mention { font-size: .86em; }
+    .slot-log .player-mention { font-weight: 800; }
+
+
+
+    .heat-hot { color: #ff8f4a; font-weight: 800; }
+    .heat-warm { color: #ffcc66; font-weight: 700; }
+    .heat-cold { color: #7f93a8; font-weight: 700; }
+    .heat-ice { color: #5b6b7c; font-weight: 700; }
+    .mu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .mu-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.02);
+      padding: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .mu-card::before {
+      content: "";
+      position: absolute; inset: 0 auto 0 0; width: 4px;
+      background: var(--accent, var(--cyan));
+    }
+    .mu-card.featured {
+      border-color: rgba(66,217,255,.35);
+      background:
+        radial-gradient(circle at 90% 0%, rgba(66,217,255,.12), transparent 40%),
+        rgba(255,255,255,.03);
+    }
+    .mu-top {
+      display: flex; justify-content: space-between; gap: 10px;
+      align-items: center; margin-bottom: 10px;
+      font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+    }
+    .mu-players {
+      display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center;
+      margin: 8px 0 12px;
+    }
+    .mu-player {
+      display: flex; gap: 10px; align-items: center; min-width: 0;
+    }
+    .mu-player.right { flex-direction: row-reverse; text-align: right; }
+    .mu-player > img {
+      width: 44px; height: 44px; border-radius: 10px; object-fit: cover;
+      border: 1px solid rgba(255,255,255,.12); background: #0a1520;
+      flex: 0 0 44px;
+    }
+    /* Header already has a large avatar — never stack an inline thumb next to it */
+    .mu-player .inline-thumb { display: none; }
+    .mu-vs {
+      font-weight: 900; color: rgba(255,255,255,.35); letter-spacing: .08em;
+    }
+    .mu-meta { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .form-pill {
+      display: inline-flex; gap: 6px; align-items: center;
+      padding: 5px 10px; border-radius: 999px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.03);
+      font-size: .78rem; color: var(--muted);
+    }
+    .seed-board { display: grid; gap: 8px; }
+    .seed-row {
+      display: grid;
+      grid-template-columns: 54px 70px 1.5fr 1.6fr;
+      gap: 10px; align-items: center;
+      padding: 10px 12px; border-radius: 12px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.02);
+    }
+    .seed-row.head {
+      border: none; background: transparent; color: var(--muted);
+      font-size: .72rem; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .code-chip {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 28px; height: 22px; padding: 0 7px; border-radius: 6px;
+      font-size: .72rem; font-weight: 800; letter-spacing: .06em;
+      border: 1px solid rgba(255,255,255,.16);
+    }
+    .code-chip.S { color: #ffd700; border-color: rgba(255,215,0,.4); }
+    .code-chip.A { color: #d0d0d0; border-color: rgba(192,192,192,.4); }
+    .code-chip.B { color: #cd7f32; border-color: rgba(205,127,50,.45); }
+    .climb-path {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin: 12px 0 4px;
+    }
+    .climb-node {
+      padding: 8px 12px; border-radius: 999px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.03);
+      font-size: .85rem; font-weight: 700;
+    }
+    .climb-node.now { border-color: rgba(66,217,255,.45); color: var(--cyan); }
+    .climb-arrow { color: rgba(255,255,255,.35); }
+    .absentee { display: flex; flex-wrap: wrap; gap: 8px; }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 56px;
+      gap: 10px; align-items: center;
+      margin: 8px 0; font-size: .92rem;
+    }
+    .bar-track {
+      height: 12px; border-radius: 999px;
+      background: rgba(255,255,255,.06); overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+    }
+    .bar-fill.gold { background: linear-gradient(90deg, #ffcc66, #ff8f4a); }
+    .bar-fill.green { background: linear-gradient(90deg, #53e3a6, #42d9ff); }
+    .diff-pos { color: var(--green); font-weight: 700; }
+    .diff-neg { color: var(--red); font-weight: 700; }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .mu-grid, .chart-grid { grid-template-columns: 1fr; }
+      .seed-row { grid-template-columns: 48px 56px 1fr; }
+      .seed-row .hide-sm { display: none; }
+      .bar-row { grid-template-columns: 120px 1fr 48px; }
+    }
+
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Individual Championships · Individual climb · Sign up now</div>
+    <div class="hero-grid">
+      <div>
+        <h1><img src="../images/fsl_sc2_logo_small.png" alt="FSL" style="height:2.2rem;width:auto;vertical-align:middle;margin-right:.35rem"> Individual Championships <span>Is Coming</span></h1>
+        <p class="subtitle">Your shot at the FSL crown — one ladder, one climb, no teammates to hide behind</p>
+        <p class="lede">
+          Season 11 crowned a team. Now the board flips to individuals. Win your group, feed up as the lowest seed,
+          and keep climbing toward <strong>G1</strong>. Below is an early look at favorites, rematches, and the pods
+          that light up if the Season 11 field shows up again — scroll the heat checks, the opening stories, and the full board.
+          Want a visual sneak peek of how those brackets could open if every active player signs up?
+          Jump into the <a class="source-link" href="../rankings/tournament.php" target="_blank" rel="noopener noreferrer">live Individual Championships board</a>.
+        </p>
+        <div class="meta-card">
+          <p><strong>Sign up here:</strong> Post your confirmation on the Forum thread
+            <a class="source-link" href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer"><strong>Season 11 Individual Championships!</strong></a>
+            — reply that you’re in. That’s your official signup.</p>
+          <p style="margin-top:8px"><strong>When:</strong> First matches Friday and early Saturday next week.
+            After that we schedule as signups land and games finish — pace of the bracket sets the rest of the weekend.</p>
+          <p style="margin-top:8px"><strong>Sneak preview:</strong>
+            <a class="source-link" href="../rankings/tournament.php" target="_blank" rel="noopener noreferrer">Open the live bracket</a>
+            to scout potential matchups if the active field all plays.</p>
+        </div>
+      </div>
+      <div>
+        <div class="stats">
+          <div class="stat"><b>40</b><span>Likely entrants</span></div>
+          <div class="stat"><b>10</b><span>Groups of 4</span></div>
+          <div class="stat"><b>3</b><span>Codes · B→A→S</span></div>
+          <div class="stat"><b>G1</b><span>Crown stage</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="climb-path"><span class="climb-node">G10–G8 Code B</span><span class="climb-arrow">→</span><span class="climb-node">G7–G4 Code A</span><span class="climb-arrow">→</span><span class="climb-node">G3–G2 Code S</span><span class="climb-arrow">→</span><span class="climb-node now">G1 crown</span></div>
+  </div>
+</header>
+
+<nav class="nav"><div class="wrap nav-inner">
+  <a href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer">Sign up on Forum</a>
+  <a href="#signup">How it works</a>
+  <a href="#favorites">Favorites</a>
+  <a href="#matchups">Matchups</a>
+  <a href="#form">Form</a>
+  <a href="#board">Board</a>
+  <a href="#sitting">Sitting out?</a>
+  <a href="../rankings/tournament.php" target="_blank" rel="noopener noreferrer">Live bracket</a>
+</div></nav>
+
+<main class="wrap">
+
+<section id="signup" style="padding:36px 0 12px">
+  <div class="section-head">
+    <div><div class="kicker">01 • Get in the bracket</div><h2>Sign up on the Forum, then start climbing</h2></div>
+    <div class="section-note">Friday + early Saturday kickoff · schedule flexes with the field</div>
+  </div>
+  <div class="team-cards">
+    <div class="panel mini">
+      <h3>Confirm on the Forum</h3>
+      <p style="margin:0;color:var(--muted)">
+        Post that you’re in on
+        <a class="source-link" href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer"><strong>Season 11 Individual Championships!</strong></a>.
+        A short “I’m in” reply is all it takes — confirm there so we can lock your bracket seat.
+      </p>
+    </div>
+    <div class="panel mini">
+      <h3>How you win</h3>
+      <p style="margin:0;color:var(--muted)">
+        Groups of four by power-rank bands. Open with <strong>1 vs 4</strong> and <strong>2 vs 3</strong>.
+        Group winners feed into the next higher group as the low seed and keep climbing toward G1.
+      </p>
+    </div>
+    <div class="panel mini">
+      <h3>Timing</h3>
+      <p style="margin:0;color:var(--muted)">
+        We start Friday and early Saturday next week. Exact slots depend on who signs up and how fast series finish —
+        so stay loose and ready once you’re in.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="favorites" style="padding:18px 0">
+  <div class="section-head">
+    <div><div class="kicker">02 • Favorites &amp; heat</div><h2>Who looks dangerous</h2></div>
+    <div class="section-note">Season 11 form · HOT means volume + win rate</div>
+  </div>
+  <div class="team-cards"><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span> <span class="mention-meta">#1 · G1</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">Clear individual favorite: #1 rank, 5–1 maps, with Season 11 tape vs AntoineQ (2–0). Form: 5–1 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span> <span class="mention-meta">#2 · G1</span></a> <span class="heat-warm">WARM</span></h3><p style="margin:0;color:var(--muted)">Strong Season 11 résumé vs DarkMenace — a key piece of the G1 story. Form: 6–4 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span> <span class="mention-meta">#3 · G1</span></a> <span class="heat-warm">WARM</span></h3><p style="margin:0;color:var(--muted)">Hottest high-board playoff sample — path runs through MedicJR toward Chat-Omic. Form: 6–3 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span> <span class="mention-meta">#29 · G6</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">Season map leader (7–1). Path runs through a possible HyperTurtle rematch. Form: 7–1 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span> <span class="mention-meta">#32 · G6</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">Title-run engine (6–2) with SunnyD split already in pocket. Form: 6–2 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span> <span class="mention-meta">#18 · G3</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">Ace closer in a stacked G3 with SirMalagant / Neutrophil. Form: 5–2 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span> <span class="mention-meta">#6 · G2</span></a> <span class="heat-warm">WARM</span></h3><p style="margin:0;color:var(--muted)">G2 favorite on volume (6–3), with Cubano’s Finals form still in the mix. Form: 6–3 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span> <span class="mention-meta">#43 · G8</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">Results-over-rank climber — 5–2 with Ace experience from deep board. Form: 5–2 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span> <span class="mention-meta">#38 · G7</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">Perfect 4–0 group stage — quiet favorite if G7 opens cleanly. Form: 4–0 maps.</p></div><div class="panel mini"><h3><a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span> <span class="mention-meta">#25 · G5</span></a> <span class="heat-hot">HOT</span></h3><p style="margin:0;color:var(--muted)">5–1 support star; G5 rematch with Papella is the first test. Form: 5–1 maps.</p></div></div>
+</section>
+
+<section id="matchups" style="padding:18px 0">
+  <div class="section-head">
+    <div><div class="kicker">03 • Opening matchups</div><h2>Stories worth circling</h2></div>
+    <div class="section-note">Season 11 H2H · early look at how the pods could open</div>
+  </div>
+  <div class="mu-grid">
+    <article class="mu-card featured" style="--accent:var(--gold)">
+      <div class="mu-top">
+        <span>Code S · G1 semis</span>
+        <span>Tape already exists</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="Chat-Omic" src="../images/player_thumbnails/Chat-Omic.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Chat-Omic</span> <span class="mention-meta">#1</span></a></div>
+            <div class="heat-hot" style="font-size:.78rem">HOT · 5–1 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="AntoineQ" src="../images/player_thumbnails/AntoineQ.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=AntoineQ" title="Open AntoineQ on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>AntoineQ</span> <span class="mention-meta">#5</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">EVEN · 0–2 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span> <span class="mention-meta">#1</span></a> is the ranking favorite and already beat <a class="player-mention external-link" href="../view_player.php?name=AntoineQ" title="Open AntoineQ on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/AntoineQ.png"/><span>AntoineQ</span></a> 2–0 in Season 11. The other semi is the real fireworks: <a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span> <span class="mention-meta">#2</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span> <span class="mention-meta">#3</span></a> — they split 1–1 early, then MedicJR took a playoff 2–0. G1 is stacked with Season 11 regulars.</div>
+      <div class="pill-row">
+        <span class="form-pill">Season 11 H2H: Chat-Omic 2–0 AntoineQ</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> vs <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:var(--gold)">
+      <div class="mu-top">
+        <span>Code S · G1 semis</span>
+        <span>Best series on the board</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="MedicJR" src="../images/player_thumbnails/MedicJr.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>MedicJR</span> <span class="mention-meta">#2</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">WARM · 6–4 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="DarkMenace" src="../images/player_thumbnails/DarkMenace.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>DarkMenace</span> <span class="mention-meta">#3</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">WARM · 6–3 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta">A fun rematch series. <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> authored the ST title run (6–3); <a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a> took the W7 playoff series over him. Winner likely meets Chat-Omic for the first Code S crown checkpoint.</div>
+      <div class="pill-row">
+        <span class="form-pill">Season 11 H2H: MedicJR 3–1 DarkMenace</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a> vs <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:var(--cyan)">
+      <div class="mu-top">
+        <span>Code S · G2 semis</span>
+        <span>Finals rematch</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="Darkblade" src="../images/player_thumbnails/Darkblade.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Darkblade" title="Open Darkblade on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Darkblade</span> <span class="mention-meta">#7</span></a></div>
+            <div class="heat-cold" style="font-size:.78rem">COLD · 1–3 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="sOs" src="../images/player_thumbnails/sOs.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>sOs</span> <span class="mention-meta">#8</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">WARM · 3–1 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a> beat <a class="player-mention external-link" href="../view_player.php?name=Darkblade" title="Open Darkblade on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><span>Darkblade</span></a> 2–0 in the Grand Finals. Meanwhile <a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span> <span class="mention-meta">#6</span></a> (6–3) draws <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a> — Cubano took Neutrophil 2–0 in Finals — FRost’s volume still makes him the group favorite.</div>
+      <div class="pill-row">
+        <span class="form-pill">Season 11 H2H: Darkblade 0–2 sOs</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a> vs <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:var(--purple)">
+      <div class="mu-top">
+        <span>Code S · G3 semis</span>
+        <span>Ace energy, real seeds</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="Neutrophil" src="../images/player_thumbnails/Neutrophil.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Neutrophil</span> <span class="mention-meta">#11</span></a></div>
+            <div class="heat-cold" style="font-size:.78rem">COLD · 2–4 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="Crankytoaster" src="../images/player_thumbnails/CrankyToaster.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Crankytoaster</span> <span class="mention-meta">#18</span></a></div>
+            <div class="heat-hot" style="font-size:.78rem">HOT · 5–2 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a> already beat <a class="player-mention external-link" href="../view_player.php?name=NuKLeO" title="Open NuKLeO on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/NuKLeO.png"/><span>NuKLeO</span></a> 2–0 in Season 11, but opens against hotter form in <a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a> (5–2, W5 Ace). Opposite semi: <a class="player-mention external-link" href="../view_player.php?name=NuKLeO" title="Open NuKLeO on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/NuKLeO.png"/><span>NuKLeO</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> (W7 Ace). Plenty of playoff DNA in this pod.</div>
+      <div class="pill-row">
+        <span class="form-pill">No Season 11 head-to-head</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a> vs <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:var(--green)">
+      <div class="mu-top">
+        <span>Code A · G6 semis</span>
+        <span>Production king’s path</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="SunnyD" src="../images/player_thumbnails/SunnyD.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>SunnyD</span> <span class="mention-meta">#29</span></a></div>
+            <div class="heat-hot" style="font-size:.78rem">HOT · 7–1 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="Infestor-x" src="../images/player_thumbnails/Infestor-x.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Infestor-x" title="Open Infestor-x on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Infestor-x</span> <span class="mention-meta">#34</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">EVEN · 0–2 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a> led Season 11 at 7–1. The other semi is <a class="player-mention external-link" href="../view_player.php?name=HurtnTime" title="Open HurtnTime on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HurtnTime.png"/><span>HurtnTime</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a> — Turtle is 6–2 with title-run tape and already split SunnyD 1–1 in Week 6. If both favorites advance, G6 final is must-watch.</div>
+      <div class="pill-row">
+        <span class="form-pill">No Season 11 head-to-head</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> vs <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:var(--red)">
+      <div class="mu-top">
+        <span>Code A · G5 semis</span>
+        <span>Finals rematch energy</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="Reevou" src="../images/player_thumbnails/Reevou.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Reevou</span> <span class="mention-meta">#25</span></a></div>
+            <div class="heat-hot" style="font-size:.78rem">HOT · 5–1 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="Papella" src="../images/player_thumbnails/Papella.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Papella" title="Open Papella on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Papella</span> <span class="mention-meta">#28</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">EVEN · 2–2 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta">They split 1–1 on Finals night. <a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a> went 5–1 as ST’s steadiest support; <a class="player-mention external-link" href="../view_player.php?name=Papella" title="Open Papella on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Papella.png"/><span>Papella</span></a> was PTB’s bright spot. Opposite semi: <a class="player-mention external-link" href="../view_player.php?name=SaraNghae" title="Open SaraNghae on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SaraNghae.png"/><span>SaraNghae</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=PossiblyMayB" title="Open PossiblyMayB on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PossiblyMayB.png"/><span>PossiblyMayB</span></a>.</div>
+      <div class="pill-row">
+        <span class="form-pill">Season 11 H2H: Reevou 1–1 Papella</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> vs <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:var(--blue)">
+      <div class="mu-top">
+        <span>Code B · G8 semis</span>
+        <span>Results-over-rank lane</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="SCVSir" src="../images/player_thumbnails/SCVSir.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=SCVSir" title="Open SCVSir on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>SCVSir</span> <span class="mention-meta">#41</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">EVEN · 1–1 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="BeanTheBard" src="../images/player_thumbnails/BeanTheBard.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>BeanTheBard</span> <span class="mention-meta">#43</span></a></div>
+            <div class="heat-hot" style="font-size:.78rem">HOT · 5–2 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span> <span class="mention-meta">#43</span></a> was 5–2 with an Ace close — a classic Challenger climber profile. Draws <a class="player-mention external-link" href="../view_player.php?name=SCVSir" title="Open SCVSir on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SCVSir.png"/><span>SCVSir</span></a> while <a class="player-mention external-link" href="../view_player.php?name=Parkanian" title="Open Parkanian on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Parkanian.png"/><span>Parkanian</span></a> opens vs <a class="player-mention external-link" href="../view_player.php?name=TheArchaic" title="Open TheArchaic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/TheArchaic.png"/><span>TheArchaic</span></a>. If Bean climbs groups, Code B/A gets spicy fast.</div>
+      <div class="pill-row">
+        <span class="form-pill">No Season 11 head-to-head</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> vs <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a></span>
+      </div>
+    </article>
+    
+    <article class="mu-card featured" style="--accent:#74b9ff">
+      <div class="mu-top">
+        <span>Code A · G4 semis</span>
+        <span>Mid-board veterans</span>
+      </div>
+      <div class="mu-players">
+        <div class="mu-player">
+          <img alt="LittleReaper" src="../images/player_thumbnails/LittleReaper.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>LittleReaper</span> <span class="mention-meta">#21</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">WARM · 4–2 maps</div>
+          </div>
+        </div>
+        <div class="mu-vs">VS</div>
+        <div class="mu-player right">
+          <img alt="Jmpz" src="../images/player_thumbnails/Jmpz.png" onerror="this.style.display='none'" loading="lazy"/>
+          <div>
+            <div><a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><span>Jmpz</span> <span class="mention-meta">#22</span></a></div>
+            <div class="heat-warm" style="font-size:.78rem">EVEN · 3–4 maps</div>
+          </div>
+        </div>
+      </div>
+      <div class="mu-meta">They already split 1–1 in Week 2. <a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a> (4–2) is the steadier PTB piece; <a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a> fought to a W7 Ace. Top half: <a class="player-mention external-link" href="../view_player.php?name=GreatArchon" title="Open GreatArchon on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=Freeedom" title="Open Freeedom on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Freeedom.png"/><span>Freeedom</span></a> — tough schedules, even-ish form.</div>
+      <div class="pill-row">
+        <span class="form-pill">Season 11 H2H: LittleReaper 1–1 Jmpz</span>
+        <span class="form-pill"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a> vs <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a></span>
+      </div>
+    </article>
+    </div>
+
+  <div class="section-head" style="margin-top:28px">
+    <div><div class="kicker">Also on the board</div><h2>More opening semis</h2></div>
+  </div>
+  <div class="mu-grid"><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G2 · Code S · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a> <span class="heat-warm">(WARM 6–3)</span> vs <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a> <span class="heat-cold">(COLD 2–4)</span><br><span style="color:var(--muted)">Season 11 H2H: FRost 2–0 Cubano</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G3 · Code S · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=NuKLeO" title="Open NuKLeO on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/NuKLeO.png"/><span>NuKLeO</span></a> <span class="heat-warm">(EVEN 0–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> <span class="heat-warm">(EVEN 3–4)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G4 · Code A · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=GreatArchon" title="Open GreatArchon on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a> <span class="heat-cold">(COLD 2–5)</span> vs <a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a> <span class="heat-warm">(EVEN 3–4)</span><br><span style="color:var(--muted)">Season 11 H2H: GreatArchon 1–1 Jmpz</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G4 · Code A · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=Freeedom" title="Open Freeedom on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Freeedom.png"/><span>Freeedom</span></a> <span class="heat-warm">(EVEN 3–3)</span> vs <a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a> <span class="heat-warm">(WARM 4–2)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G5 · Code A · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=SaraNghae" title="Open SaraNghae on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SaraNghae.png"/><span>SaraNghae</span></a> <span class="heat-warm">(EVEN 2–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=PossiblyMayB" title="Open PossiblyMayB on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PossiblyMayB.png"/><span>PossiblyMayB</span></a> <span class="heat-cold">(COLD 1–3)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G6 · Code A · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=HurtnTime" title="Open HurtnTime on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HurtnTime.png"/><span>HurtnTime</span></a> <span class="heat-cold">(COLD 0–6)</span> vs <a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a> <span class="heat-hot">(HOT 6–2)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G7 · Code A · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=Nuke" title="Open Nuke on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Nuke.png"/><span>Nuke</span></a> <span class="heat-warm">(EVEN 1–1)</span> vs <a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a> <span class="heat-hot">(HOT 4–0)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G7 · Code A · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=RegreT" title="Open RegreT on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/RegreT.png"/><span>RegreT</span></a> <span class="heat-warm">(EVEN 0–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=MvonLipwig" title="Open MvonLipwig on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a> <span class="heat-warm">(EVEN 3–3)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G8 · Code B · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=Parkanian" title="Open Parkanian on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Parkanian.png"/><span>Parkanian</span></a> <span class="heat-warm">(EVEN 2–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a> <span class="heat-hot">(HOT 5–2)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G8 · Code B · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=TheArchaic" title="Open TheArchaic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/TheArchaic.png"/><span>TheArchaic</span></a> <span class="heat-warm">(EVEN 0–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=SCVSir" title="Open SCVSir on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SCVSir.png"/><span>SCVSir</span></a> <span class="heat-warm">(EVEN 1–1)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G9 · Code B · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=WindShadow" title="Open WindShadow on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/WindShadow.png"/><span>WindShadow</span></a> <span class="heat-cold">(COLD 1–3)</span> vs <a class="player-mention external-link" href="../view_player.php?name=Pacha" title="Open Pacha on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pacha.png"/><span>Pacha</span></a> <span class="heat-cold">(COLD 2–6)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G9 · Code B · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=LanixMagi" title="Open LanixMagi on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LanixMagi.png"/><span>LanixMagi</span></a> <span class="heat-warm">(EVEN 2–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=Dpoo" title="Open Dpoo on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Dpoo.png"/><span>Dpoo</span></a> <span class="heat-warm">(EVEN 1–1)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G10 · Code B · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=Nachoz" title="Open Nachoz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Nachoz.png"/><span>Nachoz</span></a> <span class="heat-warm">(EVEN 0–2)</span> vs <a class="player-mention external-link" href="../view_player.php?name=Pebble" title="Open Pebble on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pebble.png"/><span>Pebble</span></a> <span class="heat-warm">(EVEN 0–2)</span><br><span style="color:var(--muted)">No Season 11 head-to-head</span></div></div><div class="mu-card" style="--accent:var(--line)"><div class="mu-top"><span>G10 · Code B · 1v4/2v3</span><span>OPENER</span></div><div class="mu-meta"><a class="player-mention external-link" href="../view_player.php?name=SgtABC" title="Open SgtABC on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SgtABC.png"/><span>SgtABC</span></a> <span class="heat-warm">(EVEN 3–4)</span> vs <a class="player-mention external-link" href="../view_player.php?name=MonkeyShaman" title="Open MonkeyShaman on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MonkeyShaman.png"/><span>MonkeyShaman</span></a> <span class="heat-warm">(EVEN 1–1)</span><br><span style="color:var(--muted)">Season 11 H2H: SgtABC 1–1 MonkeyShaman</span></div></div></div>
+
+  <div class="panel" style="margin-top:18px">
+    <h3>Season 11 rematches already baked into round 1</h3>
+    <ul><li>G1: <a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=AntoineQ" title="Open AntoineQ on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/AntoineQ.png"/><span>AntoineQ</span></a> — S11 2–0</li><li>G1: <a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> — S11 3–1</li><li>G2: <a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a> — S11 2–0</li><li>G2: <a class="player-mention external-link" href="../view_player.php?name=Darkblade" title="Open Darkblade on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><span>Darkblade</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a> — S11 0–2</li><li>G4: <a class="player-mention external-link" href="../view_player.php?name=GreatArchon" title="Open GreatArchon on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a> — S11 1–1</li><li>G5: <a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=Papella" title="Open Papella on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Papella.png"/><span>Papella</span></a> — S11 1–1</li><li>G10: <a class="player-mention external-link" href="../view_player.php?name=SgtABC" title="Open SgtABC on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SgtABC.png"/><span>SgtABC</span></a> vs <a class="player-mention external-link" href="../view_player.php?name=MonkeyShaman" title="Open MonkeyShaman on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MonkeyShaman.png"/><span>MonkeyShaman</span></a> — S11 1–1</li></ul>
+  </div>
+</section>
+
+<section id="form" style="padding:18px 0">
+  <div class="section-head">
+    <div><div class="kicker">04 • Form chart</div><h2>Who produced maps in Season 11</h2></div>
+  </div>
+  <div class="chart-grid">
+    <div class="panel">
+      <h3>Leaders</h3>
+      <div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a><div class="bar-track"><div class="bar-fill gold" style="width:100%"></div></div><div class="diff-pos">7–1</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a><div class="bar-track"><div class="bar-fill gold" style="width:86%"></div></div><div class="diff-pos">6–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a><div class="bar-track"><div class="bar-fill green" style="width:86%"></div></div><div class="diff-pos">6–3</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a><div class="bar-track"><div class="bar-fill green" style="width:86%"></div></div><div class="diff-pos">6–3</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a><div class="bar-track"><div class="bar-fill green" style="width:86%"></div></div><div class="diff-pos">6–4</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a><div class="bar-track"><div class="bar-fill gold" style="width:71%"></div></div><div class="diff-pos">5–1</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a><div class="bar-track"><div class="bar-fill gold" style="width:71%"></div></div><div class="diff-pos">5–1</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a><div class="bar-track"><div class="bar-fill green" style="width:71%"></div></div><div class="diff-pos">5–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a><div class="bar-track"><div class="bar-fill green" style="width:71%"></div></div><div class="diff-pos">5–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a><div class="bar-track"><div class="bar-fill gold" style="width:57%"></div></div><div class="diff-pos">4–0</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a><div class="bar-track"><div class="bar-fill green" style="width:57%"></div></div><div class="diff-pos">4–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a><div class="bar-track"><div class="bar-fill green" style="width:43%"></div></div><div class="diff-pos">3–1</div></div>
+    </div>
+    <div class="panel">
+      <h3>Quick reads</h3>
+      <ul>
+        <li><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a> / <a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a> / <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> make G1 the heavyweight pod.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a> vs a possible <a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a> path is the mid-bracket headline.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a> lands in G3 with <a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> — Ace energy throughout that pod.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a> (4–0) and <a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a> (5–2) are the “results ahead of rank” climbers.</li>
+        <li>Didn’t play many maps this season? You’re still welcome — confirm on the
+          <a class="source-link" href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer">Forum signup thread</a>
+          — signups decide the final field.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="board" style="padding:18px 0">
+  <div class="section-head">
+    <div><div class="kicker">05 • The board</div><h2>All 10 groups</h2></div>
+    <div class="section-note">Early look · final pods lock after Forum signups</div>
+  </div>
+  <div class="panel">
+    <div class="seed-board"><div class="seed-row head"><div>Group</div><div>Code</div><div>Field (by seed)</div><div class="hide-sm">Opening semis (1v4 · 2v3)</div></div><div class="seed-row"><div><strong>G1</strong></div><div><span class="code-chip S">S</span></div><div>Chat-Omic #1 · MedicJR #2 · DarkMenace #3 · AntoineQ #5</div><div class="hide-sm">Chat-Omic vs AntoineQ · MedicJR vs DarkMenace</div></div><div class="seed-row"><div><strong>G2</strong></div><div><span class="code-chip S">S</span></div><div>FRost #6 · Darkblade #7 · sOs #8 · Cubano #10</div><div class="hide-sm">FRost vs Cubano · Darkblade vs sOs</div></div><div class="seed-row"><div><strong>G3</strong></div><div><span class="code-chip S">S</span></div><div>Neutrophil #11 · NuKLeO #12 · SirMalagant #16 · Crankytoaster #18</div><div class="hide-sm">Neutrophil vs Crankytoaster · NuKLeO vs SirMalagant</div></div><div class="seed-row"><div><strong>G4</strong></div><div><span class="code-chip A">A</span></div><div>GreatArchon #19 · Freeedom #20 · LittleReaper #21 · Jmpz #22</div><div class="hide-sm">GreatArchon vs Jmpz · Freeedom vs LittleReaper</div></div><div class="seed-row"><div><strong>G5</strong></div><div><span class="code-chip A">A</span></div><div>Reevou #25 · SaraNghae #26 · PossiblyMayB #27 · Papella #28</div><div class="hide-sm">Reevou vs Papella · SaraNghae vs PossiblyMayB</div></div><div class="seed-row"><div><strong>G6</strong></div><div><span class="code-chip A">A</span></div><div>SunnyD #29 · HurtnTime #30 · HyperTurtle #32 · Infestor-x #34</div><div class="hide-sm">SunnyD vs Infestor-x · HurtnTime vs HyperTurtle</div></div><div class="seed-row"><div><strong>G7</strong></div><div><span class="code-chip A">A</span></div><div>Nuke #35 · RegreT #36 · MvonLipwig #37 · ChienPwn #38</div><div class="hide-sm">Nuke vs ChienPwn · RegreT vs MvonLipwig</div></div><div class="seed-row"><div><strong>G8</strong></div><div><span class="code-chip B">B</span></div><div>Parkanian #39 · TheArchaic #40 · SCVSir #41 · BeanTheBard #43</div><div class="hide-sm">Parkanian vs BeanTheBard · TheArchaic vs SCVSir</div></div><div class="seed-row"><div><strong>G9</strong></div><div><span class="code-chip B">B</span></div><div>WindShadow #45 · LanixMagi #46 · Dpoo #48 · Pacha #50</div><div class="hide-sm">WindShadow vs Pacha · LanixMagi vs Dpoo</div></div><div class="seed-row"><div><strong>G10</strong></div><div><span class="code-chip B">B</span></div><div>Nachoz #51 · SgtABC #52 · MonkeyShaman #53 · Pebble #55</div><div class="hide-sm">Nachoz vs Pebble · SgtABC vs MonkeyShaman</div></div></div>
+  </div>
+</section>
+
+<section id="sitting" style="padding:18px 0 48px">
+  <div class="section-head">
+    <div><div class="kicker">06 • Quiet season?</div><h2>Ranked names still welcome</h2></div>
+    <div class="section-note">Light Season 11 map volume — still welcome if you confirm on the Forum</div>
+  </div>
+  <div class="panel">
+    <p style="margin-top:0;color:var(--muted)">
+      These ranks didn’t log Season 11 maps. If they jump in, the top reshuffles —
+      without <a class="player-mention external-link" href="../view_player.php?name=HarOuz" title="Open HarOuz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HarOuz.png"/><span>HarOuz</span></a>, for example, G1 opens Chat-Omic / MedicJR / DarkMenace / AntoineQ.
+      Want in? Post your confirmation on the
+      <a class="source-link" href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer"><strong>Forum signup thread</strong></a>.
+    </p>
+    <div class="absentee"><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=HarOuz" title="Open HarOuz on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HarOuz.png"/><span>HarOuz</span> <span class="mention-meta">#4</span></a> · <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Sopuli" title="Open Sopuli on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Sopuli.png"/><span>Sopuli</span> <span class="mention-meta">#9</span></a> · <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Adastra" title="Open Adastra on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Adastra.png"/><span>Adastra</span> <span class="mention-meta">#13</span></a> · <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Instability" title="Open Instability on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Instability.png"/><span>Instability</span> <span class="mention-meta">#14</span></a> · <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=LightHood" title="Open LightHood on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LightHood.png"/><span>LightHood</span> <span class="mention-meta">#15</span></a> · <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Greeempire" title="Open Greeempire on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Greeempire.png"/><span>Greeempire</span> <span class="mention-meta">#17</span></a> · <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=DLSMIZEL" title="Open DLSMIZEL on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DLSMIZEL.png"/><span>DLSMIZEL</span> <span class="mention-meta">#23</span></a> · <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Warbunnies" title="Open Warbunnies on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Warbunnies.png"/><span>Warbunnies</span> <span class="mention-meta">#24</span></a> · <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=cyan" title="Open cyan on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/cyan.png"/><span>cyan</span> <span class="mention-meta">#31</span></a> · <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=KriMiNal" title="Open KriMiNal on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/KriMiNal.png"/><span>KriMiNal</span> <span class="mention-meta">#33</span></a> · <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=RevenantRage" title="Open RevenantRage on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/RevenantRage.png"/><span>RevenantRage</span> <span class="mention-meta">#42</span></a> · <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Klem" title="Open Klem on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Klem.png"/><span>Klem</span> <span class="mention-meta">#44</span></a> · <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming" target="_blank" rel="noopener noreferrer">POG</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=PorkSisig" title="Open PorkSisig on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PorkSisig.png"/><span>PorkSisig</span> <span class="mention-meta">#47</span></a> · <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=JudgeFae" title="Open JudgeFae on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/JudgeFae.png"/><span>JudgeFae</span> <span class="mention-meta">#49</span></a> · <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Fenrir" title="Open Fenrir on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Fenrir.png"/><span>Fenrir</span> <span class="mention-meta">#54</span></a> · <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=SpamAndRice" title="Open SpamAndRice on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SpamAndRice.png"/><span>SpamAndRice</span> <span class="mention-meta">#56</span></a> · <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares" target="_blank" rel="noopener noreferrer">ASH</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=ArduousGem" title="Open ArduousGem on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ArduousGem.png"/><span>ArduousGem</span> <span class="mention-meta">#57</span></a> · <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys" target="_blank" rel="noopener noreferrer">PTB</a> · 0 maps</span><span class="form-pill"><a class="player-mention external-link" href="../view_player.php?name=Poellie" title="Open Poellie on PSISTORM FSL" target="_blank" rel="noopener noreferrer"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Poellie.png"/><span>Poellie</span> <span class="mention-meta">#58</span></a> · <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics" target="_blank" rel="noopener noreferrer">ST</a> · 0 maps</span></div>
+  </div>
+
+  <div class="team-cards" style="margin-top:18px">
+    <div class="panel mini">
+      <h3>Ready to play?</h3>
+      <p style="margin:0;color:var(--muted)">
+        Confirm you’re in on the
+        <a class="source-link" href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer"><strong>Forum signup thread</strong></a>,
+        then open the
+        <a class="source-link" href="../rankings/tournament.php" target="_blank" rel="noopener noreferrer">live Individual Championships bracket</a>
+        for a sneak preview of potential matchups if everyone active plays — and for real pairings once Friday/Saturday starts rolling.
+      </p>
+    </div>
+    <div class="panel mini">
+      <h3>Related</h3>
+      <p style="margin:0;color:var(--muted)">
+        <a class="source-link" href="./fsl_season_11_season_review.html" target="_blank" rel="noopener noreferrer">Season 11 full review</a> ·
+        <a class="source-link" href="./fsl_season_11_mid_playoff_review.html" target="_blank" rel="noopener noreferrer">Mid-playoff review</a> ·
+        <a class="source-link" href="../fsl_schedule.php" target="_blank" rel="noopener noreferrer">Season schedule</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap" style="padding:10px 0 50px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)">
+  FSL Individual Championships · Sign up on the <a class="source-link" href="../forum/index.php?postid=2037406548" target="_blank" rel="noopener noreferrer">Forum thread</a> · First matches Friday &amp; early Saturday next week
+</footer>
+</body>
+</html>

@@ -235,39 +235,86 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         <!-- Forum (text link) -->
         <a href="<?= $basePath ?>forum/" class="menu-item button">Forum</a>
 
-        <!-- FSL Dropdown -->
+        <!-- FSL Dropdown (hover-open; groups start collapsed) -->
         <div class="dropdown">
-            <a href="<?= $basePath ?>fsl_season.php" class="menu-item logo-button">
+            <a href="<?= $basePath ?>fsl_season.php" class="menu-item logo-button" aria-haspopup="true">
                 <img src="<?= $basePath ?>images/fsl_sc2_logo_small_40px_93px.png" alt="FSL" class="nav-logo" width="93" height="40">
                 <span class="dropdown-arrow">&#9662;</span>
             </a>
-            <div class="dropdown-content">
+            <div class="dropdown-content nav-fsl-dropdown-content">
                 <div class="dropdown-section">
                     <h4>FSL</h4>
                     <a href="<?= $basePath ?>hall-of-champions.php" class="dropdown-link">Hall of Champions</a>
-                    <a href="<?= $basePath ?>fsl_season.php" class="dropdown-link">Seasons</a>
-                    <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link">Schedule</a>
-                    <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link">Teams</a>
                     <a href="<?= $basePath ?>fsl_roster.php" class="dropdown-link">Players</a>
-                    <a href="<?= $basePath ?>rankings" class="dropdown-link">Rankings</a>
-                    <a href="<?= $basePath ?>rankings/tournament.php" class="dropdown-link">Challenger Bracket</a>
-                    <a href="<?= $basePath ?>lineup_planner.php" class="dropdown-link">Lineup Planner</a>
                     <a href="<?= $basePath ?>fsl_matches.php" class="dropdown-link">Matches</a>
-                    <a href="<?= $basePath ?>draft/public" class="dropdown-link">Draft</a>
+                    <a href="<?= $basePath ?>rankings" class="dropdown-link">Rankings</a>
                     <a href="<?= $basePath ?>faq.php" class="dropdown-link">FAQ</a>
-                    <a href="<?= $basePath ?>playercards.php" class="dropdown-link">Collectible Cards</a>
-                    <a href="<?= $basePath ?>playercards_scenarios.php" class="dropdown-link">Collectible scenarios</a>
-                    <a href="<?= $basePath ?>playercards_revenueshare.php" class="dropdown-link">Collectible pro revenue share</a>
-                    <a href="<?= $basePath ?>playercards_pro.php" class="dropdown-link">Collectible pro talent</a>
                     <a href="<?= $basePath ?>apply.php" class="dropdown-link">Apply</a>
+
+                    <div class="nav-accordion nav-accordion-nested">
+                        <button type="button" class="nav-accordion-toggle" aria-expanded="false">
+                            <span>Player Analysis</span>
+                            <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                        </button>
+                        <div class="nav-accordion-panel" hidden>
+                            <a href="<?= $basePath ?>player_statistics.php" class="dropdown-link sub-link">Statistics</a>
+                            <a href="<?= $basePath ?>public_spider_chart.php" class="dropdown-link sub-link">Spider Charts</a>
+                            <a href="<?= $basePath ?>player_network.php" class="dropdown-link sub-link">Player Network</a>
+                            <a href="<?= $basePath ?>voting_guide.php" class="dropdown-link sub-link">Voting Guide</a>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="dropdown-subsection">
-                    <h5>Player Analysis</h5>
-                    <a href="<?= $basePath ?>player_statistics.php" class="dropdown-link sub-link">Statistics</a>
-                    <a href="<?= $basePath ?>public_spider_chart.php" class="dropdown-link sub-link">Spider Charts</a>
-                    <a href="<?= $basePath ?>player_network.php" class="dropdown-link sub-link">Player Network</a>
-                    <a href="<?= $basePath ?>voting_guide.php" class="dropdown-link sub-link">Voting Guide</a>
+
+                <div class="dropdown-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle" aria-expanded="false">
+                        <span>Team League</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>fsl_season.php" class="dropdown-link sub-link">Seasons</a>
+                        <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link sub-link">Schedule</a>
+                        <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link sub-link">Teams</a>
+                        <a href="<?= $basePath ?>draft/public" class="dropdown-link sub-link">Draft</a>
+                        <a href="<?= $basePath ?>lineup_planner.php" class="dropdown-link sub-link">Lineup Planner</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle" aria-expanded="false">
+                        <span>Individual Tournament</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>rankings/tournament.php" class="dropdown-link sub-link">Live Bracket</a>
+                        <a href="<?= $basePath ?>rankings/tournament_diagram.php?action=view&amp;format=png&amp;scale=50" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Bracket Diagram</a>
+                        <a href="<?= $basePath ?>articles/fsl_individual_championship_tourney_s11.html" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Sign Up &amp; Preview</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle" aria-expanded="false">
+                        <span>Articles</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>articles/fsl_season_11_season_review.html" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Season 11 — Full Season Review</a>
+                        <a href="<?= $basePath ?>articles/fsl_season_11_mid_playoff_review.html" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Season 11 — Mid-Playoff Review</a>
+                        <a href="<?= $basePath ?>articles/fsl_individual_championship_tourney_s11.html" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Season 11 - Individual Tournament</a>
+                        <a href="<?= $basePath ?>articles/fsl_season_10_full_review.html" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Season 10 — Full Season Review</a>
+                    </div>
+                </div>
+
+                <div class="dropdown-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle" aria-expanded="false">
+                        <span>Collectibles</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>playercards.php" class="dropdown-link sub-link">Collectible Cards</a>
+                        <a href="<?= $basePath ?>playercards_scenarios.php" class="dropdown-link sub-link">Collectible scenarios</a>
+                        <a href="<?= $basePath ?>playercards_revenueshare.php" class="dropdown-link sub-link">Collectible pro revenue share</a>
+                        <a href="<?= $basePath ?>playercards_pro.php" class="dropdown-link sub-link">Collectible pro talent</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -302,7 +349,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <a href="<?= $basePath ?>discord.php" class="dropdown-link">Discord</a>
                     <a href="<?= $basePath ?>chat.php" class="dropdown-link">Chat</a>
                     <a href="<?= $basePath ?>music" class="dropdown-link">Music</a>
-                    <a href="../watch" class="dropdown-link">Watch</a>
+                    <a href="../watch" class="dropdown-link" target="_blank" rel="noopener noreferrer">Watch</a>
                 </div>
             </div>
         </div>
@@ -377,14 +424,29 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         </div>
         <?php endif; ?>
 
-        <!-- Login, Register, Profile, Logout -->
-        <?php if (!$isLoggedIn): ?>
-            <a href="<?= $basePath ?>login.php" class="menu-item button">Login</a>
-            <a href="<?= $basePath ?>register.php" class="menu-item button">Register</a>
-        <?php else: ?>
-            <a href="<?= $basePath ?>profile.php" class="menu-item button"><?php echo htmlspecialchars($username); ?></a>
-            <a href="<?= $basePath ?>logout.php" class="menu-item button">Logout</a>
-        <?php endif; ?>
+        <!-- Account dropdown (Login / Register or Profile / Logout) -->
+        <div class="dropdown">
+            <a href="#" class="menu-item button">
+                <?php if ($isLoggedIn): ?>
+                    <?php echo htmlspecialchars($username); ?>
+                <?php else: ?>
+                    Account
+                <?php endif; ?>
+                <span class="dropdown-arrow">&#9662;</span>
+            </a>
+            <div class="dropdown-content dropdown-content-end">
+                <div class="dropdown-section">
+                    <h4>Account</h4>
+                    <?php if (!$isLoggedIn): ?>
+                        <a href="<?= $basePath ?>login.php" class="dropdown-link">Login</a>
+                        <a href="<?= $basePath ?>register.php" class="dropdown-link">Register</a>
+                    <?php else: ?>
+                        <a href="<?= $basePath ?>profile.php" class="dropdown-link">Profile</a>
+                        <a href="<?= $basePath ?>logout.php" class="dropdown-link">Logout</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Mobile Menu Toggle -->
@@ -412,28 +474,75 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
             <div class="mobile-section">
                 <h4>FSL</h4>
                 <a href="<?= $basePath ?>hall-of-champions.php" class="mobile-link">Hall of Champions</a>
-                <a href="<?= $basePath ?>fsl_season.php" class="mobile-link">Seasons</a>
-                <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link">Schedule</a>
-                <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link">Teams</a>
                 <a href="<?= $basePath ?>fsl_roster.php" class="mobile-link">Players</a>
-                <a href="<?= $basePath ?>rankings" class="mobile-link">Rankings</a>
-                <a href="<?= $basePath ?>rankings/tournament.php" class="mobile-link">Challenger Bracket</a>
-                <a href="<?= $basePath ?>lineup_planner.php" class="mobile-link">Lineup Planner</a>
                 <a href="<?= $basePath ?>fsl_matches.php" class="mobile-link">Matches</a>
-                <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link">Draft</a>
+                <a href="<?= $basePath ?>rankings" class="mobile-link">Rankings</a>
                 <a href="<?= $basePath ?>faq.php" class="mobile-link">FAQ</a>
-                <a href="<?= $basePath ?>playercards.php" class="mobile-link">Collectible Cards</a>
-                <a href="<?= $basePath ?>playercards_scenarios.php" class="mobile-link">Collectible scenarios</a>
-                <a href="<?= $basePath ?>playercards_revenueshare.php" class="mobile-link">Collectible pro revenue share</a>
-                <a href="<?= $basePath ?>playercards_pro.php" class="mobile-link">Collectible pro talent</a>
                 <a href="<?= $basePath ?>apply.php" class="mobile-link">Apply</a>
-                
-                <div class="mobile-subsection">
-                    <h5>Player Analysis</h5>
-                    <a href="<?= $basePath ?>player_statistics.php" class="mobile-link sub-link">Statistics</a>
-                    <a href="<?= $basePath ?>public_spider_chart.php" class="mobile-link sub-link">Spider Charts</a>
-                    <a href="<?= $basePath ?>player_network.php" class="mobile-link sub-link">Player Network</a>
-                    <a href="<?= $basePath ?>voting_guide.php" class="mobile-link sub-link">Voting Guide</a>
+
+                <div class="nav-accordion nav-accordion-nested">
+                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="false">
+                        <span>Player Analysis</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>player_statistics.php" class="mobile-link sub-link">Statistics</a>
+                        <a href="<?= $basePath ?>public_spider_chart.php" class="mobile-link sub-link">Spider Charts</a>
+                        <a href="<?= $basePath ?>player_network.php" class="mobile-link sub-link">Player Network</a>
+                        <a href="<?= $basePath ?>voting_guide.php" class="mobile-link sub-link">Voting Guide</a>
+                    </div>
+                </div>
+
+                <div class="mobile-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="false">
+                        <span>Team League</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>fsl_season.php" class="mobile-link sub-link">Seasons</a>
+                        <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link sub-link">Schedule</a>
+                        <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link sub-link">Teams</a>
+                        <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link sub-link">Draft</a>
+                        <a href="<?= $basePath ?>lineup_planner.php" class="mobile-link sub-link">Lineup Planner</a>
+                    </div>
+                </div>
+
+                <div class="mobile-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="false">
+                        <span>Individual Tournament</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>rankings/tournament.php" class="mobile-link sub-link">Live Bracket</a>
+                        <a href="<?= $basePath ?>rankings/tournament_diagram.php?action=view&amp;format=png&amp;scale=50" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Bracket Diagram</a>
+                        <a href="<?= $basePath ?>articles/fsl_individual_championship_tourney_s11.html" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Sign Up &amp; Preview</a>
+                    </div>
+                </div>
+
+                <div class="mobile-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="false">
+                        <span>Articles</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>articles/fsl_season_11_season_review.html" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Season 11 — Full Season Review</a>
+                        <a href="<?= $basePath ?>articles/fsl_season_11_mid_playoff_review.html" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Season 11 — Mid-Playoff Review</a>
+                        <a href="<?= $basePath ?>articles/fsl_individual_championship_tourney_s11.html" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Season 11 - Individual Tournament</a>
+                        <a href="<?= $basePath ?>articles/fsl_season_10_full_review.html" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Season 10 — Full Season Review</a>
+                    </div>
+                </div>
+
+                <div class="mobile-subsection nav-accordion">
+                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="false">
+                        <span>Collectibles</span>
+                        <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
+                    </button>
+                    <div class="nav-accordion-panel" hidden>
+                        <a href="<?= $basePath ?>playercards.php" class="mobile-link sub-link">Collectible Cards</a>
+                        <a href="<?= $basePath ?>playercards_scenarios.php" class="mobile-link sub-link">Collectible scenarios</a>
+                        <a href="<?= $basePath ?>playercards_revenueshare.php" class="mobile-link sub-link">Collectible pro revenue share</a>
+                        <a href="<?= $basePath ?>playercards_pro.php" class="mobile-link sub-link">Collectible pro talent</a>
+                    </div>
                 </div>
             </div>
 
@@ -450,7 +559,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 <a href="<?= $basePath ?>discord.php" class="mobile-link">Discord</a>
                 <a href="<?= $basePath ?>chat.php" class="mobile-link">Chat</a>
                 <a href="<?= $basePath ?>music" class="mobile-link">Music</a>
-                <a href="../watch" class="mobile-link">Watch</a>
+                <a href="../watch" class="mobile-link" target="_blank" rel="noopener noreferrer">Watch</a>
             </div>
 
             <!-- Admin Section -->
@@ -538,7 +647,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
     }
 
     .nav-menu .nav-brand {
-        flex: 1; /* Allow brand to grow and take available space */
+        flex: 0 1 auto;
         min-width: 0;
         text-align: left;
         overflow-x: hidden; /* logo only – does not affect dropdowns */
@@ -549,7 +658,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         align-items: center;
         gap: 20px;
         min-width: 0;
-        flex-shrink: 1;
+        flex-shrink: 0;
+        margin-left: auto; /* right-justify menu items */
     }
 
     /* Dropdown Container */
@@ -603,6 +713,19 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
+    /* Rightmost menus (Account) open flush to the right edge */
+    .nav-menu .dropdown-content.dropdown-content-end {
+        left: auto;
+        right: 0;
+    }
+
+    .nav-menu .nav-fsl-dropdown-content {
+        min-width: 280px;
+        max-height: min(70vh, 560px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
     .nav-menu .dropdown-section {
         margin-bottom: 15px;
     }
@@ -616,8 +739,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
     }
 
     .nav-menu .dropdown-subsection {
-        margin-top: 15px;
-        padding-top: 15px;
+        margin-top: 10px;
+        padding-top: 10px;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
@@ -626,6 +749,80 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         margin: 0 0 10px 0;
         font-size: 1em;
         padding-left: 10px;
+    }
+
+    /* Accordion group headers inside FSL */
+    .nav-menu .nav-accordion-toggle,
+    .mobile-nav .nav-accordion-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 1em;
+        font-weight: 600;
+        color: #00d4ff;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .nav-menu .nav-accordion-toggle:hover,
+    .mobile-nav .nav-accordion-toggle:hover {
+        background: rgba(0, 212, 255, 0.1);
+        border-color: #00d4ff;
+    }
+
+    .nav-menu .nav-accordion-chevron,
+    .mobile-nav .nav-accordion-chevron {
+        font-size: 12px;
+        transition: transform 0.2s ease;
+        flex-shrink: 0;
+        margin-left: 8px;
+    }
+
+    .nav-menu .nav-accordion-toggle[aria-expanded="true"] .nav-accordion-chevron,
+    .mobile-nav .nav-accordion-toggle[aria-expanded="true"] .nav-accordion-chevron {
+        transform: rotate(180deg);
+    }
+
+    .nav-menu .nav-accordion-panel,
+    .mobile-nav .nav-accordion-panel {
+        margin-top: 8px;
+    }
+
+    .nav-menu .nav-accordion-panel[hidden],
+    .mobile-nav .nav-accordion-panel[hidden] {
+        display: none !important;
+    }
+
+    /* Nested under FSL → FSL (3rd-level submenu) */
+    .nav-menu .nav-accordion-nested,
+    .mobile-nav .nav-accordion-nested {
+        margin-top: 8px;
+        margin-left: 10px;
+    }
+
+    .nav-menu .nav-accordion-nested .nav-accordion-toggle,
+    .mobile-nav .nav-accordion-nested .nav-accordion-toggle {
+        font-size: 0.95em;
+        padding: 8px 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .nav-menu .nav-accordion-nested .dropdown-link.sub-link {
+        margin-left: 18px;
+    }
+
+    .mobile-nav .nav-accordion-nested .mobile-link.sub-link {
+        margin-left: 20px;
     }
 
     .nav-menu .dropdown-link {
@@ -678,7 +875,6 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         transform: translateY(0);
     }
 
-    /* Rotate Arrow on Hover */
     .nav-menu .dropdown:hover .dropdown-arrow {
         transform: rotate(180deg);
     }
@@ -830,6 +1026,14 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         padding-left: 15px;
     }
 
+    .mobile-subsection.nav-accordion {
+        margin-top: 12px;
+    }
+
+    .mobile-nav .mobile-accordion-toggle {
+        margin-bottom: 4px;
+    }
+
     .mobile-link {
         display: block;
         padding: 12px 15px;
@@ -891,57 +1095,75 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
         const mobileNav = document.getElementById('mobileNav');
         const body = document.body;
 
-        // Show mobile menu
-        mobileMenuToggle.addEventListener('click', function() {
-            mobileNav.style.transform = 'translateX(0)';
-            body.classList.add('menu-open');
-            mobileMenuToggle.classList.add('active');
-        });
-
-        // Hide mobile menu
-        mobileClose.addEventListener('click', function() {
+        function closeMobileNav() {
+            if (!mobileNav) return;
             mobileNav.style.transform = 'translateX(-100%)';
             body.classList.remove('menu-open');
-            mobileMenuToggle.classList.remove('active');
+            if (mobileMenuToggle) mobileMenuToggle.classList.remove('active');
+        }
+
+        // Accordion groups (desktop FSL + mobile) — independent expand/collapse
+        document.querySelectorAll('.nav-accordion-toggle').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var panel = btn.nextElementSibling;
+                if (!panel || !panel.classList.contains('nav-accordion-panel')) return;
+                var willOpen = btn.getAttribute('aria-expanded') !== 'true';
+                btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                if (willOpen) {
+                    panel.removeAttribute('hidden');
+                } else {
+                    panel.setAttribute('hidden', '');
+                }
+            });
         });
 
-        // Close mobile menu when clicking outside
+        // Show mobile menu
+        if (mobileMenuToggle) {
+            mobileMenuToggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                mobileNav.style.transform = 'translateX(0)';
+                body.classList.add('menu-open');
+                mobileMenuToggle.classList.add('active');
+            });
+        }
+
+        // Hide mobile menu
+        if (mobileClose) {
+            mobileClose.addEventListener('click', function() {
+                closeMobileNav();
+            });
+        }
+
+        // Outside click: close mobile nav
         document.addEventListener('click', function(event) {
-            if (mobileNav.style.transform === 'translateX(0px)' && 
-                !mobileNav.contains(event.target) && 
-                !mobileMenuToggle.contains(event.target)) {
-                mobileNav.style.transform = 'translateX(-100%)';
-                body.classList.remove('menu-open');
-                mobileMenuToggle.classList.remove('active');
+            if (mobileNav && mobileNav.style.transform === 'translateX(0px)' &&
+                !mobileNav.contains(event.target) &&
+                mobileMenuToggle && !mobileMenuToggle.contains(event.target)) {
+                closeMobileNav();
             }
         });
 
-        // Close mobile menu on escape key
+        // Escape: close mobile nav
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && mobileNav.style.transform === 'translateX(0px)') {
-                mobileNav.style.transform = 'translateX(-100%)';
-                body.classList.remove('menu-open');
-                mobileMenuToggle.classList.remove('active');
+            if (e.key === 'Escape' && mobileNav && mobileNav.style.transform === 'translateX(0px)') {
+                closeMobileNav();
             }
         });
 
-        // Auto-close mobile menu when clicking on a link
+        // Auto-close mobile menu when clicking on a real nav link (not accordion toggles)
         const mobileLinks = document.querySelectorAll('.mobile-link');
         mobileLinks.forEach(link => {
             link.addEventListener('click', function() {
-                mobileNav.style.transform = 'translateX(-100%)';
-                body.classList.remove('menu-open');
-                mobileMenuToggle.classList.remove('active');
+                closeMobileNav();
             });
         });
 
         // Handle window resize
         window.addEventListener('resize', function() {
             if (window.innerWidth > 768) {
-                // Hide mobile menu on desktop
-                mobileNav.style.transform = 'translateX(-100%)';
-                body.classList.remove('menu-open');
-                mobileMenuToggle.classList.remove('active');
+                closeMobileNav();
             }
         });
     });

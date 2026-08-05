@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="FSL Season 11 full season review — Special Tactics champions, map scoring, rankings, and every player's line." name="description"/>
+<title>FSL Season 11 — Full Season Review</title>
+<style>
+
+    :root {
+      --bg: #071019;
+      --panel: #0e1a27;
+      --panel-2: #132333;
+      --text: #edf5ff;
+      --muted: #9db0c4;
+      --line: rgba(255,255,255,.10);
+      --cyan: #42d9ff;
+      --blue: #6d8dff;
+      --gold: #ffcc66;
+      --green: #53e3a6;
+      --red: #ff7285;
+      --purple: #b38cff;
+      --shadow: 0 20px 50px rgba(0,0,0,.28);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(66,217,255,.12), transparent 30%),
+        radial-gradient(circle at 88% 10%, rgba(179,140,255,.10), transparent 28%),
+        linear-gradient(180deg, #071019 0%, #08131e 48%, #06101a 100%);
+      line-height: 1.65;
+    }
+
+    a { color: inherit; }
+
+    .wrap {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 78px 0 54px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero::after {
+      content: "FSL 11";
+      position: absolute;
+      right: -12px;
+      top: -36px;
+      font-size: clamp(7rem, 20vw, 17rem);
+      font-weight: 900;
+      letter-spacing: -.08em;
+      color: rgba(255,255,255,.025);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(66,217,255,.26);
+      background: rgba(66,217,255,.07);
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      font-size: .76rem;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 20px 0 10px;
+      max-width: 900px;
+      font-size: clamp(2.55rem, 7vw, 6.2rem);
+      line-height: .96;
+      letter-spacing: -.055em;
+    }
+
+    h1 span {
+      display: block;
+      color: transparent;
+      background: linear-gradient(90deg, var(--cyan), #b9eaff 50%, var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+
+    .subtitle {
+      margin: 0 0 26px;
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      color: var(--muted);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.45fr .75fr;
+      gap: 28px;
+      align-items: end;
+    }
+
+    .lede {
+      max-width: 820px;
+      margin: 0;
+      font-size: 1.06rem;
+      color: #d4e0ec;
+    }
+
+    .meta-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(14,26,39,.72);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+
+    .meta-card strong { color: var(--gold); }
+    .meta-card p { margin: 0; color: var(--muted); font-size: .9rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 30px;
+    }
+
+    .stat {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+    }
+
+    .stat b { display: block; font-size: 1.7rem; line-height: 1; }
+    .stat span { display: block; margin-top: 7px; color: var(--muted); font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(7,16,25,.82);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(14px);
+    }
+
+    .nav-inner {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 12px 0;
+      scrollbar-width: none;
+    }
+    .nav-inner::-webkit-scrollbar { display: none; }
+    .nav a {
+      white-space: nowrap;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: .85rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 999px;
+    }
+    .nav a:hover { background: var(--panel-2); color: var(--text); }
+
+    main { padding: 38px 0 70px; }
+    section { scroll-margin-top: 80px; margin: 0 0 46px; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .kicker { color: var(--cyan); font-size: .78rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    h2 { margin: 3px 0 0; font-size: clamp(1.8rem, 4vw, 3rem); letter-spacing: -.035em; }
+    .section-note { max-width: 440px; color: var(--muted); font-size: .9rem; text-align: right; }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(19,35,51,.92), rgba(12,24,36,.95));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .bracket { padding: 22px; overflow-x: auto; }
+    .bracket-grid {
+      min-width: 930px;
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr .85fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .round {
+      padding: 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,.025);
+      border: 1px solid var(--line);
+    }
+    .round h3 { margin: 0 0 12px; font-size: .9rem; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
+    .match {
+      margin-top: 11px;
+      padding: 13px;
+      border-radius: 13px;
+      background: #0b1723;
+      border: 1px solid var(--line);
+    }
+    .match:first-of-type { margin-top: 0; }
+    .match-top { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); font-size: .78rem; }
+    .team-row { display: flex; justify-content: space-between; gap: 12px; padding-top: 7px; font-weight: 750; }
+    .winner { color: var(--green); }
+    .pending { border-color: rgba(255,204,102,.25); }
+    .pending .match-top { color: var(--gold); }
+    .final { display: grid; place-items: center; text-align: center; min-height: 100%; background: radial-gradient(circle at 50% 30%, rgba(255,204,102,.09), transparent 55%), rgba(255,255,255,.025); }
+    .trophy { font-size: 2.2rem; }
+
+    .seed-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .seed {
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.025);
+    }
+    .seed b { color: var(--gold); }
+    .seed small { display: block; color: var(--muted); margin-top: 4px; }
+
+    .team-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .team-card { padding: 22px; position: relative; overflow: hidden; }
+    .team-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--accent, var(--cyan)); }
+    .team-card h3 { margin: 0; font-size: 1.35rem; }
+    .team-card .tagline { color: var(--muted); margin: 3px 0 13px; }
+    .record { display: inline-block; padding: 5px 9px; border-radius: 8px; background: rgba(255,255,255,.06); font-weight: 800; font-size: .84rem; }
+    .team-card p { color: #c9d7e4; }
+    .team-card p:last-child { margin-bottom: 0; }
+    .callout { border-left: 3px solid var(--accent, var(--cyan)); padding-left: 13px; color: var(--text) !important; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 14px 16px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .09em; background: rgba(255,255,255,.025); }
+    tr:last-child td { border-bottom: 0; }
+    td strong { color: var(--text); }
+    .good { color: var(--green); font-weight: 800; }
+    .bad { color: var(--red); font-weight: 800; }
+    .rank { color: var(--gold); font-weight: 900; }
+
+    .story-grid { display: grid; grid-template-columns: 1.2fr .8fr; gap: 18px; }
+    .stack { display: grid; gap: 18px; }
+    .mini { padding: 20px; }
+    .mini h3 { margin: 0 0 12px; font-size: 1rem; text-transform: uppercase; letter-spacing: .08em; color: var(--cyan); }
+    .mini ul { margin: 0; padding-left: 18px; color: #c8d5e2; }
+    .mini li + li { margin-top: 8px; }
+
+    .rankings { padding: 0; overflow: hidden; }
+    .rank-row { display: grid; grid-template-columns: 55px 1.3fr 55px 70px 1.5fr; gap: 12px; align-items: center; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+    .rank-row:last-child { border-bottom: 0; }
+    .rank-row.header { color: var(--muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .09em; background: rgba(255,255,255,.03); }
+    .race-pill { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.07); font-weight: 900; }
+
+    .footer {
+      padding: 28px 0 44px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .88rem;
+    }
+
+    @media (max-width: 820px) {
+      .hero-grid, .story-grid { grid-template-columns: 1fr; }
+      .stats, .seed-list { grid-template-columns: repeat(2, 1fr); }
+      .team-cards { grid-template-columns: 1fr; }
+      .section-head { align-items: start; flex-direction: column; }
+      .section-note { text-align: left; }
+      .rank-row { grid-template-columns: 42px 1fr 42px 52px; }
+      .rank-row > :last-child { grid-column: 2 / -1; color: var(--muted); }
+      .rank-row.header > :last-child { display: none; }
+    }
+
+    @media (max-width: 520px) {
+      .wrap { width: min(100% - 22px, 1180px); }
+      .hero { padding-top: 48px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat { padding: 14px; }
+      .panel, .team-card { border-radius: 15px; }
+    }
+
+    @media print {
+      :root { --text: #101820; --muted: #4c5b66; --line: #d9e0e5; }
+      body { background: #fff; color: #101820; }
+      .nav { display: none; }
+      .hero { padding-top: 24px; }
+      .hero::after { display: none; }
+      .panel, .team-card, .meta-card { box-shadow: none; background: #fff; break-inside: avoid; }
+      .match { background: #fff; }
+      h1 span { color: #101820; -webkit-text-fill-color: initial; }
+      section { break-inside: avoid; }
+    }
+  
+
+    .notice { padding: 22px; border-left: 4px solid var(--gold); }
+    .notice h3 { margin: 0 0 8px; color: var(--gold); }
+    .notice p { margin: 8px 0 0; color: #d4e0ec; }
+    .method-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:16px; }
+    .method-item { padding:16px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.025); }
+    .method-item strong { color:var(--cyan); display:block; margin-bottom:5px; }
+    .score-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+    .score-card { padding:16px; border-radius:14px; border:1px solid var(--line); background:rgba(255,255,255,.025); }
+    .score-card b { font-size:1.15rem; }
+    .score-card span { display:block; color:var(--muted); font-size:.86rem; margin-top:4px; }
+    .slot-log { margin:14px 0 0; padding:0; list-style:none; }
+    .slot-log li { display:grid; grid-template-columns:140px 1fr; gap:12px; padding:8px 0; border-bottom:1px dashed var(--line); color:#c9d7e4; }
+    .slot-log li:last-child { border-bottom:0; }
+    .slot-log strong { color:var(--text); }
+    .encourage { color:#dbe8f5 !important; background:rgba(83,227,166,.055); border-radius:12px; padding:12px 14px; }
+    @media (max-width:820px){ .method-grid,.score-grid{grid-template-columns:1fr 1fr;} }
+    @media (max-width:520px){ .method-grid,.score-grid{grid-template-columns:1fr;} .slot-log li{grid-template-columns:1fr;gap:2px;} }
+
+    .table-wrap .rank-player { display:flex; align-items:center; gap:10px; }
+    .table-wrap .player-thumb { width:32px; height:32px; flex:0 0 32px; border-radius:8px; }
+    .external-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(66,217,255,.42); text-underline-offset: .18em; text-decoration-thickness: 1px; transition: color .18s ease, text-decoration-color .18s ease, background-color .18s ease; border-radius: 4px; }
+    .external-link::after { content: " ↗"; font-size: .72em; opacity: .58; white-space: nowrap; }
+    .external-link:hover, .external-link:focus-visible { color: var(--cyan); text-decoration-color: currentColor; background: rgba(66,217,255,.07); outline: none; }
+    .team-link { font-weight: inherit; }
+    .source-link { color: var(--cyan); }
+    @media print { .external-link { text-decoration: none; } .external-link::after { content: ""; } }
+
+
+    /* Official FSL branding assets */
+    .team-brand-head { display:flex; align-items:center; gap:15px; margin-bottom:12px; padding-right:8px; }
+    .team-brand-copy { min-width:0; flex:1; }
+    .team-brand-copy h3 { margin:0; }
+    .team-logo { width:74px; height:74px; flex:0 0 74px; object-fit:cover; border-radius:17px; border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 24px rgba(0,0,0,.28); background:#071019; }
+    .team-logo:hover { transform:translateY(-2px); transition:transform .18s ease; }
+    .team-logo-mini { width:34px; height:34px; object-fit:cover; border-radius:9px; border:1px solid rgba(255,255,255,.14); vertical-align:middle; margin-right:8px; box-shadow:0 5px 12px rgba(0,0,0,.2); }
+    .seed-title { display:flex; align-items:center; gap:2px; }
+    .featured-players { display:flex; flex-wrap:wrap; gap:10px; margin:15px 0 4px; }
+    .player-chip { display:flex; align-items:center; gap:8px; min-width:0; padding:6px 10px 6px 6px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.035); text-decoration:none; color:var(--text); font-size:.78rem; font-weight:800; }
+    .player-chip::after { content:none !important; }
+    .player-chip:hover { border-color:rgba(66,217,255,.42); background:rgba(66,217,255,.08); color:var(--cyan); }
+    .player-thumb { width:34px; height:34px; flex:0 0 34px; object-fit:cover; object-position:center top; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:#0b1723; }
+    .rank-player { display:flex; align-items:center; gap:10px; min-width:0; }
+    .rank-thumb { width:38px; height:38px; flex:0 0 38px; object-fit:cover; object-position:center top; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:#0b1723; }
+    .hero-team-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:18px; }
+    .hero-team { display:flex; align-items:center; gap:10px; padding:9px; border-radius:13px; border:1px solid var(--line); background:rgba(14,26,39,.58); text-decoration:none; color:var(--text); font-size:.78rem; font-weight:800; }
+    .hero-team::after { content:none !important; }
+    .hero-team:hover { background:rgba(66,217,255,.07); border-color:rgba(66,217,255,.28); color:var(--cyan); }
+    .hero-team img { width:38px; height:38px; object-fit:cover; border-radius:9px; }
+    .asset-credit { margin-top:12px; color:var(--muted); font-size:.78rem; }
+    @media (max-width:820px){ .hero-team-strip{grid-template-columns:repeat(2,1fr);} }
+    @media (max-width:520px){ .team-logo{width:62px;height:62px;flex-basis:62px}.hero-team-strip{grid-template-columns:1fr 1fr}.hero-team span{font-size:.72rem}.rank-thumb{width:32px;height:32px;flex-basis:32px} }
+    @media print { .team-logo,.team-logo-mini,.player-thumb,.rank-thumb,.hero-team img { box-shadow:none; } }
+
+    .player-mention {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      vertical-align: middle;
+      text-decoration: none !important;
+      font-weight: 750;
+      white-space: nowrap;
+      max-width: 100%;
+    }
+    .player-mention::after { content: none !important; }
+    .player-mention:hover { color: var(--cyan); }
+    .inline-thumb {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      border: 1px solid rgba(255,255,255,.16);
+      background: #0b1723;
+    }
+    .mention-meta {
+      color: var(--muted);
+      font-size: .78em;
+      font-weight: 700;
+    }
+    .group-pill {
+      display: inline-grid;
+      place-items: center;
+      min-width: 34px;
+      height: 30px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: rgba(66,217,255,.1);
+      border: 1px solid rgba(66,217,255,.22);
+      color: var(--cyan);
+      font-weight: 900;
+      font-size: .78rem;
+    }
+    .rankings .rank-row {
+      grid-template-columns: 55px 1.35fr 48px 52px 55px 1.45fr;
+    }
+    @media (max-width: 820px) {
+      .rankings .rank-row { grid-template-columns: 42px 1fr 42px 48px; }
+      .rankings .rank-row > :nth-child(5) { display:none; }
+      .rankings .rank-row > :last-child { grid-column: 2 / -1; color: var(--muted); }
+      .rankings .rank-row.header > :nth-child(5),
+      .rankings .rank-row.header > :last-child { display: none; }
+    }
+    .seed small .player-mention { font-size: .86em; }
+    .slot-log .player-mention { font-weight: 800; }
+
+
+
+    .champ-banner {
+      margin: 18px 0 8px;
+      padding: 22px 24px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,204,102,.35);
+      background:
+        radial-gradient(circle at 15% 30%, rgba(255,204,102,.18), transparent 42%),
+        linear-gradient(135deg, rgba(255,204,102,.08), rgba(66,217,255,.05));
+      box-shadow: var(--shadow);
+    }
+    .champ-banner h2 { margin: 0 0 6px; font-size: clamp(1.6rem, 3vw, 2.4rem); letter-spacing: -.03em; }
+    .champ-banner p { margin: 0; color: var(--muted); }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 18px;
+    }
+    .bar-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 56px;
+      gap: 10px;
+      align-items: center;
+      margin: 8px 0;
+      font-size: .92rem;
+    }
+    .bar-track {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+    }
+    .bar-fill.gold { background: linear-gradient(90deg, #ffcc66, #ff8f4a); }
+    .bar-fill.green { background: linear-gradient(90deg, #53e3a6, #42d9ff); }
+    .race-bars { display: flex; flex-direction: column; gap: 10px; }
+    .timeline { display: grid; gap: 12px; }
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .timeline-item .wk { font-weight: 800; color: var(--cyan); letter-spacing: .04em; }
+    .timeline-item.champ {
+      border-color: rgba(255,204,102,.4);
+      background: rgba(255,204,102,.06);
+    }
+    .rank-board { display: grid; gap: 8px; }
+    .rank-row {
+      display: grid;
+      grid-template-columns: 48px 1.4fr 46px 46px 56px 1.6fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .rank-row.head {
+      background: transparent; border: none; color: var(--muted);
+      font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; padding-bottom: 0;
+    }
+    .diff-pos { color: var(--green); font-weight: 700; }
+    .diff-neg { color: var(--red); font-weight: 700; }
+    .group-block-title {
+      margin: 22px 0 10px;
+      font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+    }
+    .match-list { display: grid; gap: 10px; }
+    @media (max-width: 860px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .rank-row { grid-template-columns: 40px 1fr; }
+      .rank-row .hide-sm { display: none; }
+      .bar-row { grid-template-columns: 120px 1fr 48px; }
+    }
+
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Data through Grand Finals • Aug 1, 2026</div>
+    <div class="hero-grid">
+      <div>
+        <h1><img src="../images/fsl_sc2_logo_small.png" alt="FSL" style="height:2.2rem;width:auto;vertical-align:middle;margin-right:.35rem"> Season 11 <span>Full Season Review</span></h1>
+        <p class="subtitle">From GSL groups to a Seed 4 title run</p>
+        <p class="lede">
+          Season 11 used the GSL-style group into a ladder playoff, with Friday 7 PM ET and/or Saturday 12 PM ET windows.
+          Matchups stayed near-level via live <a class="source-link external-link" href="../rankings/" title="Open FSL Rankings">power rankings</a>.
+          <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a> took Seed 1 — then <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a> climbed the entire elimination ladder and won the Grand Finals <strong>14–4</strong>.
+        </p>
+        <div class="meta-card">
+          <p><strong>Compiled from:</strong>
+            <a class="source-link" href="../fsl_schedule.php">fsl_schedule</a>,
+            <a class="source-link" href="../fsl_matches.php">fsl_matches</a>,
+            <a class="source-link" href="../rankings/rankings.json">rankings.json</a>
+            (<a class="source-link" href="https://psistorm.com/fsl/rankings/rankings.json">(prod snapshot)</a>,
+            and the mid-playoff review baseline.
+          </p>
+          <p style="margin-top:8px"><strong>Scoring basis:</strong> map points (1v1, Ace, 2v2). A 1–1 Bo2 is a split — one map each, no sweep.</p>
+        </div>
+      </div>
+      <div>
+        <div class="stats">
+          <div class="stat"><b>8</b><span>Series complete</span></div>
+          <div class="stat"><b>ST</b><span>Champions</span></div>
+          <div class="stat"><b>14–4</b><span>Finals maps</span></div>
+          <div class="stat"><b>Seed 4</b><span>Title path</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="hero-team-strip"><a class="hero-team" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys team page"><img alt="PulledTheBoys logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_PulledTheBoys_256px.png"/><span>PulledTheBoys</span></a><a class="hero-team" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming team page"><img alt="PSIOP Gaming logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/><span>PSIOP Gaming</span></a><a class="hero-team" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares team page"><img alt="Angry Space Hares logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/><span>Angry Space Hares</span></a><a class="hero-team" href="../view_team.php?name=Special Tactics" title="Open Special Tactics team page"><img alt="Special Tactics logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_SpecialTactics_256px.png"/><span>Special Tactics</span></a></div>
+  </div>
+</header>
+
+<nav class="nav"><div class="wrap nav-inner">
+  <a href="#champions">Champions</a>
+  <a href="#bracket">Bracket</a>
+  <a href="#graphics">Graphics</a>
+  <a href="#teams">Teams</a>
+  <a href="#players">Player lines</a>
+  <a href="#rankings">Rankings</a>
+</div></nav>
+
+<main class="wrap">
+
+<section id="champions" style="padding:36px 0 10px">
+  <div class="champ-banner">
+    <h2>Special Tactics — Season 11 Champions</h2>
+    <p>
+      <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> · <a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a> · <a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a> ·
+      <a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a> · <a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> · <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a>
+      and company finished the longest possible path: losers match → elimination → finals berth → Grand Finals.
+    </p>
+  </div>
+</section>
+
+<section id="bracket" style="padding:28px 0">
+  <div class="section-head">
+    <div><div class="kicker">01 • How it finished</div><h2>The bracket</h2></div>
+    <div class="section-note"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a> beat <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a>, <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a>, then <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a> for the title.</div>
+  </div>
+
+  <div class="team-cards" style="margin-bottom:18px">
+    <div class="panel">
+      <h3>Group stage • Weeks 1–5</h3>
+      <div class="match-list"><div class="match">
+      <div class="match-top"><span>Wk1 • Opening • GSL group</span><span>6–4</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></span><span>6</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></span><span>4</span></div>
+    </div><div class="match">
+      <div class="match-top"><span>Wk2 • Opening • GSL group</span><span>11–7</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></span><span>11</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></span><span>7</span></div>
+    </div><div class="match">
+      <div class="match-top"><span>Wk3 • Winners → Seed 1</span><span>10–6</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></span><span>10</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></span><span>6</span></div>
+    </div><div class="match">
+      <div class="match-top"><span>Wk4 • Losers • Ace</span><span>7–6</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></span><span>7</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></span><span>6</span></div>
+    </div><div class="match">
+      <div class="match-top"><span>Wk5 • Seeding • Ace</span><span>7–6</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></span><span>7</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></span><span>6</span></div>
+    </div></div>
+      <p style="margin:14px 4px 0;color:var(--muted);font-size:.82rem">
+        * <a class="player-mention external-link" href="../view_player.php?name=Fenrir" title="Open Fenrir on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Fenrir.png"/><span>Fenrir</span></a> no-show forfeit noted in Week 4; that series was decided in the Ace.
+      </p>
+    </div>
+    <div class="panel">
+      <h3>Playoff ladder • Weeks 6–8</h3>
+      <div class="match-list"><div class="match">
+      <div class="match-top"><span>Wk6 • Elimination</span><span>8–7</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></span><span>8</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></span><span>7</span></div>
+    </div><div class="match">
+      <div class="match-top"><span>Wk7 • Finals berth</span><span>7–6</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></span><span>7</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></span><span>6</span></div>
+    </div><div class="match">
+      <div class="match-top"><span>Wk8 • Grand Finals</span><span>14–4</span></div>
+      <div class="team-row winner"><span><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></span><span>14</span></div>
+      <div class="team-row"><span><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></span><span>4</span></div>
+    </div></div>
+      <div style="margin-top:16px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        <div class="seed"><b>#1 <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></b><small>Finals bye → Finals loss</small></div>
+        <div class="seed"><b>#2 <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></b><small>Lost finals berth to ST</small></div>
+        <div class="seed"><b>#3 <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></b><small>Eliminated by ST</small></div>
+        <div class="seed"><b>#4 <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></b><small>Champions</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Season timeline</h3>
+    <div class="timeline"><div class="timeline-item "><div class="wk">WK1</div><div><strong><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a> 6–4 <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Opening • GSL group — Angry Space Hares take the first opening match.</div></div></div><div class="timeline-item "><div class="wk">WK2</div><div><strong><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a> 11–7 <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Opening • GSL group — PulledTheBoys win a high-volume opening night.</div></div></div><div class="timeline-item "><div class="wk">WK3</div><div><strong><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a> 10–6 <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Winners → Seed 1 — PTB lock Seed 1 and the Finals bye.</div></div></div><div class="timeline-item "><div class="wk">WK4</div><div><strong><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a> 7–6 <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Losers • Ace — PSIOP survive on Ace; Fenrir no-show noted for ST.</div></div></div><div class="timeline-item "><div class="wk">WK5</div><div><strong><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a> 7–6 <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Seeding • Ace — PSIOP take Seed 2; ASH drop to Seed 3.</div></div></div><div class="timeline-item "><div class="wk">WK6</div><div><strong><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a> 8–7 <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Elimination — Special Tactics eliminate ASH in a one-map thriller.</div></div></div><div class="timeline-item "><div class="wk">WK7</div><div><strong><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a> 7–6 <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Finals berth — ST stun Seed 2 PSIOP — SirMalagant closes the Ace.</div></div></div><div class="timeline-item champ"><div class="wk">WK8</div><div><strong><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a> 14–4 <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></strong><div style="color:var(--muted);font-size:.9rem;margin-top:4px">Grand Finals — Special Tactics smash the #1 seed and claim Season 11.</div></div></div></div>
+  </div>
+</section>
+
+<section id="graphics" style="padding:10px 0 28px">
+  <div class="section-head">
+    <div><div class="kicker">02 • Snapshot graphics</div><h2>Maps, races, standings</h2></div>
+    <div class="section-note">Bars use credited individual map totals from the completed schedule.</div>
+  </div>
+  <div class="chart-grid">
+    <div class="panel">
+      <h3>Map production leaders</h3>
+      <div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a><div class="bar-track"><div class="bar-fill gold" style="width:100%"></div></div><div class="diff-pos">7–1</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a><div class="bar-track"><div class="bar-fill gold" style="width:86%"></div></div><div class="diff-pos">6–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a><div class="bar-track"><div class="bar-fill green" style="width:86%"></div></div><div class="diff-pos">6–3</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a><div class="bar-track"><div class="bar-fill green" style="width:86%"></div></div><div class="diff-pos">6–3</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a><div class="bar-track"><div class="bar-fill green" style="width:86%"></div></div><div class="diff-pos">6–4</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a><div class="bar-track"><div class="bar-fill gold" style="width:71%"></div></div><div class="diff-pos">5–1</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a><div class="bar-track"><div class="bar-fill gold" style="width:71%"></div></div><div class="diff-pos">5–1</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a><div class="bar-track"><div class="bar-fill green" style="width:71%"></div></div><div class="diff-pos">5–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a><div class="bar-track"><div class="bar-fill green" style="width:71%"></div></div><div class="diff-pos">5–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a><div class="bar-track"><div class="bar-fill gold" style="width:57%"></div></div><div class="diff-pos">4–0</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a><div class="bar-track"><div class="bar-fill green" style="width:57%"></div></div><div class="diff-pos">4–2</div></div><div class="bar-row"><a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a><div class="bar-track"><div class="bar-fill green" style="width:43%"></div></div><div class="diff-pos">3–1</div></div>
+    </div>
+    <div class="panel">
+      <h3>Maps by race</h3>
+      <div class="race-bars"><div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="race-pill">T</span><span style="color:var(--muted);font-size:.85rem">46–37 maps • 42%</span></div><div class="bar-track"><div class="bar-fill" style="width:42%"></div></div></div><div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="race-pill">Z</span><span style="color:var(--muted);font-size:.85rem">33–37 maps • 35%</span></div><div class="bar-track"><div class="bar-fill" style="width:35%"></div></div></div><div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="race-pill">P</span><span style="color:var(--muted);font-size:.85rem">17–20 maps • 18%</span></div><div class="bar-track"><div class="bar-fill" style="width:18%"></div></div></div><div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span class="race-pill">R</span><span style="color:var(--muted);font-size:.85rem">4–6 maps • 5%</span></div><div class="bar-track"><div class="bar-fill" style="width:5%"></div></div></div></div>
+      <h3 style="margin-top:22px">Series records</h3>
+      <div class="bar-row"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a><div class="bar-track"><div class="bar-fill gold" style="width:60%"></div></div><div>3–2</div></div><div class="bar-row"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a><div class="bar-track"><div class="bar-fill gold" style="width:66%"></div></div><div>2–1</div></div><div class="bar-row"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a><div class="bar-track"><div class="bar-fill gold" style="width:50%"></div></div><div>2–2</div></div><div class="bar-row"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a><div class="bar-track"><div class="bar-fill gold" style="width:25%"></div></div><div>1–3</div></div>
+      <p style="color:var(--muted);font-size:.85rem;margin-top:12px">
+        Map differentials —
+        ST 39–30 ·
+        PTB 25–27 ·
+        POG 27–30 ·
+        ASH 25–29
+      </p>
+    </div>
+  </div>
+</section>
+
+<section id="teams" style="padding:10px 0 28px">
+  <div class="section-head">
+    <div><div class="kicker">03 • Team notes</div><h2>Four stories, one trophy</h2></div>
+    <div class="section-note">Respectful framing — every roster moved the season.</div>
+  </div>
+  <div class="team-cards"><article class="panel team-card" style="--accent:var(--red)"><div class="team-brand-head"><a href="../view_team.php?name=Special Tactics" title="Open Special Tactics team page"><img alt="Special Tactics official logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_SpecialTactics_256px.png"/></a><div class="team-brand-copy"><h3><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a></h3><div class="tagline">Seed 4 • Champions via the long path</div></div></div><span class="record">3–2 series • 39–30 maps</span><div class="featured-players"><a class="player-chip" href="../view_player.php?name=DarkMenace" title="Open DarkMenace player page"><img alt="DarkMenace thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a><a class="player-chip" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle player page"><img alt="HyperTurtle thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a><a class="player-chip" href="../view_player.php?name=Reevou" title="Open Reevou player page"><img alt="Reevou thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a><a class="player-chip" href="../view_player.php?name=sOs" title="Open sOs player page"><img alt="sOs thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a><a class="player-chip" href="../view_player.php?name=SirMalagant" title="Open SirMalagant player page"><img alt="SirMalagant thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a><a class="player-chip" href="../view_player.php?name=Cubano" title="Open Cubano player page"><img alt="Cubano thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a></div><p><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">Special Tactics</a> wrote the Season 11 story. Seeded fourth after a one-map losers-bracket Ace, they beat <a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a> in elimination, edged <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a> on a <a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> Ace, then blanked <a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a> <strong>14–4</strong> in the Grand Finals.</p><p><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span> <span class="mention-meta">#3 · G1</span></a> finally got a full sample and owned the big moments. <a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a>, <a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a>, <a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a>, and <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a> turned “dangerous small sample” into a title roster.</p><p class='callout'><strong>Legacy:</strong> From the losers bracket to champions — the deepest ladder run the format can produce.</p></article><article class="panel team-card" style="--accent:var(--gold)"><div class="team-brand-head"><a href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys team page"><img alt="PulledTheBoys official logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_PulledTheBoys_256px.png"/></a><div class="team-brand-copy"><h3><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a></h3><div class="tagline">Seed 1 • Group kings, Finals short night</div></div></div><span class="record">2–1 series • 25–27 maps</span><div class="featured-players"><a class="player-chip" href="../view_player.php?name=Neutrophil" title="Open Neutrophil player page"><img alt="Neutrophil thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a><a class="player-chip" href="../view_player.php?name=LittleReaper" title="Open LittleReaper player page"><img alt="LittleReaper thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a><a class="player-chip" href="../view_player.php?name=ChienPwn" title="Open ChienPwn player page"><img alt="ChienPwn thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a><a class="player-chip" href="../view_player.php?name=Darkblade" title="Open Darkblade player page"><img alt="Darkblade thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><span>Darkblade</span></a><a class="player-chip" href="../view_player.php?name=MvonLipwig" title="Open MvonLipwig player page"><img alt="MvonLipwig thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a></div><p><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PulledTheBoys</a> looked like four-peat favorites: 2–0 through the winners bracket, Seed 1, and a Finals bye. Group depth from <a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a>, <a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a>, and <a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a> was real.</p><p>The Finals were a shock. <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a> and <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> took bites out of <a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a>, <a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a> swept <a class="player-mention external-link" href="../view_player.php?name=Darkblade" title="Open Darkblade on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><span>Darkblade</span></a>, and <a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a> closed on <a class="player-mention external-link" href="../view_player.php?name=MvonLipwig" title="Open MvonLipwig on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a>.</p><p class='encourage'><strong>Frame:</strong> A historically strong group stage does not guarantee a Finals night. PTB still set the regular-bracket standard.</p></article><article class="panel team-card" style="--accent:var(--purple)"><div class="team-brand-head"><a href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming team page"><img alt="PSIOP Gaming official logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_PSISOP_Gaming_256px.png"/></a><div class="team-brand-copy"><h3><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a></h3><div class="tagline">Seed 2 • Ace specialists</div></div></div><span class="record">2–2 series • 27–30 maps</span><div class="featured-players"><a class="player-chip" href="../view_player.php?name=MedicJR" title="Open MedicJR player page"><img alt="MedicJR thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a><a class="player-chip" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster player page"><img alt="Crankytoaster thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a><a class="player-chip" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard player page"><img alt="BeanTheBard thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a><a class="player-chip" href="../view_player.php?name=Jmpz" title="Open Jmpz player page"><img alt="Jmpz thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a><a class="player-chip" href="../view_player.php?name=HurtnTime" title="Open HurtnTime player page"><img alt="HurtnTime thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HurtnTime.png"/><span>HurtnTime</span></a></div><p><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">PSIOP Gaming</a> lived on the Ace — Week 4 and Week 5 both needed closers (<a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a>, <a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a>). That grit earned Seed 2.</p><p>In the Finals berth match, <a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span> <span class="mention-meta">#2 · G1</span></a> went nuclear with sweeps of <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> and <a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a>, but <a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> answered the Ace against <a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a> and ST moved on.</p><p class='encourage'>PSIOP’s season is the template for “record understates competitiveness.”</p></article><article class="panel team-card" style="--accent:var(--cyan)"><div class="team-brand-head"><a href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares team page"><img alt="Angry Space Hares official logo" class="team-logo" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/FSL_team_square_logo_Angry_Space_Hares_256px.png"/></a><div class="team-brand-copy"><h3><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a></h3><div class="tagline">Seed 3 • Star power, early exit</div></div></div><span class="record">1–3 series • 25–29 maps</span><div class="featured-players"><a class="player-chip" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic player page"><img alt="Chat-Omic thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a><a class="player-chip" href="../view_player.php?name=SunnyD" title="Open SunnyD player page"><img alt="SunnyD thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a><a class="player-chip" href="../view_player.php?name=FRost" title="Open FRost player page"><img alt="FRost thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a><a class="player-chip" href="../view_player.php?name=GreatArchon" title="Open GreatArchon player page"><img alt="GreatArchon thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a><a class="player-chip" href="../view_player.php?name=Pacha" title="Open Pacha player page"><img alt="Pacha thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pacha.png"/><span>Pacha</span></a></div><p><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">Angry Space Hares</a> owned Opening Week 1 and boasted the season’s loudest individual lines in <a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a> and <a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span> <span class="mention-meta">#1 · G1</span></a>. The problem was conversion later.</p><p>After seeding and elimination losses to <a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a> and <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a>, the Hares’ year ended one map short in Week 6 — <a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a> nearly stole it before <a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> closed the Ace.</p><p class='encourage'>Top-end talent was never the question; converting elimination nights was.</p></article></div>
+</section>
+
+<section id="players" style="padding:10px 0 28px">
+  <div class="section-head">
+    <div><div class="kicker">04 • Player map lines</div><h2>Who produced</h2></div>
+    <div class="section-note">Overall maps include 1v1, Ace, and named 2v2 appearances from the schedule.</div>
+  </div>
+  <div class="panel" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Player</th><th>Team</th><th>Maps</th><th>Context</th></tr></thead>
+      <tbody><tr><td><div class="rank-player"><img alt="SunnyD thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><strong><a class="player-link external-link" href="../view_player.php?name=SunnyD">SunnyD</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></td><td class="good">7–1</td><td>7–1 maps. Best pure production line of the season before ASH’s exit.</td></tr><tr><td><div class="rank-player"><img alt="HyperTurtle thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><strong><a class="player-link external-link" href="../view_player.php?name=HyperTurtle">HyperTurtle</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></td><td class="good">6–2</td><td>6–2 maps. Mid-board hammer who split SunnyD in elimination week and swept MvonLipwig in the Finals.</td></tr><tr><td><div class="rank-player"><img alt="DarkMenace thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><strong><a class="player-link external-link" href="../view_player.php?name=DarkMenace">DarkMenace</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></td><td class="good">6–3</td><td>6–3 maps. Quiet early sample, then the engine of ST’s climb — W6 Ace over FRost and Finals 2–0 over Neutrophil.</td></tr><tr><td><div class="rank-player"><img alt="FRost thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><strong><a class="player-link external-link" href="../view_player.php?name=FRost">FRost</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></td><td class="good">6–3</td><td>6–3 maps. Carried huge volume for ASH in elimination week before falling in the Ace to DarkMenace.</td></tr><tr><td><div class="rank-player"><img alt="MedicJR thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><strong><a class="player-link external-link" href="../view_player.php?name=MedicJR">MedicJR</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></td><td class="good">6–4</td><td>6–4 maps. Elite-opponent splits early, then a massive W7 double (DarkMenace + Cubano) that nearly saved PSIOP.</td></tr><tr><td><div class="rank-player"><img alt="Chat-Omic thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><strong><a class="player-link external-link" href="../view_player.php?name=Chat-Omic">Chat-Omic</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></td><td class="good">5–1</td><td>5–1 maps and the current #1 ranking. Group-stage wrecking ball for ASH; season ended in the W6 elimination.</td></tr><tr><td><div class="rank-player"><img alt="Reevou thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><strong><a class="player-link external-link" href="../view_player.php?name=Reevou">Reevou</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></td><td class="good">5–1</td><td>5–1 maps. ST’s steadiest supporting piece through elimination, semis, and Finals.</td></tr><tr><td><div class="rank-player"><img alt="BeanTheBard thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><strong><a class="player-link external-link" href="../view_player.php?name=BeanTheBard">BeanTheBard</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></td><td class="good">5–2</td><td>5–2 maps. Multi-group value and the Week 4 Ace response that kept PSIOP alive.</td></tr><tr><td><div class="rank-player"><img alt="Crankytoaster thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><strong><a class="player-link external-link" href="../view_player.php?name=Crankytoaster">Crankytoaster</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></td><td class="good">5–2</td><td>5–2 maps. Ace closer in seeding week; still productive in the semifinal split vs Freeedom.</td></tr><tr><td><div class="rank-player"><img alt="ChienPwn thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><strong><a class="player-link external-link" href="../view_player.php?name=ChienPwn">ChienPwn</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></td><td class="good">4–0</td><td>4–0 maps. Perfect group-stage line — unused in the Finals wipeout.</td></tr><tr><td><div class="rank-player"><img alt="LittleReaper thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><strong><a class="player-link external-link" href="../view_player.php?name=LittleReaper">LittleReaper</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></td><td class="good">4–2</td><td>4–2 maps. Strong PTB mid-board; Finals split with SirMalagant.</td></tr><tr><td><div class="rank-player"><img alt="sOs thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><strong><a class="player-link external-link" href="../view_player.php?name=sOs">sOs</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></td><td class="good">3–1</td><td>3–1 maps. Quietly excellent for ST, including a Finals sweep of Darkblade.</td></tr><tr><td><div class="rank-player"><img alt="Freeedom thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Freeedom.png"/><strong><a class="player-link external-link" href="../view_player.php?name=Freeedom">Freeedom</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></td><td class="">3–3</td><td>3–3 maps. Key ST depth piece, including a Finals sweep of SaraNghae.</td></tr><tr><td><div class="rank-player"><img alt="MvonLipwig thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><strong><a class="player-link external-link" href="../view_player.php?name=MvonLipwig">MvonLipwig</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></td><td class="">3–3</td><td>3–3 maps. Finals: W8 A 0-2 vs HyperTurtle.</td></tr><tr><td><div class="rank-player"><img alt="Jmpz thumbnail" class="player-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><strong><a class="player-link external-link" href="../view_player.php?name=Jmpz">Jmpz</a></strong></div></td><td><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></td><td class="">3–4</td><td>3–4 maps. Fought to the W7 Ace before SirMalagant closed the door.</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="team-cards" style="margin-top:18px">
+    <div class="panel mini">
+      <h3>Finals night flashpoints</h3>
+      <ul>
+        <li><a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a> 2–0 <a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a> — tone-setter.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> 2–0 <a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a> — #1 seed’s ace hunted twice.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a> 2–0 <a class="player-mention external-link" href="../view_player.php?name=Darkblade" title="Open Darkblade on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><span>Darkblade</span></a> — G1 pedigree punched through.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a> 2–0 <a class="player-mention external-link" href="../view_player.php?name=MvonLipwig" title="Open MvonLipwig on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a> — mid-board seal.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=Freeedom" title="Open Freeedom on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Freeedom.png"/><span>Freeedom</span></a> 2–0 <a class="player-mention external-link" href="../view_player.php?name=SaraNghae" title="Open SaraNghae on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SaraNghae.png"/><span>SaraNghae</span></a> — ST depth everywhere.</li>
+      </ul>
+    </div>
+    <div class="panel mini">
+      <h3>Ace match closers (season)</h3>
+      <ul>
+        <li><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a> over <a class="player-mention external-link" href="../view_player.php?name=SgtABC" title="Open SgtABC on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SgtABC.png"/><span>SgtABC</span></a> (Wk4) after an earlier loss.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a> over <a class="player-mention external-link" href="../view_player.php?name=GreatArchon" title="Open GreatArchon on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a> (Wk5).</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a> over <a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a> (Wk6) to eliminate ASH.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a> over <a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a> (Wk7) to reach the Finals.</li>
+      </ul>
+    </div>
+    <div class="panel mini">
+      <h3>Results ahead of ranking</h3>
+      <ul>
+        <li><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span> <span class="mention-meta">#29 · G8</span></a>: 7–1 overall.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span> <span class="mention-meta">#32 · G8</span></a>: title-run engine at 6–2.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span> <span class="mention-meta">#25 · G7</span></a>: 5–1 supporting ST’s climb.</li>
+        <li><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span> <span class="mention-meta">#43 · G11</span></a>: Ace value far above board.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="rankings" style="padding:10px 0 48px">
+  <div class="section-head">
+    <div><div class="kicker">05 • Live rankings board</div><h2>Power rankings &amp; groups</h2></div>
+    <div class="section-note">
+      Snapshot from <a class="source-link" href="https://psistorm.com/fsl/rankings/rankings.json">psistorm.com rankings.json</a>
+      — 58 players. Notes use completed Season 11 map lines.
+    </div>
+  </div>
+  <div class="panel">
+    <p style="margin-top:0;color:var(--muted)">
+      Current #1 is <a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a> after a dominant ASH group stage, even though
+      <a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a> took the trophy. Rankings measure ladder expectation; the playoff measured conversion.
+    </p>
+    <div class="group-block-title">Group 1</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#1</div><div><div class="rank-player"><img alt="Chat-Omic thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Chat-Omic" title="Open Chat-Omic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Chat-Omic.png"/><span>Chat-Omic</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G1</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>5–1 maps and the current #1 ranking. Group-stage wrecking ball for ASH; season ended in the W6 elimination.</div></div><div class="rank-row"><div class="rank">#2</div><div><div class="rank-player"><img alt="MedicJR thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=MedicJR" title="Open MedicJR on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MedicJr.png"/><span>MedicJR</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G1</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>6–4 maps. Elite-opponent splits early, then a massive W7 double (DarkMenace + Cubano) that nearly saved PSIOP.</div></div><div class="rank-row"><div class="rank">#3</div><div><div class="rank-player"><img alt="DarkMenace thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=DarkMenace" title="Open DarkMenace on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DarkMenace.png"/><span>DarkMenace</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G1</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>6–3 maps. Quiet early sample, then the engine of ST’s climb — W6 Ace over FRost and Finals 2–0 over Neutrophil.</div></div><div class="rank-row"><div class="rank">#4</div><div><div class="rank-player"><img alt="HarOuz thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HarOuz.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=HarOuz" title="Open HarOuz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HarOuz.png"/><span>HarOuz</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G1</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div></div><div class="group-block-title">Group 2</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#5</div><div><div class="rank-player"><img alt="AntoineQ thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/AntoineQ.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=AntoineQ" title="Open AntoineQ on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/AntoineQ.png"/><span>AntoineQ</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G2</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>0–2 maps. W3 S 0-2 vs Chat-Omic</div></div><div class="rank-row"><div class="rank">#6</div><div><div class="rank-player"><img alt="FRost thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=FRost" title="Open FRost on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/FRost.png"/><span>FRost</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G2</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>6–3 maps. Carried huge volume for ASH in elimination week before falling in the Ace to DarkMenace.</div></div><div class="rank-row"><div class="rank">#7</div><div><div class="rank-player"><img alt="Darkblade thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Darkblade" title="Open Darkblade on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Darkblade.png"/><span>Darkblade</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G2</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>1–3 maps. Finals: W8 S 0-2 vs sOs.</div></div><div class="rank-row"><div class="rank">#8</div><div><div class="rank-player"><img alt="sOs thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=sOs" title="Open sOs on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/sOs.png"/><span>sOs</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G2</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>3–1 maps. Quietly excellent for ST, including a Finals sweep of Darkblade.</div></div></div><div class="group-block-title">Group 3</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#9</div><div><div class="rank-player"><img alt="Sopuli thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Sopuli.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Sopuli" title="Open Sopuli on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Sopuli.png"/><span>Sopuli</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G3</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#10</div><div><div class="rank-player"><img alt="Cubano thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Cubano" title="Open Cubano on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Cubano.png"/><span>Cubano</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G3</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>2–4 maps. Finals 2–0 over Neutrophil was a signature ST upset slot.</div></div><div class="rank-row"><div class="rank">#11</div><div><div class="rank-player"><img alt="Neutrophil thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Neutrophil" title="Open Neutrophil on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Neutrophil.png"/><span>Neutrophil</span></a></strong></div></div><div><span class="race-pill">R</span></div><div class="hide-sm"><span class="group-pill">G3</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>2–4 maps. PTB cornerstone in the group; Finals night was rough across two slots.</div></div><div class="rank-row"><div class="rank">#12</div><div><div class="rank-player"><img alt="NuKLeO thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/NuKLeO.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=NuKLeO" title="Open NuKLeO on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/NuKLeO.png"/><span>NuKLeO</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G3</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>0–2 maps. W2 S 0-2 vs Neutrophil</div></div></div><div class="group-block-title">Group 4</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#13</div><div><div class="rank-player"><img alt="Adastra thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Adastra.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Adastra" title="Open Adastra on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Adastra.png"/><span>Adastra</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G4</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#14</div><div><div class="rank-player"><img alt="Instability thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Instability.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Instability" title="Open Instability on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Instability.png"/><span>Instability</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G4</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#15</div><div><div class="rank-player"><img alt="LightHood thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LightHood.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=LightHood" title="Open LightHood on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LightHood.png"/><span>LightHood</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G4</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#16</div><div><div class="rank-player"><img alt="SirMalagant thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=SirMalagant" title="Open SirMalagant on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SirMalagant.png"/><span>SirMalagant</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G4</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>3–4 maps. The W7 Ace hero who punched ST into the Grand Finals.</div></div></div><div class="group-block-title">Group 5</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#17</div><div><div class="rank-player"><img alt="Greeempire thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Greeempire.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Greeempire" title="Open Greeempire on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Greeempire.png"/><span>Greeempire</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G5</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#18</div><div><div class="rank-player"><img alt="Crankytoaster thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Crankytoaster" title="Open Crankytoaster on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/CrankyToaster.png"/><span>Crankytoaster</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G5</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>5–2 maps. Ace closer in seeding week; still productive in the semifinal split vs Freeedom.</div></div><div class="rank-row"><div class="rank">#19</div><div><div class="rank-player"><img alt="GreatArchon thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=GreatArchon" title="Open GreatArchon on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/GreatArchon.png"/><span>GreatArchon</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G5</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>2–5 maps. Heavy high-leverage schedule including the Week 5 Ace.</div></div><div class="rank-row"><div class="rank">#20</div><div><div class="rank-player"><img alt="Freeedom thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Freeedom.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Freeedom" title="Open Freeedom on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Freeedom.png"/><span>Freeedom</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G5</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>3–3 maps. Key ST depth piece, including a Finals sweep of SaraNghae.</div></div></div><div class="group-block-title">Group 6</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#21</div><div><div class="rank-player"><img alt="LittleReaper thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=LittleReaper" title="Open LittleReaper on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LittleReaper.png"/><span>LittleReaper</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G6</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>4–2 maps. Strong PTB mid-board; Finals split with SirMalagant.</div></div><div class="rank-row"><div class="rank">#22</div><div><div class="rank-player"><img alt="Jmpz thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Jmpz" title="Open Jmpz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Jmpz.png"/><span>Jmpz</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G6</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>3–4 maps. Fought to the W7 Ace before SirMalagant closed the door.</div></div><div class="rank-row"><div class="rank">#23</div><div><div class="rank-player"><img alt="DLSMIZEL thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DLSMIZEL.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=DLSMIZEL" title="Open DLSMIZEL on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/DLSMIZEL.png"/><span>DLSMIZEL</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G6</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#24</div><div><div class="rank-player"><img alt="Warbunnies thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Warbunnies.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Warbunnies" title="Open Warbunnies on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Warbunnies.png"/><span>Warbunnies</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G6</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div></div><div class="group-block-title">Group 7</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#25</div><div><div class="rank-player"><img alt="Reevou thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Reevou" title="Open Reevou on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Reevou.png"/><span>Reevou</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G7</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>5–1 maps. ST’s steadiest supporting piece through elimination, semis, and Finals.</div></div><div class="rank-row"><div class="rank">#26</div><div><div class="rank-player"><img alt="SaraNghae thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SaraNghae.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=SaraNghae" title="Open SaraNghae on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SaraNghae.png"/><span>SaraNghae</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G7</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>2–2 maps. Finals: W8 S 0-2 vs Freeedom.</div></div><div class="rank-row"><div class="rank">#27</div><div><div class="rank-player"><img alt="PossiblyMayB thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PossiblyMayB.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=PossiblyMayB" title="Open PossiblyMayB on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PossiblyMayB.png"/><span>PossiblyMayB</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G7</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>1–3 maps. Playoff action: W6 A 0-2 vs Reevou.</div></div><div class="rank-row"><div class="rank">#28</div><div><div class="rank-player"><img alt="Papella thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Papella.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Papella" title="Open Papella on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Papella.png"/><span>Papella</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G7</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>2–2 maps. Finals: W8 A 1-1 vs Reevou.</div></div></div><div class="group-block-title">Group 8</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#29</div><div><div class="rank-player"><img alt="SunnyD thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=SunnyD" title="Open SunnyD on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SunnyD.png"/><span>SunnyD</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G8</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>7–1 maps. Best pure production line of the season before ASH’s exit.</div></div><div class="rank-row"><div class="rank">#30</div><div><div class="rank-player"><img alt="HurtnTime thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HurtnTime.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=HurtnTime" title="Open HurtnTime on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HurtnTime.png"/><span>HurtnTime</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G8</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>0–6 maps. Tough 1v1 stretch; the Week 4 2v2 with Crankytoaster still mattered.</div></div><div class="rank-row"><div class="rank">#31</div><div><div class="rank-player"><img alt="cyan thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/cyan.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=cyan" title="Open cyan on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/cyan.png"/><span>cyan</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G8</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#32</div><div><div class="rank-player"><img alt="HyperTurtle thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=HyperTurtle" title="Open HyperTurtle on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/HyperTurtle.png"/><span>HyperTurtle</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G8</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>6–2 maps. Mid-board hammer who split SunnyD in elimination week and swept MvonLipwig in the Finals.</div></div></div><div class="group-block-title">Group 9</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#33</div><div><div class="rank-player"><img alt="KriMiNal thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/KriMiNal.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=KriMiNal" title="Open KriMiNal on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/KriMiNal.png"/><span>KriMiNal</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G9</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#34</div><div><div class="rank-player"><img alt="Infestor-x thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Infestor-x.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Infestor-x" title="Open Infestor-x on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Infestor-x.png"/><span>Infestor-x</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G9</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>0–2 maps. W2 S 0-2 vs Crankytoaster</div></div><div class="rank-row"><div class="rank">#35</div><div><div class="rank-player"><img alt="Nuke thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Nuke.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Nuke" title="Open Nuke on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Nuke.png"/><span>Nuke</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G9</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>1–1 maps. Positive or even contribution in credited slots.</div></div><div class="rank-row"><div class="rank">#36</div><div><div class="rank-player"><img alt="RegreT thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/RegreT.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=RegreT" title="Open RegreT on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/RegreT.png"/><span>RegreT</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G9</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>0–2 maps. W3 A 0-2 vs SunnyD</div></div></div><div class="group-block-title">Group 10</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#37</div><div><div class="rank-player"><img alt="MvonLipwig thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=MvonLipwig" title="Open MvonLipwig on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MvonLipwig.png"/><span>MvonLipwig</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G10</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>3–3 maps. Finals: W8 A 0-2 vs HyperTurtle.</div></div><div class="rank-row"><div class="rank">#38</div><div><div class="rank-player"><img alt="ChienPwn thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=ChienPwn" title="Open ChienPwn on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ChienPwn.png"/><span>ChienPwn</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G10</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>4–0 maps. Perfect group-stage line — unused in the Finals wipeout.</div></div><div class="rank-row"><div class="rank">#39</div><div><div class="rank-player"><img alt="Parkanian thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Parkanian.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Parkanian" title="Open Parkanian on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Parkanian.png"/><span>Parkanian</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G10</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>2–2 maps. Positive or even contribution in credited slots.</div></div><div class="rank-row"><div class="rank">#40</div><div><div class="rank-player"><img alt="TheArchaic thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/TheArchaic.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=TheArchaic" title="Open TheArchaic on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/TheArchaic.png"/><span>TheArchaic</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G10</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>0–2 maps. W3 B 0-2 vs MvonLipwig</div></div></div><div class="group-block-title">Group 11</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#41</div><div><div class="rank-player"><img alt="SCVSir thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SCVSir.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=SCVSir" title="Open SCVSir on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SCVSir.png"/><span>SCVSir</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G11</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>1–1 maps. Finals: W8 A 1-1 vs Dpoo.</div></div><div class="rank-row"><div class="rank">#42</div><div><div class="rank-player"><img alt="RevenantRage thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/RevenantRage.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=RevenantRage" title="Open RevenantRage on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/RevenantRage.png"/><span>RevenantRage</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G11</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#43</div><div><div class="rank-player"><img alt="BeanTheBard thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=BeanTheBard" title="Open BeanTheBard on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/BeanTheBard.png"/><span>BeanTheBard</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G11</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>5–2 maps. Multi-group value and the Week 4 Ace response that kept PSIOP alive.</div></div><div class="rank-row"><div class="rank">#44</div><div><div class="rank-player"><img alt="Klem thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Klem.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Klem" title="Open Klem on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Klem.png"/><span>Klem</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G11</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div></div><div class="group-block-title">Group 12</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#45</div><div><div class="rank-player"><img alt="WindShadow thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/WindShadow.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=WindShadow" title="Open WindShadow on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/WindShadow.png"/><span>WindShadow</span></a></strong></div></div><div><span class="race-pill">P</span></div><div class="hide-sm"><span class="group-pill">G12</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>1–3 maps. W2 S 1-1 vs MvonLipwig</div></div><div class="rank-row"><div class="rank">#46</div><div><div class="rank-player"><img alt="LanixMagi thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LanixMagi.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=LanixMagi" title="Open LanixMagi on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/LanixMagi.png"/><span>LanixMagi</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G12</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PSIOP Gaming" title="Open PSIOP Gaming on PSISTORM FSL">POG</a></div><div>2–2 maps. Positive or even contribution in credited slots.</div></div><div class="rank-row"><div class="rank">#47</div><div><div class="rank-player"><img alt="PorkSisig thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PorkSisig.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=PorkSisig" title="Open PorkSisig on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/PorkSisig.png"/><span>PorkSisig</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G12</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#48</div><div><div class="rank-player"><img alt="Dpoo thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Dpoo.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Dpoo" title="Open Dpoo on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Dpoo.png"/><span>Dpoo</span></a></strong></div></div><div><span class="race-pill">R</span></div><div class="hide-sm"><span class="group-pill">G12</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>1–1 maps. Finals: W8 A 1-1 vs SCVSir.</div></div></div><div class="group-block-title">Group 13</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#49</div><div><div class="rank-player"><img alt="JudgeFae thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/JudgeFae.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=JudgeFae" title="Open JudgeFae on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/JudgeFae.png"/><span>JudgeFae</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G13</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#50</div><div><div class="rank-player"><img alt="Pacha thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pacha.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Pacha" title="Open Pacha on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pacha.png"/><span>Pacha</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G13</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>2–6 maps. Rough volume overall, but scored a W6 sweep that kept ASH alive into the Ace.</div></div><div class="rank-row"><div class="rank">#51</div><div><div class="rank-player"><img alt="Nachoz thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Nachoz.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Nachoz" title="Open Nachoz on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Nachoz.png"/><span>Nachoz</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G13</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>0–2 maps. W1 B 0-2 vs HyperTurtle</div></div><div class="rank-row"><div class="rank">#52</div><div><div class="rank-player"><img alt="SgtABC thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SgtABC.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=SgtABC" title="Open SgtABC on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SgtABC.png"/><span>SgtABC</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G13</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>3–4 maps. Finals: W8 B 1-1 vs MonkeyShaman.</div></div></div><div class="group-block-title">Group 14</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#53</div><div><div class="rank-player"><img alt="MonkeyShaman thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MonkeyShaman.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=MonkeyShaman" title="Open MonkeyShaman on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/MonkeyShaman.png"/><span>MonkeyShaman</span></a></strong></div></div><div><span class="race-pill">R</span></div><div class="hide-sm"><span class="group-pill">G14</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>1–1 maps. Finals: W8 B 1-1 vs SgtABC.</div></div><div class="rank-row"><div class="rank">#54</div><div><div class="rank-player"><img alt="Fenrir thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Fenrir.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Fenrir" title="Open Fenrir on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Fenrir.png"/><span>Fenrir</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G14</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>Credited Week 4 no-show forfeit (no games played).</div></div><div class="rank-row"><div class="rank">#55</div><div><div class="rank-player"><img alt="Pebble thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pebble.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Pebble" title="Open Pebble on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Pebble.png"/><span>Pebble</span></a></strong></div></div><div><span class="race-pill">Z</span></div><div class="hide-sm"><span class="group-pill">G14</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>0–2 maps. W2 S 0-2 vs BeanTheBard</div></div><div class="rank-row"><div class="rank">#56</div><div><div class="rank-player"><img alt="SpamAndRice thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SpamAndRice.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=SpamAndRice" title="Open SpamAndRice on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/SpamAndRice.png"/><span>SpamAndRice</span></a></strong></div></div><div><span class="race-pill">T</span></div><div class="hide-sm"><span class="group-pill">G14</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Angry Space Hares" title="Open Angry Space Hares on PSISTORM FSL">ASH</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div></div><div class="group-block-title">Group 15</div><div class="rank-board"><div class="rank-row head"><div>Rank</div><div>Player</div><div>Race</div><div class="hide-sm">Grp</div><div class="hide-sm">Team</div><div>Season note</div></div><div class="rank-row"><div class="rank">#57</div><div><div class="rank-player"><img alt="ArduousGem thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ArduousGem.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=ArduousGem" title="Open ArduousGem on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/ArduousGem.png"/><span>ArduousGem</span></a></strong></div></div><div><span class="race-pill">R</span></div><div class="hide-sm"><span class="group-pill">G15</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=PulledTheBoys" title="Open PulledTheBoys on PSISTORM FSL">PTB</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div><div class="rank-row"><div class="rank">#58</div><div><div class="rank-player"><img alt="Poellie thumbnail" class="rank-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Poellie.png"/><strong><a class="player-mention external-link" href="../view_player.php?name=Poellie" title="Open Poellie on PSISTORM FSL"><img alt="" class="inline-thumb" decoding="async" loading="lazy" onerror="this.style.display='none'" src="../images/player_thumbnails/Poellie.png"/><span>Poellie</span></a></strong></div></div><div><span class="race-pill">R</span></div><div class="hide-sm"><span class="group-pill">G15</span></div><div class="hide-sm"><a class="team-link external-link" href="../view_team.php?name=Special Tactics" title="Open Special Tactics on PSISTORM FSL">ST</a></div><div>No credited Season 11 maps — available depth / unused lineup option.</div></div></div>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap" style="padding:10px 0 50px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)">
+  FSL Season 11 Full Season Review • Special Tactics champions • Map-point scoring •
+  Relative assets for local + prod (<code>../images</code>, <code>../view_player.php</code>).
+  See also <a class="source-link" href="./fsl_season_11_mid_playoff_review.html">mid-playoff review</a>
+  (copy from prod if missing locally).
+</footer>
+
+<script>
+document.querySelectorAll('.rank-row').forEach(row => {
+  const note = (row.children[5] && row.children[5].textContent) || '';
+  if (/No credited Season 11 maps/i.test(note)) row.style.opacity = '0.72';
+});
+</script>
+</body>
+</html>
