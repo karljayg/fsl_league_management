@@ -55,13 +55,13 @@ function getTeamLogo($teamName, $size = '256px') {
     
     $fullPath = dirname(__DIR__) . '/' . $path;
     if (file_exists($fullPath)) {
-        return $path;
+        return $path . '?v=' . filemtime($fullPath);
     }
     
     $path = "images/{$baseName}.png";
     $fullPath = dirname(__DIR__) . '/' . $path;
     if (file_exists($fullPath)) {
-        return $path;
+        return $path . '?v=' . filemtime($fullPath);
     }
     
     $placeholderPath = dirname(__DIR__) . '/' . TEAM_LOGO_PLACEHOLDER;
