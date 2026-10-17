@@ -47,11 +47,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Set required permission for this page
-$required_permission = 'manage fsl schedule';
-
-// Include permission check (this will handle authentication and authorization)
-require_once 'includes/check_permission_updated.php';
+require_once 'includes/db.php';
+require_once 'includes/fsl_schedule_permission.php';
+if (!isset($_SESSION['user_id']) || !fsl_can_manage_schedule($db, $_SESSION['user_id'])) {
+    if (!isset($_SESSION['user_id'])) {
+        die('Permission denied: user not logged in.');
+    }
+    die('Permission denied: You do not have permission to access this page.');
+}
 
 // Include database connection
 require_once 'includes/db.php';
