@@ -159,11 +159,14 @@ try {
             filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.8));
         }
 
-        .no-data {
+        .no-data-label {
             text-align: center;
-            padding: 30px;
-            color: #ffffff;
-            font-size: 1em;
+            margin: 0 0 6px;
+            color: #8a8a8a;
+            font-size: 1.7em;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-shadow: none;
         }
     </style>
 </head>
@@ -181,23 +184,42 @@ try {
             </h1>
         </div>
 
-        <?php if ($spiderChartData): ?>
-            <div class="chart-wrapper">
-                <canvas id="spiderChart" width="900" height="540"></canvas>
-            </div>
-        <?php else: ?>
-            <div class="no-data">
-                <h2>No Spider Chart Data Available</h2>
-                <p><?= htmlspecialchars($playerName) ?> has not been analyzed in Division <?= htmlspecialchars($division) ?> yet.</p>
-            </div>
+        <?php if (!$spiderChartData): ?>
+            <div class="no-data-label">NO DATA YET</div>
         <?php endif; ?>
+        <div class="chart-wrapper">
+            <canvas id="spiderChart" width="900" height="540"></canvas>
+        </div>
 
     </div>
 
-    <?php if ($spiderChartData): ?>
+    <?php
+    $hasChartData = (bool) $spiderChartData;
+    if ($hasChartData) {
+        $chartScores = [
+            (float) $spiderChartData['micro'],
+            (float) $spiderChartData['macro'],
+            (float) $spiderChartData['clutch'],
+            (float) $spiderChartData['creativity'],
+            (float) $spiderChartData['aggression'],
+            (float) $spiderChartData['strategy'],
+        ];
+        $chartScoreLabels = array_map(function ($score) {
+            return number_format($score, 1) . '/10';
+        }, $chartScores);
+    } else {
+        $chartScores = [5, 5, 5, 5, 5, 5];
+        $chartScoreLabels = ['5.0/10', '5.0/10', '5.0/10', '5.0/10', '5.0/10', '5.0/10'];
+    }
+    ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const hasChartData = <?= $hasChartData ? 'true' : 'false' ?>;
+        const chartScores = <?= json_encode($chartScores) ?>;
+        const chartScoreLabels = <?= json_encode($chartScoreLabels) ?>;
+        const labelColor = hasChartData ? '#FFD700' : '#8a8a8a';
+        const scoreColor = hasChartData ? '#ffffff' : '#8a8a8a';
 
         // ── Custom plugin: two-tone point labels using public Chart.js API ──
         const twoToneLabelsPlugin = {
@@ -207,14 +229,7 @@ try {
                 const scale = chart.scales.r;
 
                 const attrNames  = ['Micro', 'Macro', 'Clutch', 'Creativity', 'Aggression', 'Strategy'];
-                const attrScores = [
-                    '<?= number_format($spiderChartData['micro'],       1) ?>/10',
-                    '<?= number_format($spiderChartData['macro'],       1) ?>/10',
-                    '<?= number_format($spiderChartData['clutch'],      1) ?>/10',
-                    '<?= number_format($spiderChartData['creativity'],  1) ?>/10',
-                    '<?= number_format($spiderChartData['aggression'],  1) ?>/10',
-                    '<?= number_format($spiderChartData['strategy'],    1) ?>/10'
-                ];
+                const attrScores = chartScoreLabels;
 
                 // Label radius: just past the outermost ring (extra offset for 3× attribute text)
                 const labelRadius = scale.drawingArea + 72;
@@ -233,15 +248,15 @@ try {
                     ctx.shadowColor  = '#000000';
                     ctx.shadowBlur   = 4;
 
-                    // Attribute name — yellow, bold (3× vs original 13px)
+                    // Attribute name — yellow when scored, gray when empty
                     ctx.font         = 'bold 22px Inter, sans-serif';
-                    ctx.fillStyle    = '#FFD700';
+                    ctx.fillStyle    = labelColor;
                     ctx.textBaseline = 'bottom';
                     ctx.fillText(name, x, y);
 
-                    // Score — white, regular (3× vs original 12px)
+                    // Score — white when scored, gray when empty
                     ctx.font         = '25px Inter, sans-serif';
-                    ctx.fillStyle    = '#ffffff';
+                    ctx.fillStyle    = scoreColor;
                     ctx.textBaseline = 'top';
                     ctx.fillText(attrScores[i], x, y);
 
@@ -257,21 +272,16 @@ try {
             labels: ['', '', '', '', '', ''],
             datasets: [{
                 label: '<?= htmlspecialchars($playerName) ?>',
-                data: [
-                    <?= $spiderChartData['micro'] ?>,
-                    <?= $spiderChartData['macro'] ?>,
-                    <?= $spiderChartData['clutch'] ?>,
-                    <?= $spiderChartData['creativity'] ?>,
-                    <?= $spiderChartData['aggression'] ?>,
-                    <?= $spiderChartData['strategy'] ?>
-                ],
-                backgroundColor:    'rgba(0, 212, 255, 0.2)',
-                borderColor:        '#00d4ff',
-                borderWidth:        4,
-                pointBackgroundColor: '#00d4ff',
-                pointBorderColor:   '#000000',
-                pointBorderWidth:   3,
-                pointRadius:        7
+                data: chartScores,
+                backgroundColor: hasChartData ? 'rgba(0, 212, 255, 0.2)' : 'rgba(150, 150, 150, 0.16)',
+                borderColor: hasChartData ? '#00d4ff' : 'rgba(176, 176, 176, 0.8)',
+                borderWidth: hasChartData ? 4 : 3,
+                borderDash: hasChartData ? [] : [2, 6],
+                borderCapStyle: 'round',
+                pointBackgroundColor: hasChartData ? '#00d4ff' : 'rgba(176, 176, 176, 0.7)',
+                pointBorderColor: hasChartData ? '#000000' : 'rgba(176, 176, 176, 0.4)',
+                pointBorderWidth: hasChartData ? 3 : 1,
+                pointRadius: hasChartData ? 7 : 4
             }]
         };
 
@@ -298,11 +308,11 @@ try {
                             backdropPadding: 3
                         },
                         grid: {
-                            color: 'rgba(255, 255, 255, 0.45)',
+                            color: hasChartData ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.22)',
                             lineWidth: 1.5
                         },
                         angleLines: {
-                            color: 'rgba(255, 255, 255, 0.45)',
+                            color: hasChartData ? 'rgba(255, 255, 255, 0.45)' : 'rgba(255, 255, 255, 0.22)',
                             lineWidth: 1.5
                         },
                         pointLabels: {
@@ -320,6 +330,5 @@ try {
         new Chart(ctx, config);
     });
     </script>
-    <?php endif; ?>
 </body>
 </html>
