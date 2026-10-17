@@ -266,11 +266,11 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 </div>
 
                 <div class="dropdown-subsection nav-accordion">
-                    <button type="button" class="nav-accordion-toggle" aria-expanded="false">
+                    <button type="button" class="nav-accordion-toggle" aria-expanded="true">
                         <span>Team League</span>
                         <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
                     </button>
-                    <div class="nav-accordion-panel" hidden>
+                    <div class="nav-accordion-panel">
                         <a href="<?= $basePath ?>fsl_season.php" class="dropdown-link sub-link">Seasons</a>
                         <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link sub-link">Schedule</a>
                         <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link sub-link">Teams</a>
@@ -496,11 +496,11 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                 </div>
 
                 <div class="mobile-subsection nav-accordion">
-                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="false">
+                    <button type="button" class="nav-accordion-toggle mobile-accordion-toggle" aria-expanded="true">
                         <span>Team League</span>
                         <span class="nav-accordion-chevron" aria-hidden="true">&#9662;</span>
                     </button>
-                    <div class="nav-accordion-panel" hidden>
+                    <div class="nav-accordion-panel">
                         <a href="<?= $basePath ?>fsl_season.php" class="mobile-link sub-link">Seasons</a>
                         <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link sub-link">Schedule</a>
                         <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link sub-link">Teams</a>
