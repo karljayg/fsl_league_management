@@ -1,0 +1,438 @@
+FSL Spider Link — API contract for Mathison
+Audience: twitch-gpt-chat-bot (Mathison)
+Site: this repo (psistorm FSL)
+Date: 2026-10-17
+
+Read this whole file before coding. Sections 0–2 are the plan. Sections 3+
+are the contract. Section 11 is how to test end to end.
+
+
+================================================================================
+0. Plan and context (read this first)
+================================================================================
+
+What FSL is doing
+-----------------
+FSL spider charts score players on six skills (Micro, Macro, Clutch,
+Creativity, Aggression, Strategy). Human reviewers vote match by match.
+During stream, Twitch viewers can also weigh in. Today they type short
+codes in chat (mic1, mac2, clut, …). Mathison counts one vote per Twitch
+login per skill, then at window close POSTs a single rollup to the FSL site
+as reviewer "TwitchChat". aggregate_scores.php on the FSL side turns those
+votes into the 5–10 chart numbers. Individual chatters never get their own
+reviewer row.
+
+The problem we are solving
+--------------------------
+Chat codes work but are awkward on mobile and easy to get wrong. We want a
+second path that keeps chat voting unchanged: viewers can type !spider and
+get a whisper with a simple web form (P1 / P2 / Tie per skill). That form
+is hosted on psistorm.com/fsl, not in the bot repo.
+
+What we are NOT doing
+---------------------
+  - Replacing chat voting. Both paths count toward the same TwitchChat tally
+    for the live match.
+  - Giving each viewer their own reviewer weight (that is fsl_review /
+    create_reviewer — permanent links, do not use for live windows).
+  - POSTing ?action=votes once per viewer. Still exactly one official
+    six-attribute submission per match per window, same as today.
+  - Building the vote page in Mathison. Only whisper the URL the API returns.
+
+Division of work
+----------------
+FSL site (this repo) — already implemented or in progress:
+  - api/voting.php: POST ?action=spider, GET ?action=spider-ballots,
+    POST ?action=votes (+ accepted_web, closes session on success)
+  - spider_ballot.php: mobile-friendly ballot UI
+  - includes/spider_ballot.php: storage, tally math, catch-up for older matches
+  - schema_changes.sql: spider_ballot_tokens, spider_ballots tables
+    (must be applied on the DB before the API returns 200 for !spider)
+
+Mathison (your repo) — you implement:
+  - !spider command while a ratings session is active
+  - POST ?action=spider → whisper url
+  - On timer / end ratings: GET ?action=spider-ballots → merge with chat
+    → POST ?action=votes with merged tallies + accepted_web
+  - Timestamps on chat sides for merge (see section 7)
+
+End-to-end flow (live match)
+----------------------------
+  1. Mod: open ratings <fsl_match_id>
+     Mathison: GET match, POST enable → session_id, expires_at (~5 min)
+  2. Chat: "Ratings OPEN … type codes or !spider for a DM link"
+  3. Viewers either:
+       A) mic1 mac2 … in chat (unchanged), or
+       B) !spider → Mathison POST spider → whisper spider_ballot.php?t=…
+  4. Viewer on web: picks match (default = live), saves skills (optional Skip)
+  5. Mod or timer: end ratings / auto-submit
+     Mathison: GET spider-ballots → merge chat + web per login/skill
+     → POST votes (TwitchChat reviewer_id, tallies, accepted_web)
+  6. FSL site: upserts 6 Player_Attribute_Votes rows, closes session
+  7. Later: staff runs aggregate_scores.php (unchanged; not the bot's job)
+
+Catch-up flow (same viewer, different match on the page)
+--------------------------------------------------------
+The dropdown lists the 8 most recent league matches (newest fsl_match_id first).
+If they vote a match that is NOT the currently open window, the FSL site
+updates the TwitchChat tally for that match immediately. Mathison never
+GETs or POSTs those — only the live window merge at step 5 above.
+
+P1 / P2 reminder
+----------------
+player1 = match winner in fsl_matches (API and UI label this clearly).
+player2 = the other player. Same mapping as chat suffix 1 / 2 / t (tie).
+
+
+================================================================================
+1. What the viewer can do
+================================================================================
+
+While a ratings window is open, a viewer types:
+
+  !spider
+
+Mathison whispers them one private URL. That page:
+
+  - Opens on the match that window is for.
+  - Lets them switch among the 8 most recent matches, newest first.
+    Each row is one game (the two players stay tied together).
+  - Six skills. Each skill is one choice: player1, player2, Tie, or Skip.
+  - Skip leaves that skill out. Empty skills are allowed.
+  - Saving again overwrites that login's choices for that match.
+  - The link keeps working after the 5-minute chat window closes, so they
+    can vote a game they missed. Those catch-up saves are applied by the
+    website. Mathison does not merge them.
+
+Player1 is the recorded winner (fsl_matches.winner_player_id).
+Player2 is the other player. Side "1" / "2" / "0" means the same thing as
+chat: 1 = player1 was better, 2 = player2 was better, 0 = tie.
+
+The page is:
+
+  https://psistorm.com/fsl/spider_ballot.php?t=<token>
+
+Do not build this page in the bot.
+
+
+================================================================================
+2. One link is one vote
+================================================================================
+
+The voter is the Twitch login (the IRC nick before "!", lowercased).
+Not the display name.
+
+One login has one token for good. A second !spider whispers the same URL.
+If they share the URL, the next save changes that same vote. It does not
+add another person.
+
+Two different logins who each type !spider are two votes.
+
+Do not paste the URL in channel. If the whisper fails, say the whisper
+failed. A public URL lets someone else overwrite that login's vote.
+
+Do not call fsl_review or create_reviewer for this. That creates a
+permanent reviewer with their own Player_Attribute_Votes rows.
+
+
+================================================================================
+3. What stays the same in the bot
+================================================================================
+
+  - open / start / accept ratings, and end / close ratings
+  - Token parsing in core/fsl_chat_voting.py (mic1, mac2, clut, ...)
+  - Last chat token wins for that login and skill
+  - The auto-submit timer (expires_at minus FSL_VOTING_SUBMIT_BUFFER_SEC)
+  - POST ?action=votes as the TwitchChat reviewer id (FSL_BOT_REVIEWER_ID)
+  - All six attributes in that POST, with tally counts
+  - Majority rule, unchanged, run on the merged map:
+
+      1 if player1 > player2 AND player1 >= tie
+      2 if player2 > player1 AND player2 >= tie
+      0 otherwise
+
+    An attribute nobody voted is vote 0 and tally 0/0/0.
+
+The spider chart reads tally_player1 / tally_player2 / tally_tie, not the
+single 0/1/2. build_votes_body must run on the merged per-user map so web
+voters are inside those counts.
+
+
+================================================================================
+4. Auth
+================================================================================
+
+Same as the existing voting API.
+
+  Base:  FSL_VOTING_API_URL or https://psistorm.com/fsl/api/voting.php
+  Header: Authorization: Bearer <FSL_VOTING_API_KEY or FSL_API_TOKEN>
+  POST body: application/json
+
+New actions:
+
+  POST ?action=spider
+  GET  ?action=spider-ballots&session_id=<id>
+
+POST ?action=votes is the same URL as today, with one new field.
+
+
+================================================================================
+5. POST ?action=spider
+================================================================================
+
+Call this when a viewer types !spider and fsl_voting_session is active.
+If no window is open, tell them to wait for ratings. Do not call the API.
+
+Request:
+
+  {
+    "session_id": <int from enable>,
+    "fsl_match_id": <int>,
+    "twitch_login": "<lowercased login>"
+  }
+
+Success 200:
+
+  {
+    "ok": true,
+    "data": {
+      "url": "https://psistorm.com/fsl/spider_ballot.php?t=<32 hex>",
+      "token": "<32 hex>",
+      "twitch_login": "alice",
+      "preselect_fsl_match_id": 683,
+      "session_id": 12,
+      "session_expires_at": "2026-10-17T18:35:00+00:00"
+    }
+  }
+
+session_expires_at is when the chat window ends. The URL itself does not
+expire then. Whisper data.url. Same login + later !spider returns the same
+url, with preselect_fsl_match_id updated to the current match.
+
+Errors:
+
+  403 VOTING_CLOSED   window is not open, or session_id is not the open one
+  403 MATCH_MISMATCH  fsl_match_id is not the open session's match
+  400 MISSING_PARAM   bad or missing login / ids
+  503 NOT_READY       ballot tables are not installed on the site yet
+
+Register !spider next to the other ratings commands so the LLM does not
+answer it.
+
+Suggested channel line when ratings open (keep the whole line under
+TWITCH_CHAT_BYTE_LIMIT, default 450 bytes):
+
+  Ratings OPEN for {P1}(P1) vs {P2}(P2).
+  Type mic1/mac2 in chat, or !spider and I'll DM you a voting link.
+
+Put the full token list in !ratings, and mention !spider there too.
+
+
+================================================================================
+6. GET ?action=spider-ballots&session_id=<id>
+================================================================================
+
+Call this once, immediately before building the votes body, on both the
+timer submit and end/close.
+
+The session must still be open. That is why the timer posts about 15
+seconds early. If this GET fails, do not POST votes. Retry a couple of
+times, then tell chat the submit failed and keep the in-memory session
+until a mod closes it or a retry works. Posting chat-only drops the web
+voters. Clearing the session after a failed GET drops the chat voters too.
+
+Success 200:
+
+  {
+    "ok": true,
+    "data": {
+      "session_id": 12,
+      "fsl_match_id": 683,
+      "expires_at": "2026-10-17T18:35:00+00:00",
+      "ballots": [
+        {
+          "twitch_login": "alice",
+          "votes": {
+            "micro": {"side": "1", "updated_at": "2026-10-17T18:31:02+00:00"},
+            "macro": {"side": "2", "updated_at": "2026-10-17T18:31:02+00:00"}
+          }
+        }
+      ]
+    }
+  }
+
+Skills they skipped are absent. side is the string "1", "2", or "0".
+updated_at is UTC. This list is only the open match. Other matches the
+page saved are not here. The website already applied those.
+
+
+================================================================================
+7. Merge, then POST ?action=votes
+================================================================================
+
+Store a UTC timestamp on every chat token when it is recorded
+(login -> attribute -> {side, updated_at}). Compare that to the web
+updated_at for the same login and attribute.
+
+  - Later timestamp wins.
+  - If the timestamps are equal, the web side wins.
+  - A skill that exists on only one side is kept.
+  - A missing web skill does not erase a chat vote.
+
+Then run the existing majority and tally on that merged map.
+POST the same votes body as today. The tally numbers must be the merged
+counts, not chat-only.
+
+Add this field every time:
+
+  "accepted_web": [
+    {
+      "twitch_login": "alice",
+      "votes": {"micro": "1", "macro": "2"}
+    }
+  ]
+
+accepted_web lists only the skills where the web side won the timestamp
+merge (the side that was counted in the tally). Omit skills where chat
+won. Send [] when no web ballot was counted.
+
+This field is required for the new bot. If you omit it, the site assumes
+the tallies are chat-only and adds every stored web ballot on top. That
+double-counts if you already merged them into the tallies.
+
+reviewer_id must be the TwitchChat row (FSL_BOT_REVIEWER_ID). accepted_web
+is rejected for any other reviewer.
+
+On HTTP 200 the site closes the voting session. A second POST for that
+session returns 403 VOTING_CLOSED. Do not POST twice.
+
+The site also writes the six Player_Attribute_Votes rows from your body,
+same as today. You still do not call aggregate_scores.php.
+
+
+================================================================================
+8. Catch-up votes (not the bot's job)
+================================================================================
+
+The page lists the 8 most recent schedule matches (by fsl_schedule.match_date),
+newest first, plus the live or preselect match if it is not already in that list.
+
+Saving the live match only stores the choice. Your merge picks it up.
+
+Saving any other match updates the TwitchChat tally for that match
+immediately. One login still counts as one viewer. Changing their side
+moves that one count. Skip removes it.
+
+You do not GET or POST those older matches.
+
+
+================================================================================
+9. Files to change in Mathison
+================================================================================
+
+core/fsl_chat_voting.py
+  Record updated_at with each chat side.
+  GET spider-ballots.
+  Merge per login per attribute.
+  Add accepted_web to the votes body.
+  Keep build_votes_body and the majority function.
+
+core/handlers/accept_ratings_handler.py
+  !spider handler: permission is any viewer, only while a session is active.
+  POST action=spider, then whisper data.url.
+  On end/close and the timer: GET ballots, merge, POST.
+  If the GET fails, do not POST and do not drop the session.
+
+run_core.py / migrated command lists
+  Register !spider so chat and the LLM do not also handle it.
+
+!ratings help
+  Mention chat codes and !spider.
+
+Do not change api/fsl_integration.py get_reviewer_link.
+
+
+================================================================================
+10. Worked example
+================================================================================
+
+Open match: Alice (P1) vs Bob (P2).
+
+Chat:
+  alice  mic1 at 18:31:00Z
+  bob    mic2 at 18:31:10Z
+
+Web, from GET spider-ballots:
+  alice  micro side 2 at 18:32:00Z     (later than her chat mic1)
+  carol  micro side 1 at 18:31:30Z
+
+Merged micro map:
+  alice -> 2     (web was later)
+  bob   -> 2
+  carol -> 1
+
+Tally micro: player1=1, player2=2, tie=0. Majority vote = 2.
+
+accepted_web:
+  alice micro "2"
+  carol micro "1"
+  (bob is chat-only, so bob is not in accepted_web)
+
+POST votes uses those tally numbers plus accepted_web.
+
+
+================================================================================
+11. Prerequisites and testing (FSL + Mathison)
+================================================================================
+
+Before Mathison !spider can work against production or staging
+--------------------------------------------------------------
+  1. FSL DB: run the 2026-10-17 block at the bottom of schema_changes.sql
+     (spider_ballot_tokens, spider_ballots). Until then, POST ?action=spider
+     returns 503 NOT_READY and the ballot page says ballots are not set up.
+  2. FSL deploy: api/voting.php, spider_ballot.php, includes/spider_ballot.php
+  3. reviewers row "TwitchChat" must exist (id = FSL_BOT_REVIEWER_ID in bot config)
+  4. Same Bearer token as existing voting API (FSL_VOTING_API_KEY / FSL_API_TOKEN)
+
+Mathison-side checklist before merge
+------------------------------------
+  [ ] ENABLE_FSL_CHAT_VOTING still gates the ratings commands
+  [ ] !spider registered; does not require mod (only an active session)
+  [ ] Chat token path unchanged; record side + UTC updated_at per login/attribute
+  [ ] submit path: GET spider-ballots → merge → POST votes with accepted_web
+  [ ] Failed GET spider-ballots: no POST, session kept, chat told submit failed
+  [ ] Whisper failure: no URL in public chat
+  [ ] Tests for merge rules (section 10) in tests/test_fsl_chat_voting.py or similar
+
+Suggested manual test (two people)
+----------------------------------
+  1. Mod opens ratings on a real fsl_match_id (or tunnel test id).
+  2. Viewer A: mic1 in chat only.
+  3. Viewer B: !spider, open link, vote micro for P2, save.
+  4. Mod end ratings (or wait for timer).
+  5. On FSL: voting_activity or DB — six TwitchChat rows for that match;
+     tally columns reflect A + B (and merge if same login used both).
+  6. Viewer B: on ballot page, pick an older match from dropdown, save.
+     Confirm TwitchChat tally for that other match updates without a new
+     Mathison POST.
+
+Existing API actions (unchanged contract)
+-----------------------------------------
+  GET  ?action=match&fsl_match_id=
+  POST ?action=enable
+  GET  ?action=active
+  POST ?action=votes  (+ accepted_web when bot merges web ballots)
+
+Related docs on FSL site (not in Mathison repo)
+-----------------------------------------------
+  docs/FSL_Voting_API_spec.md     — original chat voting API
+  SPIDER_CHART_README.md          — reviewer system overview
+  User may also have:
+  FSL_Spider_Chat_Voting_Technical_Design.txt — prior bot behavior write-up
+
+Questions / ambiguities
+-----------------------
+If merge behavior or accepted_web is unclear, implement exactly section 7
+and section 10. The FSL site uses accepted_web to avoid double-counting
+web voters when tallies already include them. When in doubt, always send
+accepted_web (use [] when no web side won a merge).

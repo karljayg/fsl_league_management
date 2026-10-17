@@ -8,6 +8,8 @@
  *   POST ?action=enable                — open a 5-min voting session
  *   GET  ?action=active                — check if a session is open
  *   POST ?action=votes                 — submit 6 attribute votes + tallies
+ *   POST ?action=spider                — whisper link for one Twitch login
+ *   GET  ?action=spider-ballots        — web ballots for the open match
  */
 
 header('Content-Type: application/json');
@@ -22,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../includes/db.php';
+require_once __DIR__ . '/../includes/spider_ballot.php';
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
@@ -224,6 +227,54 @@ if ($action === 'active' && $method === 'GET') {
     respond(200, true, array_merge(['active' => true], session_to_payload($active)));
 }
 
+// ─── POST spider (issue the private link) ───────────────────────────────────
+if ($action === 'spider' && $method === 'POST') {
+    if (!spider_tables_ready($db)) {
+        respond(503, false, null, 'NOT_READY', 'Spider ballot tables are not installed');
+    }
+    spider_fold_expired_sessions($db);
+
+    $body = json_body();
+    $sessionId = isset($body['session_id']) ? (int) $body['session_id'] : 0;
+    $matchId = isset($body['fsl_match_id']) ? (int) $body['fsl_match_id'] : 0;
+    $login = spider_normalize_login((string) ($body['twitch_login'] ?? ''));
+
+    if ($sessionId <= 0 || $matchId <= 0 || $login === null) {
+        respond(400, false, null, 'MISSING_PARAM', 'session_id, fsl_match_id, and twitch_login are required');
+    }
+
+    $active = spider_active_session($db);
+    if (!$active || (int) $active['id'] !== $sessionId) {
+        respond(403, false, null, 'VOTING_CLOSED', 'No open voting session for that session_id');
+    }
+    if ((int) $active['fsl_match_id'] !== $matchId) {
+        respond(403, false, null, 'MATCH_MISMATCH', 'fsl_match_id does not match the open session');
+    }
+
+    $issued = spider_issue_token($db, $login, $matchId);
+    $issued['session_id'] = $sessionId;
+    $issued['session_expires_at'] = spider_iso($active['expires_at']);
+    respond(200, true, $issued);
+}
+
+// ─── GET spider-ballots ──────────────────────────────────────────────────────
+if ($action === 'spider-ballots' && $method === 'GET') {
+    if (!spider_tables_ready($db)) {
+        respond(503, false, null, 'NOT_READY', 'Spider ballot tables are not installed');
+    }
+    spider_fold_expired_sessions($db);
+
+    $sessionId = isset($_GET['session_id']) ? (int) $_GET['session_id'] : 0;
+    if ($sessionId <= 0) {
+        respond(400, false, null, 'MISSING_PARAM', 'session_id is required');
+    }
+    $payload = spider_ballots_for_session($db, $sessionId);
+    if (!$payload) {
+        respond(403, false, null, 'VOTING_CLOSED', "Session #$sessionId is not active or has expired");
+    }
+    respond(200, true, $payload);
+}
+
 // ─── POST votes ──────────────────────────────────────────────────────────────
 if ($action === 'votes' && $method === 'POST') {
     $body        = json_body();
@@ -292,6 +343,21 @@ if ($action === 'votes' && $method === 'POST') {
         }
     }
 
+    $hasAccepted = array_key_exists('accepted_web', $body);
+    $acceptedWeb = null;
+    if ($hasAccepted) {
+        $acceptedWeb = spider_validate_accepted_web($body['accepted_web']);
+        if ($acceptedWeb === false) {
+            respond(400, false, null, 'INVALID_ACCEPTED_WEB',
+                'accepted_web must be a list of {twitch_login, votes:{attribute: "0"|"1"|"2"}}');
+        }
+        $nameStmt = $db->prepare("SELECT name FROM reviewers WHERE id = ?");
+        $nameStmt->execute([$reviewer_id]);
+        if (strcasecmp((string) $nameStmt->fetchColumn(), 'TwitchChat') !== 0) {
+            respond(403, false, null, 'INVALID_REVIEWER', 'accepted_web is only valid for the TwitchChat reviewer');
+        }
+    }
+
     // Upsert votes — one row per attribute
     $upsert = $db->prepare("
         INSERT INTO Player_Attribute_Votes
@@ -307,31 +373,45 @@ if ($action === 'votes' && $method === 'POST') {
     ");
 
     $rows = 0;
-    foreach (VALID_ATTRIBUTES as $attr) {
-        $v       = $votes[$attr];
-        $vote    = (int) $v['vote'];
-        $tally   = $v['tally'] ?? null;
-        $tp1     = $tally ? (int) $tally['player1'] : null;
-        $tp2     = $tally ? (int) $tally['player2'] : null;
-        $ttie    = $tally ? (int) $tally['tie']     : null;
+    spider_tables_ready($db);
+    $db->beginTransaction();
+    try {
+        foreach (VALID_ATTRIBUTES as $attr) {
+            $v       = $votes[$attr];
+            $vote    = (int) $v['vote'];
+            $tally   = $v['tally'] ?? null;
+            $tp1     = $tally ? (int) $tally['player1'] : null;
+            $tp2     = $tally ? (int) $tally['player2'] : null;
+            $ttie    = $tally ? (int) $tally['tie']     : null;
 
-        $upsert->execute([
-            $match_id,
-            $reviewer_id,
-            $attr,
-            $vote,
-            $tp1,
-            $tp2,
-            $ttie,
-            $match['winner_player_id'],
-            $match['loser_player_id'],
-        ]);
-        $rows++;
+            $upsert->execute([
+                $match_id,
+                $reviewer_id,
+                $attr,
+                $vote,
+                $tp1,
+                $tp2,
+                $ttie,
+                $match['winner_player_id'],
+                $match['loser_player_id'],
+            ]);
+            $rows++;
+        }
+        spider_reconcile_posted_votes($db, $match_id, $hasAccepted ? $acceptedWeb : null);
+        $close = $db->prepare("UPDATE voting_sessions SET status = 'closed', closed_at = NOW() WHERE id = ? AND status = 'open'");
+        $close->execute([$session_id]);
+        $db->commit();
+    } catch (Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        error_log('voting votes: ' . $e->getMessage());
+        respond(500, false, null, 'SERVER_ERROR', 'Could not save votes');
     }
 
-    respond(200, true, ['updated' => true, 'rows_affected' => $rows]);
+    respond(200, true, ['updated' => true, 'rows_affected' => $rows, 'session_closed' => true]);
 }
 
 // ─── Fallback ────────────────────────────────────────────────────────────────
 respond(400, false, null, 'INVALID_ACTION',
-    "Unknown action '$action'. Valid: match, enable, active, votes");
+    "Unknown action '$action'. Valid: match, enable, active, votes, spider, spider-ballots");
