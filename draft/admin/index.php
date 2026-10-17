@@ -169,10 +169,15 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
             }
         ?>
         <div class="draft-panel" style="margin-bottom: 1rem;">
-            <h2>S11 Pick Order (<?= (int) ($session['total_picks'] ?? count($pickSchedule)) ?> picks)</h2>
+            <h2>Pick Order (<?= (int) ($session['total_picks'] ?? count($pickSchedule)) ?> picks)</h2>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-                Round 1 order: Special Tactics → Angry Space Hares → PSIOP → PulledTheBoys (S10 finish).
-                PSIOP gets picks 3, 11, and 12 (3 total); Angry Space Hares 3.
+                <?php
+                $roundOne = [];
+                foreach ($session['draft_order'] ?? [] as $orderTeamId) {
+                    $roundOne[] = $teamNameById[(int) $orderTeamId] ?? ('Team ' . $orderTeamId);
+                }
+                ?>
+                Round 1: <?= htmlspecialchars(implode(' → ', $roundOne)) ?>. Snake after that. Season 11 last place picks first.
             </p>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.35rem 1rem; font-size: 0.85rem;">
                 <?php foreach ($pickSchedule as $idx => $teamId):
@@ -266,7 +271,7 @@ $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : '
                             <?php foreach ($roster as $p): ?>
                                 <div class="player-entry<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>">
                                     <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="player-link" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
-                                    <span class="player-bucket">G<?= $p['bucket_index'] ?></span>
+                                    <span class="player-bucket"><?= draft_group_label($p) ?></span>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -344,18 +349,18 @@ Rank,Name,Race,Notes
 
                 <div class="player-list" style="margin-top: 1rem;">
                     <?php 
-                    usort($players, fn($a, $b) => $a['ranking'] - $b['ranking']);
+                    usort($players, fn($a, $b) => ($a['ranking'] ?? PHP_INT_MAX) <=> ($b['ranking'] ?? PHP_INT_MAX));
                     foreach ($players as $player): 
                     ?>
                         <?php
                         // Strip Captain/Protected from notes to show only other notes
                         $displayNotes = $player['notes'] ?? '';
-                        $displayNotes = preg_replace('/\b(Captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $displayNotes);
+                        $displayNotes = preg_replace('/\b(Captain|Co-captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $displayNotes);
                         $displayNotes = trim($displayNotes, " \t\n\r\0\x0B,;");
                     ?>
                         <div class="player-card <?= $player['status'] !== 'available' ? 'drafted' : '' ?>">
                             <div class="player-info">
-                                <span class="player-rank"><?= $player['ranking'] ?></span>
+                                <span class="player-rank"><?= draft_rank_label($player) ?></span>
                                 <a href="../../view_player.php?name=<?= urlencode($player['display_name']) ?>" class="player-name player-link" target="_blank"><?= htmlspecialchars($player['display_name']) ?></a>
                             </div>
                             <div class="player-meta">
@@ -363,7 +368,7 @@ Rank,Name,Race,Notes
                                 $raceIcons = ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'];
                                 $icon = $raceIcons[$player['race']] ?? 'random_icon.png';
                                 ?><img src="../../images/<?= $icon ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                                <span class="player-bucket">G<?= $player['bucket_index'] ?></span>
+                                <span class="player-bucket"><?= draft_group_label($player) ?></span>
                             </div>
                             <?php if (!empty($displayNotes)): ?>
                             <div class="player-notes" title="<?= htmlspecialchars($displayNotes) ?>"><?= htmlspecialchars($displayNotes) ?></div>

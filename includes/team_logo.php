@@ -31,6 +31,7 @@ function getTeamLogo($teamName, $size = '256px') {
         'Cheesy Nachos' => 'FSL_team_square_logo_CheesyNachos',
         'PSIOP Gaming' => 'FSL_team_square_logo_PSISOP_Gaming',
         'Special Tactics' => 'FSL_team_square_logo_SpecialTactics',
+        'HiveMind' => 'FSL_team_square_logo_HiveMind',
         'TBD' => null,  // Placeholder display for schedule slots with NULL team_id
     ];
 
@@ -87,6 +88,7 @@ function getTeamAcronym($teamName) {
         'PSIOP Gaming' => 'POG',
         'PulledTheBoys' => 'PTB',
         'Pulled The Boys' => 'PTB',
+        'HiveMind' => 'HM',
         // Inactive / defunct
         'Cheesy Nachos' => 'CN',
         'CheesyNachos' => 'CN',

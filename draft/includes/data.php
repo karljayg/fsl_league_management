@@ -314,9 +314,9 @@ function get_team_roster(int $team_id): array {
     
     // Sort: captains first, then protected, then others by ranking
     usort($roster, function($a, $b) {
-        $roleOrder = ['captain' => 0, 'protected' => 1];
-        $aOrder = $roleOrder[$a['role'] ?? ''] ?? 2;
-        $bOrder = $roleOrder[$b['role'] ?? ''] ?? 2;
+        $roleOrder = ['captain' => 0, 'co-captain' => 1, 'protected' => 2];
+        $aOrder = $roleOrder[$a['role'] ?? ''] ?? 3;
+        $bOrder = $roleOrder[$b['role'] ?? ''] ?? 3;
         if ($aOrder !== $bOrder) return $aOrder - $bOrder;
         return ($a['ranking'] ?? 999) - ($b['ranking'] ?? 999);
     });
@@ -376,9 +376,9 @@ function get_team_roster_by_draft_order(int $team_id): array {
     
     // Sort captain/protected: captain first, then protected, then by ranking
     usort($roster, function($a, $b) {
-        $roleOrder = ['captain' => 0, 'protected' => 1];
-        $aOrder = $roleOrder[$a['role'] ?? ''] ?? 2;
-        $bOrder = $roleOrder[$b['role'] ?? ''] ?? 2;
+        $roleOrder = ['captain' => 0, 'co-captain' => 1, 'protected' => 2];
+        $aOrder = $roleOrder[$a['role'] ?? ''] ?? 3;
+        $bOrder = $roleOrder[$b['role'] ?? ''] ?? 3;
         if ($aOrder !== $bOrder) return $aOrder - $bOrder;
         return ($a['ranking'] ?? 999) - ($b['ranking'] ?? 999);
     });
@@ -406,8 +406,23 @@ function get_team_roster_by_draft_order(int $team_id): array {
  */
 function get_role_marker(array $player): string {
     if (($player['role'] ?? '') === 'captain') return ' <span class="role-marker captain">(C)</span>';
+    if (($player['role'] ?? '') === 'co-captain') return ' <span class="role-marker co-captain">(c)</span>';
     if (($player['role'] ?? '') === 'protected') return ' <span class="role-marker protected">(P)</span>';
     return '';
+}
+
+function draft_rank_label(array $player): string {
+    if (!empty($player['unranked']) || $player['ranking'] === null || $player['ranking'] === '') {
+        return '—';
+    }
+    return (string) $player['ranking'];
+}
+
+function draft_group_label(array $player): string {
+    if (!empty($player['unranked'])) {
+        return 'UR';
+    }
+    return 'G' . $player['bucket_index'];
 }
 
 /**

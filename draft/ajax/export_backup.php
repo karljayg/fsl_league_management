@@ -5,6 +5,12 @@
  */
 
 require_once __DIR__ . '/../includes/data.php';
+require_once __DIR__ . '/../includes/auth.php';
+
+if (!draft_user_is_site_admin()) {
+    http_response_code(403);
+    die('Admin login required');
+}
 
 $session = get_session();
 if (!$session) {

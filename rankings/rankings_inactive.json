@@ -1,0 +1,182 @@
+[
+    {
+        "name": "Adastra",
+        "last_rank": 14,
+        "last_group": 4,
+        "above": "Jmpz",
+        "below": "Instability",
+        "race": "P",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "Instability",
+        "last_rank": 15,
+        "last_group": 4,
+        "above": "Adastra",
+        "below": "LightHood",
+        "race": "P",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "LightHood",
+        "last_rank": 16,
+        "last_group": 4,
+        "above": "Instability",
+        "below": "Sopuli",
+        "race": "T",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "Greeempire",
+        "last_rank": 24,
+        "last_group": 6,
+        "above": "Freeedom",
+        "below": "DLSMIZEL",
+        "race": "Z",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "DLSMIZEL",
+        "last_rank": 25,
+        "last_group": 7,
+        "above": "Greeempire",
+        "below": "Warbunnies",
+        "race": "T",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "KriMiNal",
+        "last_rank": 35,
+        "last_group": 9,
+        "above": "HyperTurtle",
+        "below": "Infestor-x",
+        "race": "T",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "RegreT",
+        "last_rank": 38,
+        "last_group": 10,
+        "above": "Nuke",
+        "below": "MvonLipwig",
+        "race": "Z",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "TheArchaic",
+        "last_rank": 41,
+        "last_group": 11,
+        "above": "Parkanian",
+        "below": "ChienPwn",
+        "race": "P",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "ChienPwn",
+        "last_rank": 42,
+        "last_group": 11,
+        "above": "TheArchaic",
+        "below": "BeanTheBard",
+        "race": "P",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "Klem",
+        "last_rank": 46,
+        "last_group": 12,
+        "above": "RevenantRage",
+        "below": "LanixMagi",
+        "race": "T",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "PorkSisig",
+        "last_rank": 50,
+        "last_group": 13,
+        "above": "WindShadow",
+        "below": "Dpoo",
+        "race": "Z",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "JudgeFae",
+        "last_rank": 52,
+        "last_group": 13,
+        "above": "Dpoo",
+        "below": "Pacha",
+        "race": "Z",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "SgtABC",
+        "last_rank": 56,
+        "last_group": 14,
+        "above": "stublu88",
+        "below": "MonkeyShaman",
+        "race": "Z",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "Fenrir",
+        "last_rank": 58,
+        "last_group": 15,
+        "above": "MonkeyShaman",
+        "below": "Pebble",
+        "race": "T",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "Pebble",
+        "last_rank": 59,
+        "last_group": 15,
+        "above": "Fenrir",
+        "below": "SpamAndRice",
+        "race": "Z",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "SpamAndRice",
+        "last_rank": 60,
+        "last_group": 15,
+        "above": "Pebble",
+        "below": "ArduousGem",
+        "race": "T",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "ArduousGem",
+        "last_rank": 61,
+        "last_group": 16,
+        "above": "SpamAndRice",
+        "below": "Poellie",
+        "race": "R",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    },
+    {
+        "name": "Poellie",
+        "last_rank": 62,
+        "last_group": 16,
+        "above": "ArduousGem",
+        "below": "Mulltastic",
+        "race": "R",
+        "status": "inactive",
+        "removed_at": "2026-10-16T23:23:31+00:00"
+    }
+]

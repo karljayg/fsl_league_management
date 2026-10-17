@@ -132,6 +132,18 @@ function tournament_d2_match_label(array $match, array $ranks = []): string
     } elseif ($status === 'done' && $winner) {
         $line .= ' · W: ' . tournament_d2_player_label((string) $winner, $ranks);
     }
+    $bLabel = trim((string) ($match['broadcast_label_full'] ?? $match['broadcast_label'] ?? ''));
+    if ($bLabel !== '') {
+        $line .= ' · (' . $bLabel . ')';
+    }
+    $champLabel = trim((string) ($match['code_championship_label'] ?? ''));
+    if ($champLabel === '' && !empty($match['code_championship'])) {
+        $code = strtoupper(trim((string) $match['code_championship']));
+        $champLabel = $code !== '' ? ('Code ' . $code . ' Championship') : 'Championship';
+    }
+    if ($champLabel !== '') {
+        $line .= ' · ' . $champLabel;
+    }
     return $line;
 }
 
@@ -199,6 +211,18 @@ function tournament_d2_group_is_empty(array $gb): bool
  */
 function tournament_bracket_to_d2(array $bracket, string $title = 'FSL Individual Championships'): string
 {
+    // Stamp stable "(Nth broadcast)" labels onto contested matches when missing.
+    if (!isset($bracket['broadcast_schedule']) || !is_array($bracket['broadcast_schedule'])) {
+        $state = tournament_load_state();
+        $annotated = tournament_annotate_broadcasts_from_state($bracket, $state, [
+            'matches_per_broadcast' => 4,
+            'code_order' => ['B', 'A', 'S'],
+            'same_broadcast_chaining' => true,
+            'phase_by_code' => true,
+        ]);
+        $bracket = $annotated['bracket'];
+    }
+
     $groups = $bracket['groups'] ?? [];
     $maxGroup = (int) ($bracket['max_group'] ?? 0);
     if ($maxGroup < 1 && is_array($groups) && $groups !== []) {
@@ -530,7 +554,42 @@ function tournament_d2_export_basename(string $format, int $scalePct): string
 {
     $format = tournament_d2_normalize_format($format);
     $scalePct = tournament_d2_normalize_scale_pct($scalePct);
+    return 'individual_championships_bracket_s' . $scalePct . '.' . $format;
+}
+
+/**
+ * Legacy diagram basename (older export filename).
+ */
+function tournament_d2_legacy_export_basename(string $format, int $scalePct): string
+{
+    $format = tournament_d2_normalize_format($format);
+    $scalePct = tournament_d2_normalize_scale_pct($scalePct);
     return 'challenger_bracket_s' . $scalePct . '.' . $format;
+}
+
+/**
+ * Resolve existing diagram file path: prefer new name, fall back to legacy.
+ *
+ * @return array{name:string,fs:string,web:string}|null
+ */
+function tournament_d2_resolve_export(string $outDir, string $format, int $scalePct): ?array
+{
+    $format = tournament_d2_normalize_format($format);
+    $scalePct = tournament_d2_normalize_scale_pct($scalePct);
+    foreach ([
+        tournament_d2_export_basename($format, $scalePct),
+        tournament_d2_legacy_export_basename($format, $scalePct),
+    ] as $name) {
+        $fs = rtrim($outDir, '/') . '/' . $name;
+        if (is_file($fs)) {
+            return [
+                'name' => $name,
+                'fs' => $fs,
+                'web' => 'diagrams/' . $name,
+            ];
+        }
+    }
+    return null;
 }
 
 /**
@@ -608,7 +667,7 @@ function tournament_d2_render(string $d2Source, string $outDir, ?array $opts = n
         return null;
     }
 
-    $base = 'challenger_bracket_s' . $scalePct;
+    $base = 'individual_championships_bracket_s' . $scalePct;
     $d2Path = $outDir . '/' . $base . '.d2';
     $svgPath = $outDir . '/' . $base . '.svg';
     $pngPath = $outDir . '/' . $base . '.png';

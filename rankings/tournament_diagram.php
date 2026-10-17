@@ -28,6 +28,12 @@ $scalePct = tournament_d2_normalize_scale_pct($_GET['scale'] ?? $_POST['scale'] 
 $exportName = tournament_d2_export_basename($format, $scalePct);
 $exportFs = $outDir . '/' . $exportName;
 $exportWeb = 'diagrams/' . $exportName;
+$resolved = tournament_d2_resolve_export($outDir, $format, $scalePct);
+if ($resolved !== null) {
+    $exportName = $resolved['name'];
+    $exportFs = $resolved['fs'];
+    $exportWeb = $resolved['web'];
+}
 
 $rankings = [];
 if (is_readable($rankingsFile)) {
@@ -86,8 +92,10 @@ if ($action === 'svg' || $action === 'render' || $action === 'export') {
     // Allow override on render POST/GET
     $format = tournament_d2_normalize_format($_GET['format'] ?? $_POST['format'] ?? $format);
     $scalePct = tournament_d2_normalize_scale_pct($_GET['scale'] ?? $_POST['scale'] ?? $scalePct);
+    // Canonical output basename for this format/scale
     $exportName = tournament_d2_export_basename($format, $scalePct);
     $exportFs = $outDir . '/' . $exportName;
+    $exportWeb = 'diagrams/' . $exportName;
 
     $d2 = tournament_bracket_to_d2($bracket, 'FSL Individual Championships');
     $err = [];
@@ -281,7 +289,7 @@ if ($action === 'd2') {
     <h1>Bracket diagram</h1>
     <p class="sub">
       <?php if ($canEdit): ?>
-      Renders the live Challenger field to a PNG (default) or SVG at 100% / 50% / 25% scale.
+      Renders the live Individual Championships field to a PNG (default) or SVG at 100% / 50% / 25% scale.
       Regenerating is admin-only (it can take a while).
       <?php else: ?>
       View the latest published bracket diagram. Format/size switches use already-generated images.

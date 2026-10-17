@@ -67,6 +67,35 @@ function require_admin(): void {
 }
 
 /**
+ * Logged-in site user with the draft admin permission (same check as admin/index.php).
+ */
+function draft_user_is_site_admin(): bool {
+    global $db;
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    $userId = trim((string) ($_SESSION['user_id'] ?? ''));
+    if ($userId === '') {
+        return false;
+    }
+    require_once __DIR__ . '/../../includes/db.php';
+    try {
+        $stmt = $db->prepare("
+            SELECT COUNT(*)
+            FROM ws_user_roles ur
+            JOIN ws_role_permissions rp ON ur.role_id = rp.role_id
+            JOIN ws_permissions p ON rp.permission_id = p.permission_id
+            WHERE ur.user_id = ? AND p.permission_name = ?
+        ");
+        $stmt->execute([$userId, 'edit player, team, stats']);
+        return (int) $stmt->fetchColumn() > 0;
+    } catch (Throwable $e) {
+        error_log('Draft admin permission check failed: ' . $e->getMessage());
+        return false;
+    }
+}
+
+/**
  * Require team auth or die
  */
 function require_team(): array {

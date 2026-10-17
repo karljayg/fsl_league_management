@@ -56,7 +56,7 @@ $myRoster = get_team_roster($team['id']);
 $bucketsUsed = get_team_buckets_used($team['id']);
 
 // Sort players
-usort($players, fn($a, $b) => $a['ranking'] - $b['ranking']);
+usort($players, fn($a, $b) => ($a['ranking'] ?? PHP_INT_MAX) <=> ($b['ranking'] ?? PHP_INT_MAX));
 $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'available'));
 ?>
 <!DOCTYPE html>
@@ -572,7 +572,7 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
             font-size: 0.75em;
             margin-left: 0.25rem;
         }
-        .role-marker.captain { color: #ffd700; }
+        .role-marker.captain, .role-marker.co-captain { color: #ffd700; }
         .role-marker.protected { color: #00d4ff; }
         
         /* Toast */
@@ -673,19 +673,19 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
                     $icon = $raceIcons[$player['race']] ?? 'random_icon.png';
                     
                     $notes = $player['notes'] ?? '';
-                    $notes = preg_replace('/\b(Captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $notes);
+                    $notes = preg_replace('/\b(Captain|Co-captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $notes);
                     $notes = trim($notes, " \t\n\r\0\x0B,;");
                 ?>
                     <div class="player-card <?= $cardClass ?>"
                          <?php if ($isMyTurn && $isEligible && !$isDrafted): ?>
                          onclick="pickPlayer(<?= $player['id'] ?>, '<?= htmlspecialchars($player['display_name'], ENT_QUOTES) ?>')"
                          <?php endif; ?>>
-                        <span class="player-rank"><?= $player['ranking'] ?></span>
+                        <span class="player-rank"><?= draft_rank_label($player) ?></span>
                         <div class="player-details">
                             <a href="../../view_player.php?name=<?= urlencode($player['display_name']) ?>" class="player-name" target="_blank" onclick="event.stopPropagation();"><?= htmlspecialchars($player['display_name']) ?></a>
                             <div class="player-meta-row">
                                 <img src="../../images/<?= $icon ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                                <span class="group-tag">G<?= $player['bucket_index'] ?></span>
+                                <span class="group-tag"><?= draft_group_label($player) ?></span>
                             </div>
                             <?php if (!empty($notes)): ?>
                             <div class="player-notes"><?= htmlspecialchars($notes) ?></div>
@@ -711,10 +711,10 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
                         <?php foreach ($myRoster as $p): ?>
                             <div class="my-roster-item<?= !empty($p['db_inactive']) ? ' db-inactive' : '' ?>">
                                 <div class="player-info">
-                                    <span class="rank"><?= $p['ranking'] ?></span>
+                                    <span class="rank"><?= draft_rank_label($p) ?></span>
                                     <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="name" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
                                 </div>
-                                <span class="group-tag">G<?= $p['bucket_index'] ?></span>
+                                <span class="group-tag"><?= draft_group_label($p) ?></span>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -726,7 +726,14 @@ $availableCount = count(array_filter($players, fn($p) => $p['status'] === 'avail
                 <h3>Groups</h3>
                 <div class="sidebar-panel-content">
                     <div class="groups-grid">
-                        <?php for ($g = 1; $g <= 12; $g++): 
+                        <?php
+                        $maxGroup = 12;
+                        foreach ($players as $groupPlayer) {
+                            if (empty($groupPlayer['unranked'])) {
+                                $maxGroup = max($maxGroup, (int) ($groupPlayer['bucket_index'] ?? 0));
+                            }
+                        }
+                        for ($g = 1; $g <= $maxGroup; $g++): 
                             $isUsed = in_array($g, $bucketsUsed);
                         ?>
                             <div class="group-chip <?= $isUsed ? 'used' : 'available' ?>">G<?= $g ?></div>

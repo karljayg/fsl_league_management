@@ -18,7 +18,7 @@ A web application for managing StarCraft 2 team league operations, including pla
 - MySQL/MariaDB database
 - Apache or Nginx web server
 - PDO MySQL extension
-- For Challenger bracket PNG diagrams (`rankings/`): `d2` CLI + `rsvg-convert` (see [rankings/README.md](rankings/README.md))
+- For Individual Championships bracket PNG diagrams (`rankings/`): `d2` CLI + `rsvg-convert` (see [rankings/README.md](rankings/README.md))
 
 ## Installation
 

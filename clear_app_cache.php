@@ -69,7 +69,7 @@ function clearApplicationCacheDir($dirPath, $allowedBase) {
         if ($item === '.' || $item === '..') {
             continue;
         }
-        if ($item === '.gitkeep') {
+        if ($item === '.gitkeep' || $item === 'index.php') {
             continue;
         }
         $full = $dirPath . DIRECTORY_SEPARATOR . $item;

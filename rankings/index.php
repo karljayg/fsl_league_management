@@ -8,162 +8,11 @@ ob_start();
 session_start();
 require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/voting_logic.php';
+require_once __DIR__ . '/tournament_logic.php';
 require_once __DIR__ . '/../includes/team_logo.php';
 
-/**
- * Enrich rankings with current season and all-time games (maps) and sets W-L from DB.
- *
- * @param array<int,array<string,mixed>> $rankings
- * @return array<int,array<string,mixed>>
- */
-function enrich_rankings_with_records(array $rankings, PDO $db): array
-{
-    if (empty($rankings)) {
-        return $rankings;
-    }
-    $currentSeason = null;
-    try {
-        $row = $db->query('SELECT MAX(season) as s FROM fsl_matches')->fetch(PDO::FETCH_ASSOC);
-        $currentSeason = $row && isset($row['s']) ? (int) $row['s'] : null;
-    } catch (PDOException $e) {
-        $currentSeason = null;
-    }
-    $names = array_unique(array_filter(array_map(static function ($p) {
-        return trim((string) ($p['name'] ?? ''));
-    }, $rankings)));
-    $defaults = ['season_gw' => 0, 'season_gl' => 0, 'season_sw' => 0, 'season_sl' => 0, 'alltime_gw' => 0, 'alltime_gl' => 0, 'alltime_sw' => 0, 'alltime_sl' => 0];
-    $records = [];
-    $nameToRace = [];
-    if (!empty($names)) {
-        $racePlaceholders = implode(',', array_fill(0, count($names), '?'));
-        $raceStmt = $db->prepare("
-            SELECT p.Real_Name, fs.Race
-            FROM Players p
-            JOIN FSL_STATISTICS fs ON p.Player_ID = fs.Player_ID
-            WHERE p.Real_Name IN ($racePlaceholders)
-            ORDER BY p.Real_Name, (fs.MapsW + fs.MapsL) DESC, FIELD(fs.Division, 'S', 'A', 'B')
-        ");
-        $raceStmt->execute(array_values($names));
-        while ($row = $raceStmt->fetch(PDO::FETCH_ASSOC)) {
-            $realName = trim((string) ($row['Real_Name'] ?? ''));
-            if ($realName === '' || isset($nameToRace[$realName])) {
-                continue;
-            }
-            $race = trim((string) ($row['Race'] ?? ''));
-            if ($race !== '') {
-                $nameToRace[$realName] = $race;
-                $nameToRace[strtolower($realName)] = $race;
-            }
-        }
-    }
-    // Team acronym per player, from the same Players -> Teams source fsl_teams.php uses.
-    // Players row missing entirely => 'Null'; player with no Team_ID => 'FA'.
-    $nameToTeam = [];
-    if (!empty($names)) {
-        $teamPlaceholders = implode(',', array_fill(0, count($names), '?'));
-        $teamStmt = $db->prepare("
-            SELECT p.Real_Name, p.Team_ID, t.Team_Name
-            FROM Players p
-            LEFT JOIN Teams t ON p.Team_ID = t.Team_ID
-            WHERE p.Real_Name IN ($teamPlaceholders)
-        ");
-        $teamStmt->execute(array_values($names));
-        while ($row = $teamStmt->fetch(PDO::FETCH_ASSOC)) {
-            $realName = trim((string) ($row['Real_Name'] ?? ''));
-            if ($realName === '' || isset($nameToTeam[$realName])) {
-                continue;
-            }
-            $teamName = trim((string) ($row['Team_Name'] ?? ''));
-            if (empty($row['Team_ID']) || $teamName === '') {
-                $acronym = 'FA';
-            } else {
-                $acronym = getTeamAcronym($teamName) ?? 'FA';
-            }
-            $nameToTeam[$realName] = $acronym;
-            $nameToTeam[strtolower($realName)] = $acronym;
-        }
-    }
-    $resolveTeam = static function (string $name) use ($nameToTeam): string {
-        return $nameToTeam[$name] ?? $nameToTeam[strtolower($name)] ?? 'Null';
-    };
-    if (empty($names) || $currentSeason === null) {
-        foreach ($rankings as $i => $p) {
-            foreach ($defaults as $k => $v) {
-                $rankings[$i][$k] = $v;
-            }
-            $name = trim((string) ($p['name'] ?? ''));
-            $race = $nameToRace[$name] ?? $nameToRace[strtolower($name)] ?? null;
-            if ($race !== null) {
-                $rankings[$i]['race'] = $race;
-            }
-            $rankings[$i]['team'] = $resolveTeam($name);
-            $rank = (int) ($rankings[$i]['rank'] ?? $i + 1);
-            $rankings[$i]['group'] = (int) ceil($rank / 4);
-        }
-
-        return $rankings;
-    }
-    $placeholders = implode(',', array_fill(0, count($names), '?'));
-    $stmt = $db->prepare("SELECT Player_ID, Real_Name FROM Players WHERE Real_Name IN ($placeholders)");
-    $stmt->execute(array_values($names));
-    $nameToPid = [];
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $nameToPid[trim($row['Real_Name'])] = (int) $row['Player_ID'];
-        $nameToPid[strtolower(trim($row['Real_Name']))] = (int) $row['Player_ID'];
-    }
-    foreach ($names as $name) {
-        $pid = $nameToPid[$name] ?? $nameToPid[strtolower($name)] ?? null;
-        $rec = $defaults;
-        if ($pid !== null) {
-            $stmt = $db->prepare('
-                SELECT
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sw,
-                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sl,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as gw,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as gl
-                FROM fsl_matches WHERE season = ? AND (winner_player_id = ? OR loser_player_id = ?)
-            ');
-            $stmt->execute([$pid, $pid, $pid, $pid, $currentSeason, $pid, $pid]);
-            $r = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rec['season_sw'] = (int) ($r['sw'] ?? 0);
-            $rec['season_sl'] = (int) ($r['sl'] ?? 0);
-            $rec['season_gw'] = (int) ($r['gw'] ?? 0);
-            $rec['season_gl'] = (int) ($r['gl'] ?? 0);
-            $stmt = $db->prepare('
-                SELECT
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN 1 ELSE 0 END), 0) as sw,
-                    COALESCE(SUM(CASE WHEN loser_player_id = ? THEN 1 ELSE 0 END), 0) as sl,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_win ELSE map_loss END), 0) as gw,
-                    COALESCE(SUM(CASE WHEN winner_player_id = ? THEN map_loss ELSE map_win END), 0) as gl
-                FROM fsl_matches WHERE winner_player_id = ? OR loser_player_id = ?
-            ');
-            $stmt->execute([$pid, $pid, $pid, $pid, $pid, $pid]);
-            $r = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rec['alltime_sw'] = (int) ($r['sw'] ?? 0);
-            $rec['alltime_sl'] = (int) ($r['sl'] ?? 0);
-            $rec['alltime_gw'] = (int) ($r['gw'] ?? 0);
-            $rec['alltime_gl'] = (int) ($r['gl'] ?? 0);
-        }
-        $records[$name] = $rec;
-        $records[strtolower($name)] = $rec;
-    }
-    foreach ($rankings as $i => $p) {
-        $name = trim((string) ($p['name'] ?? ''));
-        $rec = $records[$name] ?? $records[strtolower($name)] ?? $defaults;
-        foreach ($defaults as $k => $v) {
-            $rankings[$i][$k] = $rec[$k];
-        }
-        $race = $nameToRace[$name] ?? $nameToRace[strtolower($name)] ?? null;
-        if ($race !== null) {
-            $rankings[$i]['race'] = $race;
-        }
-        $rankings[$i]['team'] = $resolveTeam($name);
-        $rank = (int) ($rankings[$i]['rank'] ?? $i + 1);
-        $rankings[$i]['group'] = (int) ceil($rank / 4);
-    }
-
-    return $rankings;
-}
+require_once __DIR__ . '/rankings_enrich.php';
+require_once __DIR__ . '/rankings_roster.php';
 
 $rankingsFile = __DIR__ . '/rankings.json';
 $configFile = __DIR__ . '/rankings_config.json';
@@ -480,17 +329,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'save_code_tiers') {
-        $config = [
+        $n = count(json_decode((string) @file_get_contents($rankingsFile), true) ?: []);
+        $config = tournament_normalize_code_tiers([
             'codeS' => ['minRank' => (int) ($input['codeS_min'] ?? 1), 'maxRank' => (int) ($input['codeS_max'] ?? 24)],
             'codeA' => ['minRank' => (int) ($input['codeA_min'] ?? 25), 'maxRank' => (int) ($input['codeA_max'] ?? 36)],
             'codeB' => ['minRank' => (int) ($input['codeB_min'] ?? 37), 'maxRank' => (int) ($input['codeB_max'] ?? 46)],
-        ];
+        ], max(1, $n));
         $result = @file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT));
         if ($result === false) {
             echo json_encode(['success' => false, 'error' => 'Could not save config. Check that rankings folder is writable.']);
             exit;
         }
-        echo json_encode(['success' => true]);
+        echo json_encode(['success' => true, 'codeTiers' => $config]);
+        exit;
+    }
+
+    if ($action === 'roster_sync_preview' || $action === 'roster_sync_apply') {
+        echo json_encode(rankings_roster_sync($db, $action === 'roster_sync_preview'));
         exit;
     }
 
@@ -520,7 +375,7 @@ if (file_exists($rankingsFile)) {
 }
 $rankings = enrich_rankings_with_records($rankings, $db);
 
-// Load code tier config (Code S, A, B rank ranges)
+// Load code tier config (Code S, A, B rank ranges) — aligned to rankings.json groups
 $totalPlayers = count($rankings);
 $third = max(1, (int) ceil($totalPlayers / 3));
 $codeTiers = [
@@ -540,6 +395,8 @@ if (file_exists($configFile)) {
         }
     }
 }
+$codeTiers = tournament_normalize_code_tiers($codeTiers, max(1, $totalPlayers));
+
 
 $showVoterUi = $canVote && $votingCollectingNow;
 $displayRankings = $rankings;
@@ -1132,8 +989,8 @@ $raceIcons = [
                 <?php if ($canEditCanonical): ?>
                 <button type="button" class="code-tier-edit-btn" onclick="openCodeTierModal()" title="Edit Code tier ranges"><i class="fas fa-cog"></i> Edit ranges</button>
                 <button type="button" class="code-tier-edit-btn" onclick="refreshRecords()" title="Reload W-L from DB and save to rankings file"><i class="fas fa-sync-alt"></i> Refresh records</button>
+                <button type="button" class="code-tier-edit-btn" onclick="openRosterSync()" title="Remove inactive players and restore returning players from saved ranks"><i class="fas fa-user-check"></i> Sync with roster</button>
                 <?php endif; ?>
-                <a href="tournament.php" class="code-tier-edit-btn" title="Challenger tournament signup &amp; bracket" style="text-decoration:none;display:inline-block;"><i class="fas fa-sitemap"></i> Challenger Bracket</a>
             </p>
         </div>
 
@@ -1371,6 +1228,45 @@ $raceIcons = [
         </div>
     </div>
     
+    <?php if ($canEdit): ?>
+    <?php $inactiveSaved = rankings_roster_read_json_list(RANKINGS_ROSTER_INACTIVE_FILE); ?>
+    <?php if (!empty($inactiveSaved)): ?>
+    <div class="rankings-container">
+        <details class="voting-admin-panel mt-3 p-3">
+            <summary class="text-secondary"><i class="fas fa-user-clock"></i> Inactive players with saved ranks (<?= count($inactiveSaved) ?>)</summary>
+            <p class="small text-muted mt-2 mb-2">Not shown in the rankings. If set active again, they return directly below whoever holds their saved rank.</p>
+            <table class="table table-sm table-dark mb-0 small">
+                <thead><tr><th>Saved rank</th><th>Player</th><th>Was between</th><th>Status</th><th>Since</th></tr></thead>
+                <tbody>
+                <?php foreach ($inactiveSaved as $saved): ?>
+                    <tr>
+                        <td>#<?= (int) $saved['last_rank'] ?> (G<?= (int) ($saved['last_group'] ?? ceil(((int) $saved['last_rank']) / 4)) ?>)</td>
+                        <td><?= htmlspecialchars((string) $saved['name']) ?></td>
+                        <td class="text-muted"><?= htmlspecialchars((string) ($saved['above'] ?? '—')) ?> / <?= htmlspecialchars((string) ($saved['below'] ?? '—')) ?></td>
+                        <td><?= htmlspecialchars((string) ($saved['status'] ?? 'inactive')) ?></td>
+                        <td class="text-muted"><?= htmlspecialchars(substr((string) ($saved['removed_at'] ?? ''), 0, 10)) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
+        </details>
+    </div>
+    <?php endif; ?>
+    <?php endif; ?>
+
+    <?php if ($canEditCanonical): ?>
+    <div class="code-tier-modal" id="rosterSyncModal">
+        <div class="code-tier-modal-inner">
+            <h3>Sync with roster</h3>
+            <div id="rosterSyncBody" class="small">Checking…</div>
+            <div class="code-tier-modal-actions">
+                <button type="button" class="edit-btn" style="background: rgba(255,255,255,0.1);" onclick="closeRosterSync()">Cancel</button>
+                <button type="button" class="edit-btn" id="rosterSyncApplyBtn" onclick="applyRosterSync()" disabled><i class="fas fa-check"></i> Apply</button>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="save-indicator" id="saveIndicator">
         <i class="fas fa-check"></i> Saved
     </div>
@@ -1590,6 +1486,48 @@ $raceIcons = [
                 } else {
                     alert(res.error || 'Refresh failed');
                 }
+            });
+        }
+
+        function escapeHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        }
+        function rosterSyncList(title, items, fmt) {
+            if (!items || !items.length) return '';
+            return '<p class="mb-1 mt-2"><strong>' + title + ' (' + items.length + ')</strong></p><ul class="mb-1 pl-3">' +
+                items.map(i => '<li>' + fmt(i) + '</li>').join('') + '</ul>';
+        }
+        function openRosterSync() {
+            const body = document.getElementById('rosterSyncBody');
+            const btn = document.getElementById('rosterSyncApplyBtn');
+            body.textContent = 'Checking…';
+            btn.disabled = true;
+            document.getElementById('rosterSyncModal').classList.add('show');
+            postVoting({ action: 'roster_sync_preview' }).then(d => {
+                if (!d.success) { body.textContent = d.error || 'Preview failed'; return; }
+                if (!d.changed) {
+                    body.innerHTML = '<p>Rankings already match active players (' + d.active_count + ' ranked, ' + d.inactive_count + ' saved inactive).</p>';
+                    return;
+                }
+                let html = '<p>After sync: <strong>' + d.active_count + '</strong> ranked, ' + d.inactive_count + ' saved inactive.</p>';
+                html += rosterSyncList('Going inactive', d.deactivated, i => escapeHtml(i.name) + ' — saved at #' + i.last_rank);
+                html += rosterSyncList('Returning', d.reactivated, i => escapeHtml(i.name) + ' — saved #' + i.saved_rank + ', placed below ' + escapeHtml(i.placed_below || 'top') + ' → #' + i.new_rank);
+                html += rosterSyncList('New (no rank history, added at bottom)', d.added, i => escapeHtml(i.name) + ' → #' + i.new_rank);
+                html += rosterSyncList('In rankings but not in Players (left as is)', d.unmatched, i => escapeHtml(i));
+                body.innerHTML = html;
+                btn.disabled = false;
+            });
+        }
+        function closeRosterSync() {
+            document.getElementById('rosterSyncModal').classList.remove('show');
+        }
+        function applyRosterSync() {
+            document.getElementById('rosterSyncApplyBtn').disabled = true;
+            postVoting({ action: 'roster_sync_apply' }).then(d => {
+                if (d.success) { showSaveIndicator(); location.reload(); }
+                else { alert(d.error || 'Sync failed'); }
             });
         }
 

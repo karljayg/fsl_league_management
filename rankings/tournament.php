@@ -1,6 +1,6 @@
 <?php
 /**
- * FSL Challenger Tournament — signup + live bracket (bottom-up by group).
+ * FSL Individual Championships — signup + live bracket (bottom-up by group).
  */
 
 ob_start();
@@ -119,7 +119,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && (string) ($_GET['action']
         echo 'Could not encode export';
         exit;
     }
-    $fname = 'fsl_challenger_tournament_' . gmdate('Ymd_His') . '.json';
+    $fname = 'fsl_individual_championships_' . gmdate('Ymd_His') . '.json';
     header('Content-Type: application/json; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $fname . '"');
     header('Cache-Control: no-store');
@@ -139,6 +139,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         exit;
     };
     $jsonOk = static function (array $bracket, array $state): void {
+        if (!isset($bracket['broadcast_schedule']) || !is_array($bracket['broadcast_schedule'])) {
+            $bracket = tournament_annotate_broadcasts_from_state($bracket, $state)['bracket'];
+        }
         echo json_encode([
             'success' => true,
             'bracket' => $bracket,
@@ -146,6 +149,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 'participating' => $state['participating'] ?? [],
                 'results' => $state['results'] ?? [],
                 'winners' => $state['winners'] ?? [],
+                'broadcast_dates' => $state['broadcast_dates'] ?? [],
+                'broadcast_assignments' => $state['broadcast_assignments'] ?? [],
                 'updated_at' => $state['updated_at'] ?? null,
             ],
         ]);
@@ -167,7 +172,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $state['results'] = $normalized['results'];
         $state['winners'] = $normalized['winners'];
         $state['participating'] = $normalized['participating'];
-        return tournament_build_bracket($rankings, $state, $codeTiers);
+        $bracket = tournament_build_bracket($rankings, $state, $codeTiers);
+        return tournament_annotate_broadcasts_from_state($bracket, $state)['bracket'];
     };
 
     if ($action === 'toggle_participation') {
@@ -465,11 +471,61 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $jsonOk($bracket, $state);
     }
 
+    if ($action === 'set_broadcast_dates') {
+        $rawDates = $input['broadcast_dates'] ?? [];
+        if (!is_array($rawDates)) {
+            $jsonFail('broadcast_dates must be an object');
+        }
+        $state['broadcast_dates'] = tournament_normalize_broadcast_dates($rawDates);
+        $bracket = $rebuild($rankings, $state);
+        if (!tournament_save_state($state)) {
+            $jsonFail('Could not save state');
+        }
+        $jsonOk($bracket, $state);
+    }
+
+    if ($action === 'move_broadcast_match') {
+        $matchId = trim((string) ($input['match_id'] ?? ''));
+        $direction = strtolower(trim((string) ($input['direction'] ?? '')));
+        if ($matchId === '') {
+            $jsonFail('Missing match_id');
+        }
+        if ($direction !== 'prev' && $direction !== 'next') {
+            $jsonFail('direction must be prev or next');
+        }
+        $bracketBase = tournament_build_bracket($rankings, $state, $codeTiers);
+        $moved = tournament_broadcast_move_match($bracketBase, $state, $matchId, $direction);
+        if (empty($moved['ok'])) {
+            $jsonFail((string) ($moved['error'] ?? 'Move blocked'));
+        }
+        $state['broadcast_assignments'] = tournament_normalize_broadcast_assignments($moved['assignments'] ?? []);
+        $bracket = $rebuild($rankings, $state);
+        if (!tournament_save_state($state)) {
+            $jsonFail('Could not save state');
+        }
+        $jsonOk($bracket, $state);
+    }
+
+    if ($action === 'reset_broadcast_assignments') {
+        $state['broadcast_assignments'] = [];
+        $bracket = $rebuild($rankings, $state);
+        if (!tournament_save_state($state)) {
+            $jsonFail('Could not save state');
+        }
+        $jsonOk($bracket, $state);
+    }
+
     $jsonFail('Unknown action');
 }
 
 $state = tournament_load_state();
-$bracket = tournament_build_bracket($rankings, $state, $codeTiers);
+$bracket = tournament_annotate_broadcasts_from_state(
+    tournament_build_bracket($rankings, $state, $codeTiers),
+    $state
+)['bracket'];
+$broadcastMeta = is_array($bracket['broadcast_schedule'] ?? null) ? $bracket['broadcast_schedule'] : [];
+$broadcastCurrent = isset($broadcastMeta['current_broadcast']) ? (int) $broadcastMeta['current_broadcast'] : null;
+$broadcastTotal = (int) ($broadcastMeta['total_broadcasts'] ?? 0);
 
 $playerTeamLogo = [];
 $names = array_values(array_filter(array_map(static function ($p) {
@@ -523,10 +579,12 @@ $totalCount = count($rankings);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="../images/favicon.png" type="image/png">
-    <title>Challenger Bracket - FSL</title>
+    <title>Individual Championships - FSL</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Exo+2:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css">
     <link rel="stylesheet" href="../css/styles.css">
     <style>
         :root {
@@ -1741,13 +1799,205 @@ $totalCount = count($rankings);
             margin-bottom: 0.15rem;
         }
         .tour-match-shell .tour-match-status {
-            position: absolute;
-            top: 0.15rem;
-            left: 0.35rem;
+            position: static;
             margin: 0;
             background: rgba(10, 10, 16, 0.92);
             padding: 0 0.25rem;
+        }
+        .tour-match-head {
+            position: absolute;
+            top: 0.15rem;
+            left: 0.35rem;
             z-index: 5;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            align-items: center;
+            max-width: calc(100% - 7rem);
+        }
+        .tour-match-meta-right {
+            position: absolute;
+            top: 0.15rem;
+            right: 0.35rem;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.2rem;
+            max-width: calc(100% - 5.5rem);
+        }
+        .tour-code-champ-tag {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.62rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            padding: 0.05rem 0.35rem;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 215, 0, 0.45);
+            color: #ffd700;
+            background: rgba(58, 42, 8, 0.88);
+            white-space: nowrap;
+            line-height: 1.35;
+        }
+        .tour-code-champ-tag.code-B {
+            border-color: rgba(154, 208, 255, 0.5);
+            color: #9ad0ff;
+            background: rgba(16, 32, 48, 0.88);
+        }
+        .tour-code-champ-tag.code-A {
+            border-color: rgba(255, 199, 138, 0.5);
+            color: #ffc78a;
+            background: rgba(48, 32, 12, 0.88);
+        }
+        .tour-code-champ-tag.code-S {
+            border-color: rgba(255, 215, 0, 0.55);
+            color: #ffd700;
+            background: rgba(58, 42, 8, 0.88);
+        }
+        .tour-match-shell.plain .tour-match-head {
+            position: static;
+            max-width: none;
+            margin-bottom: 0.1rem;
+        }
+        .tour-match-shell.plain .tour-match-status {
+            background: none;
+            padding: 0;
+        }
+        .tour-match-shell.plain .tour-match-meta-right {
+            position: static;
+            max-width: none;
+            align-items: flex-start;
+            margin: 0.15rem 0 0.1rem;
+        }
+        .tour-match-shell.plain .tour-code-champ-tag {
+            background: none;
+            display: inline-block;
+            margin-top: 0.15rem;
+        }
+        .tour-broadcast-tag {
+            margin: 0;
+            padding: 0 0.25rem;
+            background: rgba(10, 10, 16, 0.92);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: var(--t-purple-soft);
+            line-height: 1.35;
+            white-space: nowrap;
+        }
+        .tour-match-shell.plain .tour-broadcast-tag {
+            display: block;
+            margin: 0;
+            padding: 0;
+            background: none;
+            white-space: normal;
+        }
+        .tour-match-shell.status-done .tour-broadcast-tag { color: #888; }
+        .tour-match-shell.status-ready .tour-broadcast-tag,
+        .tour-match-shell.status-live .tour-broadcast-tag { color: #c4b5fd; }
+        .tour-bcast-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0 0 0.85rem;
+        }
+        .tour-bcast-chip {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 0.1rem;
+            min-width: 7.5rem;
+            padding: 0.45rem 0.7rem;
+            border-radius: 10px;
+            border: 1px solid rgba(162, 155, 254, 0.28);
+            background: rgba(0, 0, 0, 0.28);
+            text-decoration: none;
+            color: #ddd;
+            transition: border-color 0.15s ease, background 0.15s ease;
+        }
+        .tour-bcast-chip:hover {
+            border-color: rgba(162, 155, 254, 0.6);
+            background: rgba(108, 92, 231, 0.15);
+            color: #fff;
+            text-decoration: none;
+        }
+        .tour-bcast-chip .who {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            font-size: 0.92rem;
+            letter-spacing: 0.02em;
+        }
+        .tour-bcast-chip .meta {
+            font-size: 0.72rem;
+            color: #9aa7bd;
+        }
+        .tour-bcast-chip.current {
+            border-color: rgba(0, 212, 170, 0.55);
+            box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.12);
+        }
+        .tour-bcast-chip.done { opacity: 0.65; }
+        .tour-chip.bcast {
+            border-color: rgba(162, 155, 254, 0.5);
+            color: var(--t-purple-soft);
+        }
+        .tour-bcast-dates {
+            max-width: 920px;
+            margin: 0 auto 1rem;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            border: 1px solid rgba(162, 155, 254, 0.28);
+            background: rgba(0, 0, 0, 0.28);
+        }
+        .tour-bcast-dates h3 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1rem;
+            margin: 0 0 0.35rem;
+            color: #ddd;
+        }
+        .tour-bcast-dates .hint {
+            color: #9aa7bd;
+            font-size: 0.78rem;
+            margin-bottom: 0.65rem;
+        }
+        .tour-bcast-dates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.55rem 0.75rem;
+            margin-bottom: 0.65rem;
+        }
+        .tour-bcast-date-field label {
+            display: block;
+            font-size: 0.72rem;
+            color: #9aa7bd;
+            margin-bottom: 0.2rem;
+        }
+        .tour-bcast-date-field input.tour-bcast-datepicker {
+            width: 100%;
+            background: #12121c;
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #eee;
+            border-radius: 8px;
+            padding: 0.45rem 0.55rem;
+            font-size: 0.85rem;
+            font-family: 'Exo 2', sans-serif;
+            cursor: pointer;
+        }
+        .tour-bcast-date-field input.tour-bcast-datepicker:focus {
+            outline: none;
+            border-color: rgba(162, 155, 254, 0.65);
+        }
+        .tour-bcast-date-field .flatpickr-input[readonly] {
+            cursor: pointer;
+            background: #12121c;
+        }
+        .flatpickr-calendar.dark {
+            font-family: 'Exo 2', sans-serif;
+        }
+        .tour-bcast-dates-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
         }
         /*
          * Action row sits in the lower strip of the shell. Shells are tall enough
@@ -1874,7 +2124,7 @@ $totalCount = count($rankings);
 <div class="tour-page">
     <div class="tour-header">
         <a class="tour-back" href="index.php"><i class="fas fa-arrow-left"></i> Power Rankings</a>
-        <h1>Challenger Bracket</h1>
+        <h1>Individual Championships</h1>
         <p>Bottom-up group gauntlet — winners climb toward G1 for the FSL crown</p>
     </div>
 
@@ -1884,6 +2134,17 @@ $totalCount = count($rankings);
         <span class="tour-chip live"><i class="fas fa-play"></i> <span id="statLive"><?= (int) ($bracket['counts']['live'] ?? 0) ?></span> live</span>
         <span class="tour-chip waiting"><i class="fas fa-hourglass-half"></i> <span id="statWaiting"><?= (int) ($bracket['counts']['waiting'] ?? 0) ?></span> waiting</span>
         <span class="tour-chip done"><i class="fas fa-check"></i> <span id="statDone"><?= (int) ($bracket['counts']['done'] ?? 0) ?></span> done</span>
+        <?php if ($broadcastTotal > 0): ?>
+        <span class="tour-chip bcast" id="statBcast" title="Broadcast forecast (Code B → A → S)">
+            <i class="fas fa-tv"></i>
+            <span id="statBcastLabel"><?= $broadcastCurrent !== null
+                ? htmlspecialchars(tournament_broadcast_label($broadcastCurrent), ENT_QUOTES, 'UTF-8')
+                : 'Complete' ?></span>
+            <span class="text-muted"> · <?= (int) $broadcastTotal ?> total</span>
+        </span>
+        <?php else: ?>
+        <span class="tour-chip bcast" id="statBcast" style="display:none"></span>
+        <?php endif; ?>
         <?php if (!empty($bracket['champion'])): ?>
         <span class="tour-chip champ" id="statChamp"><i class="fas fa-trophy"></i> <?= htmlspecialchars((string) $bracket['champion']) ?></span>
         <?php else: ?>
@@ -1897,6 +2158,9 @@ $totalCount = count($rankings);
         </button>
         <a class="tour-btn ghost" href="tournament_diagram.php?action=view&amp;format=png&amp;scale=50" target="_blank" rel="noopener noreferrer" title="Open latest bracket diagram (PNG @ 50%)">
             <i class="fas fa-project-diagram"></i> Bracket diagram
+        </a>
+        <a class="tour-btn ghost" href="tournament_broadcast.php" title="Broadcast schedule (Code B → A → S)">
+            <i class="fas fa-tv"></i> Broadcasts
         </a>
         <?php if ($canEdit): ?>
         <a class="tour-btn ghost" href="tournament_diagram.php" target="_blank" rel="noopener noreferrer" title="Regenerate D2 bracket image">
@@ -1914,6 +2178,29 @@ $totalCount = count($rankings);
       </div>
     <?php if ($canEdit): ?>
     <p class="text-center text-muted small mb-2">Admin: open the field to manage signups · export/import JSON to move the field between environments · enter scores on matches · End / Forfeit advances the winner</p>
+    <?php if ($broadcastTotal > 0): ?>
+    <div class="tour-bcast-dates" id="bcastDatesPanel">
+        <h3><i class="fas fa-calendar-alt"></i> Broadcast dates <span class="text-muted">(optional · US Eastern)</span></h3>
+        <div class="hint">Set a start time per show — shown on the bracket, diagram, and broadcast schedule. Leave blank to omit.</div>
+        <div class="tour-bcast-dates-grid" id="bcastDatesGrid">
+            <?php foreach (($broadcastMeta['broadcasts'] ?? []) as $bShow): ?>
+                <?php
+                $bn = (int) ($bShow['broadcast'] ?? 0);
+                $iso = (string) ($bShow['broadcast_when_iso'] ?? '');
+                ?>
+                <div class="tour-bcast-date-field">
+                    <label for="bcastDate<?= $bn ?>"><?= htmlspecialchars(tournament_broadcast_label($bn), ENT_QUOTES, 'UTF-8') ?><?= !empty($bShow['codes']) ? ' · Code ' . htmlspecialchars(implode('/', $bShow['codes']), ENT_QUOTES, 'UTF-8') : '' ?></label>
+                    <input type="text" class="tour-bcast-datepicker" id="bcastDate<?= $bn ?>" data-broadcast="<?= $bn ?>" value="<?= htmlspecialchars($iso, ENT_QUOTES, 'UTF-8') ?>" placeholder="Pick date &amp; time" autocomplete="off" readonly>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="tour-bcast-dates-actions">
+            <button type="button" class="tour-btn" id="bcastDatesSaveBtn" onclick="saveBroadcastDates()"><i class="fas fa-save"></i> Save dates</button>
+            <button type="button" class="tour-btn ghost" onclick="clearBroadcastDatesForm()">Clear all</button>
+            <span class="text-muted small" id="bcastDatesStatus"></span>
+        </div>
+    </div>
+    <?php endif; ?>
     <?php else: ?>
     <p class="text-center text-muted small mb-2">Public view — bracket updates live. Field list is view-only.</p>
     <?php endif; ?>
@@ -1997,6 +2284,7 @@ $totalCount = count($rankings);
 
 <div class="save-indicator" id="saveIndicator">Saved</div>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script>
 const CAN_EDIT = <?= $canEdit ? 'true' : 'false' ?>;
 let bracketData = <?= json_encode($bracket, JSON_UNESCAPED_UNICODE) ?>;
@@ -2083,6 +2371,27 @@ function updateStats() {
     document.getElementById('statLive').textContent = c.live || 0;
     document.getElementById('statWaiting').textContent = c.waiting || 0;
     document.getElementById('statDone').textContent = c.done || 0;
+    const bcastEl = document.getElementById('statBcast');
+    const bcastLabel = document.getElementById('statBcastLabel');
+    const bs = (bracketData && bracketData.broadcast_schedule) || {};
+    if (bcastEl) {
+        const total = bs.total_broadcasts || 0;
+        if (total > 0) {
+            bcastEl.style.display = '';
+            const cur = bs.current_broadcast;
+            if (bcastLabel) {
+                let txt = cur ? ordinalBroadcastLabel(cur) : 'Complete';
+                if (cur && Array.isArray(bs.broadcasts)) {
+                    const show = bs.broadcasts.find(s => s.broadcast === cur);
+                    if (show) txt += ' · ' + (show.broadcast_when || 'TBD');
+                }
+                bcastLabel.textContent = txt;
+            }
+            refreshBroadcastDatesForm();
+        } else {
+            bcastEl.style.display = 'none';
+        }
+    }
     const champEl = document.getElementById('statChamp');
     if (champEl) {
         if (bracketData.champion) {
@@ -2093,6 +2402,133 @@ function updateStats() {
             champEl.innerHTML = '';
         }
     }
+}
+
+function ordinalBroadcastLabel(n) {
+    n = parseInt(n, 10) || 0;
+    const mod100 = n % 100;
+    let suf = 'th';
+    if (mod100 < 11 || mod100 > 13) {
+        switch (n % 10) {
+            case 1: suf = 'st'; break;
+            case 2: suf = 'nd'; break;
+            case 3: suf = 'rd'; break;
+        }
+    }
+    return n + suf + ' broadcast';
+}
+
+function matchBroadcastTag(match) {
+    const full = match && (match.broadcast_label_full || match.broadcast_label)
+        ? String(match.broadcast_label_full || match.broadcast_label)
+        : '';
+    if (!full) return '';
+    const title = 'Planned: ' + (match.broadcast_when || 'TBD');
+    return '<span class="tour-broadcast-tag" title="' + esc(title) + '">(' + esc(full) + ')</span>';
+}
+
+function matchCodeChampionshipTag(match) {
+    const label = match && match.code_championship_label
+        ? String(match.code_championship_label)
+        : (match && match.code_championship
+            ? ('Code ' + String(match.code_championship) + ' Championship')
+            : '');
+    if (!label) return '';
+    const code = match.code_championship ? String(match.code_championship).toUpperCase() : '';
+    const cls = code ? (' code-' + esc(code)) : '';
+    return '<span class="tour-code-champ-tag' + cls + '" title="' + esc(label) + '">' + esc(label) + '</span>';
+}
+
+function matchHeadMeta(match, fedMap, opts) {
+    const meta = matchStatusLabel(match, fedMap, opts);
+    return '<div class="tour-match-head">' +
+        '<span class="tour-match-status">' + meta.text + '</span>' +
+        '</div>';
+}
+
+function matchMetaRight(match) {
+    const champ = matchCodeChampionshipTag(match);
+    const bcast = matchBroadcastTag(match);
+    if (!champ && !bcast) return '';
+    return '<div class="tour-match-meta-right">' + bcast + champ + '</div>';
+}
+
+async function saveBroadcastDates() {
+    const dates = {};
+    document.querySelectorAll('#bcastDatesGrid input[data-broadcast]').forEach(inp => {
+        const n = inp.getAttribute('data-broadcast');
+        const fp = inp._flatpickr;
+        const v = fp ? (fp.input.value || '').trim() : (inp.value || '').trim();
+        if (n && v) dates[n] = v;
+    });
+    const status = document.getElementById('bcastDatesStatus');
+    if (status) status.textContent = 'Saving…';
+    try {
+        await api('set_broadcast_dates', { broadcast_dates: dates });
+        if (status) status.textContent = 'Saved';
+        refreshBroadcastDatesForm();
+    } catch (e) {
+        if (status) status.textContent = 'Save failed';
+    }
+}
+
+function clearBroadcastDatesForm() {
+    document.querySelectorAll('#bcastDatesGrid input[data-broadcast]').forEach(inp => {
+        if (inp._flatpickr) inp._flatpickr.clear();
+        else inp.value = '';
+    });
+}
+
+function destroyBroadcastDatepickers() {
+    document.querySelectorAll('#bcastDatesGrid input[data-broadcast]').forEach(inp => {
+        if (inp._flatpickr) inp._flatpickr.destroy();
+    });
+}
+
+function initBroadcastDatepickers() {
+    if (typeof flatpickr !== 'function') return;
+    document.querySelectorAll('#bcastDatesGrid input.tour-bcast-datepicker').forEach(inp => {
+        if (inp._flatpickr) inp._flatpickr.destroy();
+        flatpickr(inp, {
+            enableTime: true,
+            dateFormat: 'Y-m-d\\TH:i',
+            altInput: true,
+            altFormat: 'n/j/Y h:i K',
+            time_24hr: false,
+            allowInput: false,
+            disableMobile: true,
+            minuteIncrement: 15,
+            defaultHour: 19,
+            defaultMinute: 0,
+            theme: 'dark'
+        });
+    });
+}
+
+function refreshBroadcastDatesForm() {
+    const grid = document.getElementById('bcastDatesGrid');
+    if (!grid) return;
+    destroyBroadcastDatepickers();
+    const bs = (bracketData && bracketData.broadcast_schedule) || {};
+    const shows = Array.isArray(bs.broadcasts) ? bs.broadcasts : [];
+    if (!shows.length) {
+        grid.innerHTML = '';
+        return;
+    }
+    let html = '';
+    shows.forEach(s => {
+        const n = s.broadcast || 0;
+        const label = s.broadcast_label || ordinalBroadcastLabel(n);
+        const codes = (s.codes || []).length ? (' · Code ' + s.codes.join('/')) : '';
+        const iso = s.broadcast_when_iso || '';
+        html += '<div class="tour-bcast-date-field">' +
+            '<label for="bcastDate' + n + '">' + esc(label) + esc(codes) + '</label>' +
+            '<input type="text" class="tour-bcast-datepicker" id="bcastDate' + n + '" data-broadcast="' + n +
+            '" value="' + esc(iso) + '" placeholder="Pick date &amp; time" autocomplete="off" readonly>' +
+            '</div>';
+    });
+    grid.innerHTML = html;
+    initBroadcastDatepickers();
 }
 
 function esc(s) {
@@ -2259,13 +2695,16 @@ function matchCard(match, fedMap, opts) {
     }
 
     const meta = matchStatusLabel(match, fedMap, opts);
-    const label = meta.text;
     const isByeSolo = meta.isByeSolo;
     const isPlayIn = meta.isPlayIn;
     const ffClass = match.forfeit ? ' forfeit-match' : '';
     const playInClass = isPlayIn ? ' is-playin' : '';
     const actionsInner = matchActionsHtml(match);
     const byeWhich = (isByeSolo && !match.p1 && match.p2) ? 2 : 1;
+    const headMeta = matchHeadMeta(match, fedMap, opts);
+    const champTag = matchCodeChampionshipTag(match);
+    const bcastTag = matchBroadcastTag(match);
+    const metaRight = matchMetaRight(match);
 
     if (plain) {
         let slots = '<div class="tour-path-slots">';
@@ -2287,8 +2726,9 @@ function matchCard(match, fedMap, opts) {
             : '';
         return '<div class="tour-match-wrap plain" data-match="' + esc(match.id) + '">' +
             '<div class="tour-match-shell plain status-' + esc(st) + ffClass + playInClass + '">' +
-            '<span class="tour-match-status">' + label + '</span>' +
-            pair + slots + sub + actions +
+            headMeta +
+            (bcastTag ? '<div class="tour-match-meta-right">' + bcastTag + '</div>' : '') +
+            pair + slots + sub + champTag + actions +
             '</div></div>';
     }
 
@@ -2322,7 +2762,8 @@ function matchCard(match, fedMap, opts) {
     const wrapCls = 'tour-match-wrap' + (isByeSolo ? ' is-bye' : '');
     return '<div class="' + wrapCls + '" data-match="' + esc(match.id) + '">' +
         '<div class="tour-match-shell status-' + esc(st) + ffClass + playInClass + '">' +
-        '<span class="tour-match-status">' + label + '</span>' +
+        headMeta +
+        metaRight +
         from +
         conn +
         '</div>' +
@@ -2336,6 +2777,34 @@ function feedMapForGroup(gb) {
         if (p && p.name) map[p.name] = p.origin_group || p.group || '?';
     });
     return map;
+}
+
+function renderBroadcastForecastRow() {
+    const bs = (bracketData && bracketData.broadcast_schedule) || {};
+    const shows = Array.isArray(bs.broadcasts) ? bs.broadcasts : [];
+    if (!shows.length) return '';
+    const current = bs.current_broadcast || null;
+    let html = '<div class="tour-bcast-row" aria-label="Broadcast forecast">';
+    shows.forEach(s => {
+        const n = s.broadcast || 0;
+        const label = s.broadcast_label || ordinalBroadcastLabel(n);
+        const when = s.broadcast_when || 'TBD';
+        const codes = (s.codes || []).map(c => 'Code ' + c).join(' · ') || '—';
+        const count = s.match_count || 0;
+        let cls = 'tour-bcast-chip';
+        if (s.all_done) cls += ' done';
+        if (current && n === current) cls += ' current';
+        const titleBits = [label, when];
+        html += '<a class="' + cls + '" href="tournament_broadcast.php" title="' + esc(titleBits.join(' · ')) + '">' +
+            '<span class="who">' + esc(label) + '</span>' +
+            '<span class="meta">' +
+            esc(when) + ' · ' +
+            esc(codes) + ' · ' + count + ' match' + (count === 1 ? '' : 'es') +
+            (current && n === current ? ' · now' : (s.all_done ? ' · done' : '')) +
+            '</span></a>';
+    });
+    html += '</div>';
+    return html;
 }
 
 function renderClimbBridge(fromG, toG, name, seed) {
@@ -2524,6 +2993,8 @@ function renderBracket() {
         html += '<div class="tour-champ-banner"><i class="fas fa-crown"></i> Code S / FSL Champion: ' +
             nameWithRankHtml(bracketData.champion) + '</div>';
     }
+
+    html += renderBroadcastForecastRow();
 
     html += '<div class="tour-legend">' +
         '<span class="ready"><i class="fas fa-circle"></i> Play now</span>' +
@@ -2825,6 +3296,7 @@ try {
 
 renderBracket();
 updateStats();
+initBroadcastDatepickers();
 </script>
 </body>
 </html>

@@ -358,22 +358,28 @@ function rankings_voting_rank_movement_vs_snapshot(array $currentRankings, ?arra
     if ($snapshotRanks === null || $snapshotRanks === []) {
         return [];
     }
-    $movement = [];
+    // Compare order among players present in both lists, so roster changes (inactive removed,
+    // returners inserted) do not show as movement for everyone they shifted.
+    usort($currentRankings, static fn($a, $b) => (int) ($a['rank'] ?? 0) <=> (int) ($b['rank'] ?? 0));
+    $shared = [];
     foreach ($currentRankings as $p) {
         $name = (string) ($p['name'] ?? '');
-        if ($name === '') {
-            continue;
+        if ($name !== '' && isset($snapshotRanks[$name])) {
+            $shared[] = $name;
         }
-        $now = (int) ($p['rank'] ?? 0);
-        if (!isset($snapshotRanks[$name])) {
-            continue;
+    }
+    $nowPos = array_flip($shared);
+    $before = $shared;
+    usort($before, static fn($a, $b) => $snapshotRanks[$a] <=> $snapshotRanks[$b]);
+    $wasPos = array_flip($before);
+
+    $movement = [];
+    foreach ($shared as $name) {
+        $delta = $wasPos[$name] - $nowPos[$name];
+        if ($delta !== 0) {
+            // Higher rank number = worse. “Down 3” in UI: was 5 now 8 -> show -3 (user convention)
+            $movement[$name] = $delta;
         }
-        $was = (int) $snapshotRanks[$name];
-        if ($was === $now) {
-            continue;
-        }
-        // Higher rank number = worse. “Down 3” in UI: was 5 now 8 -> show -3 (user convention)
-        $movement[$name] = $was - $now;
     }
     return $movement;
 }

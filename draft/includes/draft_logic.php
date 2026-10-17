@@ -12,10 +12,17 @@ require_once __DIR__ . '/data.php';
 function count_team_draft_picks(int $team_id): int {
     $count = 0;
     foreach (get_events() as $event) {
-        if ((int) ($event['team_id'] ?? 0) === $team_id
-            && in_array($event['result'] ?? '', ['PICK', 'ADMIN_ASSIGN'], true)) {
-            $count++;
+        if ((int) ($event['team_id'] ?? 0) !== $team_id) {
+            continue;
         }
+        if (!in_array($event['result'] ?? '', ['PICK', 'ADMIN_ASSIGN'], true)) {
+            continue;
+        }
+        // Captain / co-captain / protected rows have no pick number.
+        if (($event['pick_number'] ?? null) === null) {
+            continue;
+        }
+        $count++;
     }
     return $count;
 }

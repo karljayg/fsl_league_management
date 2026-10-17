@@ -499,7 +499,8 @@
     font-size: 0.85em;
 }
 
-.role-marker.captain {
+.role-marker.captain,
+.role-marker.co-captain {
     color: #ffd700;
 }
 

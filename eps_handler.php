@@ -26,6 +26,7 @@ set_error_handler("customErrorHandler");
 // Include database connection
 try {
     require_once 'includes/db.php';
+    require_once __DIR__ . '/rankings/rankings_roster.php';
 } catch (Exception $e) {
     $output = ob_get_clean();
     echo json_encode([
@@ -290,7 +291,15 @@ function handleUpdateStatistics($db) {
         if (isset($_POST['real_name']) && !empty($_POST['real_name'])) {
             $realName = $_POST['real_name'];
             $teamId = isset($_POST['team_id']) && !empty($_POST['team_id']) ? $_POST['team_id'] : null;
-            $status = isset($_POST['status']) && !empty($_POST['status']) ? $_POST['status'] : 'active'; // Default to active if not provided
+            $oldStmt = $db->prepare('SELECT Real_Name, Status FROM Players WHERE Player_ID = ?');
+            $oldStmt->execute([$playerId]);
+            $rosterOld = $oldStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+
+            // Missing or unknown status keeps the current one
+            $status = $_POST['status'] ?? '';
+            if (!in_array($status, ['active', 'inactive', 'banned', 'other'], true)) {
+                $status = $rosterOld['Status'] ?? 'active';
+            }
             
             $updateQuery = "UPDATE Players 
                           SET Real_Name = :real_name,
@@ -311,6 +320,13 @@ function handleUpdateStatistics($db) {
         // Commit the transaction
         $db->commit();
         error_log("Transaction committed successfully");
+
+        if (!empty($rosterOld)) {
+            rankings_roster_rename((string) $rosterOld['Real_Name'], (string) $realName);
+            if ($rosterOld['Status'] !== $status) {
+                rankings_roster_sync_quiet($db);
+            }
+        }
         
         // Return success response
         $output = ob_get_clean();

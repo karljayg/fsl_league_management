@@ -7,6 +7,7 @@
 session_start();
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/rankings/rankings_roster.php';
 
 if (!isset($_SESSION['user_id'])) {
     die('Permission denied: user not logged in.');
@@ -162,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     throw new InvalidArgumentException('Player ID is required.');
                 }
 
-                $oldStmt = $db->prepare('SELECT Real_Name FROM Players WHERE Player_ID = ?');
+                $oldStmt = $db->prepare('SELECT Real_Name, Status FROM Players WHERE Player_ID = ?');
                 $oldStmt->execute([$playerId]);
                 $oldRow = $oldStmt->fetch(PDO::FETCH_ASSOC);
                 if (!$oldRow) {
@@ -176,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 $teamId = $_POST['team_id'] ?? '';
                 $teamId = ($teamId === '' || $teamId === null) ? null : (int) $teamId;
-                $status = $_POST['status'] ?? 'active';
+                $status = $_POST['status'] ?? $oldRow['Status'];
                 if (!in_array($status, $statusOptions, true)) {
                     throw new InvalidArgumentException('Invalid status.');
                 }
@@ -246,6 +247,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
 
                 $db->commit();
+                rankings_roster_rename((string) $oldRow['Real_Name'], $realName);
+                if ($oldRow['Status'] !== $status) {
+                    rankings_roster_sync_quiet($db);
+                }
                 $message = 'Player updated.';
                 $messageType = 'success';
                 header('Location: edit_player.php?player_id=' . $playerId . '&saved=1');
@@ -366,6 +371,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 editPlayerSetDisplayRace($db, $playerId, $realName, $race);
 
                 $db->commit();
+                if ($status === 'active') {
+                    rankings_roster_sync_quiet($db);
+                }
                 header('Location: edit_player.php?player_id=' . $playerId . '&saved=1');
                 exit;
 

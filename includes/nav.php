@@ -274,7 +274,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                         <a href="<?= $basePath ?>fsl_season.php" class="dropdown-link sub-link">Seasons</a>
                         <a href="<?= $basePath ?>fsl_schedule.php" class="dropdown-link sub-link">Schedule</a>
                         <a href="<?= $basePath ?>fsl_teams.php" class="dropdown-link sub-link">Teams</a>
-                        <a href="<?= $basePath ?>draft/public" class="dropdown-link sub-link">Draft</a>
+                        <a href="<?= $basePath ?>draft/public" class="dropdown-link sub-link">Draft — Season 12</a>
+                        <a href="<?= $basePath ?>draft/season_11_results.html" class="dropdown-link sub-link">Draft Results — Season 11</a>
                         <a href="<?= $basePath ?>lineup_planner.php" class="dropdown-link sub-link">Lineup Planner</a>
                     </div>
                 </div>
@@ -287,6 +288,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <div class="nav-accordion-panel" hidden>
                         <a href="<?= $basePath ?>rankings/tournament.php" class="dropdown-link sub-link">Live Bracket</a>
                         <a href="<?= $basePath ?>rankings/tournament_diagram.php?action=view&amp;format=png&amp;scale=50" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Bracket Diagram</a>
+                        <a href="<?= $basePath ?>rankings/tournament_broadcast.php" class="dropdown-link sub-link">Broadcast Schedule</a>
                         <a href="<?= $basePath ?>articles/fsl_individual_championship_tourney_s11.html" class="dropdown-link sub-link" target="_blank" rel="noopener noreferrer">Sign Up &amp; Preview</a>
                     </div>
                 </div>
@@ -502,7 +504,8 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                         <a href="<?= $basePath ?>fsl_season.php" class="mobile-link sub-link">Seasons</a>
                         <a href="<?= $basePath ?>fsl_schedule.php" class="mobile-link sub-link">Schedule</a>
                         <a href="<?= $basePath ?>fsl_teams.php" class="mobile-link sub-link">Teams</a>
-                        <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link sub-link">Draft</a>
+                        <a href="<?= $basePath ?>draft/public/index.php" class="mobile-link sub-link">Draft — Season 12</a>
+                        <a href="<?= $basePath ?>draft/season_11_results.html" class="mobile-link sub-link">Draft Results — Season 11</a>
                         <a href="<?= $basePath ?>lineup_planner.php" class="mobile-link sub-link">Lineup Planner</a>
                     </div>
                 </div>
@@ -515,6 +518,7 @@ $isDraftOrStandaloneSubpage = (strpos($navRequestUri, 'draft') !== false);
                     <div class="nav-accordion-panel" hidden>
                         <a href="<?= $basePath ?>rankings/tournament.php" class="mobile-link sub-link">Live Bracket</a>
                         <a href="<?= $basePath ?>rankings/tournament_diagram.php?action=view&amp;format=png&amp;scale=50" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Bracket Diagram</a>
+                        <a href="<?= $basePath ?>rankings/tournament_broadcast.php" class="mobile-link sub-link">Broadcast Schedule</a>
                         <a href="<?= $basePath ?>articles/fsl_individual_championship_tourney_s11.html" class="mobile-link sub-link" target="_blank" rel="noopener noreferrer">Sign Up &amp; Preview</a>
                     </div>
                 </div>

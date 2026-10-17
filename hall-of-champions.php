@@ -127,13 +127,32 @@ include 'includes/header.php';
         <section class="timeline-wrap">
             <div class="timeline-center-line"></div>
 
+            <article class="season-node left season-11">
+                <div class="node-star">
+                    <span></span>
+                </div>
+                <div class="node-content">
+                    <h2><a href="fsl_season.php#11" class="season-history-link">Season 11</a></h2>
+                    <p class="season-tagline">Current Era <span class="season-tagline-date">(Jun – Aug 2026)</span></p>
+                    <p class="team-line">
+                        <span class="trophy">🏆</span> TEAM: <a href="view_team.php?name=Special+Tactics">Special Tactics</a>
+                        <?php renderTeamBadge('Special Tactics'); ?>
+                    </p>
+                    <ul>
+                        <?php renderPlayerEntry('S', 'tier-s', 'stars-s', '★★', 'MedicJR'); ?>
+                        <?php renderPlayerEntry('A', 'tier-a', 'stars-a', '★', 'Papella'); ?>
+                        <?php renderPlayerEntry('B', 'tier-b', 'stars-b', '•', 'BeanTheBard'); ?>
+                    </ul>
+                </div>
+            </article>
+
             <article class="season-node right season-10">
                 <div class="node-star">
                     <span></span>
                 </div>
                 <div class="node-content">
                     <h2><a href="fsl_season.php#10" class="season-history-link">Season 10</a></h2>
-                    <p class="season-tagline">Current Era <span class="season-tagline-date">(Jan – Apr 2026)</span></p>
+                    <p class="season-tagline">A New Era <span class="season-tagline-date">(Jan – Apr 2026)</span></p>
                     <p class="team-line">
                         <span class="trophy">🏆</span> TEAM: <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a>
                         <?php renderTeamBadge('PulledTheBoys'); ?>
@@ -321,7 +340,7 @@ include 'includes/header.php';
     .hall-poster {
         position: relative;
         width: min(100%, 1080px);
-        min-height: 2550px;
+        min-height: 2800px;
         border: 1px solid rgba(0, 212, 255, 0.26);
         border-radius: 22px;
         overflow: hidden;
@@ -392,7 +411,7 @@ include 'includes/header.php';
     .timeline-wrap {
         position: relative;
         padding: 0.2rem 0 1.2rem;
-        min-height: 2050px;
+        min-height: 2280px;
     }
 
     .timeline-center-line {
@@ -419,16 +438,17 @@ include 'includes/header.php';
     .season-node.left { right: 50%; margin-right: 2.2rem; flex-direction: row-reverse; text-align: right; }
     .season-node.right { left: 50%; margin-left: 2.2rem; text-align: left; }
 
-    .season-node.season-10 { top: 1%; }
-    .season-node.season-9 { top: 12%; }
-    .season-node.season-8 { top: 23%; }
-    .season-node.season-7 { top: 34%; }
-    .season-node.season-6 { top: 45%; }
+    .season-node.season-11 { top: 1%; }
+    .season-node.season-10 { top: 10%; }
+    .season-node.season-9 { top: 19%; }
+    .season-node.season-8 { top: 28%; }
+    .season-node.season-7 { top: 37%; }
+    .season-node.season-6 { top: 47%; }
     .season-node.season-5 { top: 56%; }
-    .season-node.season-4 { top: 67%; }
-    .season-node.season-3 { top: 78%; }
-    .season-node.season-2 { top: 87%; }
-    .season-node.season-1 { top: 94%; }
+    .season-node.season-4 { top: 66%; }
+    .season-node.season-3 { top: 76%; }
+    .season-node.season-2 { top: 85%; }
+    .season-node.season-1 { top: 93%; }
 
     .node-star {
         width: 12px;
@@ -760,7 +780,7 @@ include 'includes/header.php';
 
     @media (max-width: 1199.98px) {
         .hall-poster {
-            min-height: 2680px;
+            min-height: 2950px;
         }
     }
 

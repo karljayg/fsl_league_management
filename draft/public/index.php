@@ -37,7 +37,7 @@ if ($onClockTeamId) {
 }
 
 // Sort players by ranking
-usort($players, fn($a, $b) => $a['ranking'] - $b['ranking']);
+usort($players, fn($a, $b) => ($a['ranking'] ?? PHP_INT_MAX) <=> ($b['ranking'] ?? PHP_INT_MAX));
 $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available');
 ?>
 <!DOCTYPE html>
@@ -361,7 +361,7 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
             font-size: 0.85em;
             margin-left: 0.25rem;
         }
-        .role-marker.captain { color: #ffd700; }
+        .role-marker.captain, .role-marker.co-captain { color: #ffd700; }
         .role-marker.protected { color: #00d4ff; }
 
         .roster-player.db-inactive {
@@ -701,12 +701,12 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                                                 <?php if ($p['pick_number'] !== null): ?>
                                                     <span class="pick-num">#<?= $p['pick_number'] ?></span>
                                                 <?php endif; ?>
-                                                <span class="rank"><?= $p['ranking'] ?></span>
+                                                <span class="rank"><?= draft_rank_label($p) ?></span>
                                                 <a href="../../view_player.php?name=<?= urlencode($p['display_name']) ?>" class="player-name" target="_blank"><?= htmlspecialchars($p['display_name']) ?></a><?= get_role_marker($p) ?>
                                             </span>
                                             <span class="player-meta">
                                                 <img src="../../images/<?= ['T' => 'terran_icon.png', 'P' => 'protoss_icon.png', 'Z' => 'zerg_icon.png', 'R' => 'random_icon.png'][$p['race']] ?? 'random_icon.png' ?>" alt="<?= $p['race'] ?>" style="width: 18px; height: 18px;">
-                                                <span class="group-badge">G<?= $p['bucket_index'] ?></span>
+                                                <span class="group-badge"><?= draft_group_label($p) ?></span>
                                             </span>
                                         </div>
                                     <?php endforeach; ?>
@@ -725,11 +725,11 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                         <?php foreach ($players as $player): 
                             // Strip Captain/Protected from notes to show only other notes
                             $displayNotes = $player['notes'] ?? '';
-                            $displayNotes = preg_replace('/\b(Captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $displayNotes);
+                            $displayNotes = preg_replace('/\b(Captain|Co-captain|Protected)\s*-\s*[^,;]+[,;]?\s*/i', '', $displayNotes);
                             $displayNotes = trim($displayNotes, " \t\n\r\0\x0B,;");
                         ?>
                             <div class="player-row <?= $player['status'] !== 'available' ? 'drafted' : '' ?>">
-                                <span class="rank"><?= $player['ranking'] ?></span>
+                                <span class="rank"><?= draft_rank_label($player) ?></span>
                                 <a href="../../view_player.php?name=<?= urlencode($player['display_name']) ?>" class="name" target="_blank"><?= htmlspecialchars($player['display_name']) ?></a>
                                 <?php if (!empty($displayNotes)): ?>
                                 <span class="player-note" title="<?= htmlspecialchars($displayNotes) ?>">📝</span>
@@ -739,7 +739,7 @@ $availablePlayers = array_filter($players, fn($p) => $p['status'] === 'available
                                 $icon = $raceIcons[$player['race']] ?? 'random_icon.png';
                                 ?>
                                 <img src="../../images/<?= $icon ?>" alt="<?= $player['race'] ?>" class="race-icon">
-                                <span class="group">G<?= $player['bucket_index'] ?></span>
+                                <span class="group"><?= draft_group_label($player) ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>

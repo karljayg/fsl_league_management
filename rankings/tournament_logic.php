@@ -1,6 +1,6 @@
 <?php
 /**
- * FSL challenger tournament — participation + bottom-up group bracket.
+ * FSL Individual Championships — participation + bottom-up group bracket.
  */
 
 declare(strict_types=1);
@@ -13,11 +13,13 @@ const TOURNAMENT_STATE_FILE = __DIR__ . '/tournament_state.json';
 function tournament_empty_state(): array
 {
     return [
-        'title' => 'FSL Challenger Bracket',
+        'title' => 'FSL Individual Championships',
         'updated_at' => null,
         'participating' => [],
         'results' => [],
         'winners' => [], // derived mirror of ended results (compat)
+        'broadcast_dates' => [], // "1" => "2026-08-22T19:00" (US Eastern wall time)
+        'broadcast_assignments' => [], // match_id => broadcast# (manual pins)
     ];
 }
 
@@ -38,6 +40,8 @@ function tournament_normalize_state(array $data): array
     if (!isset($data['winners']) || !is_array($data['winners'])) {
         $data['winners'] = [];
     }
+    $data['broadcast_dates'] = tournament_normalize_broadcast_dates($data['broadcast_dates'] ?? []);
+    $data['broadcast_assignments'] = tournament_normalize_broadcast_assignments($data['broadcast_assignments'] ?? []);
 
     // One-time migrate: legacy winners map → results (only when result row missing)
     foreach ($data['winners'] as $id => $name) {
@@ -144,13 +148,15 @@ function tournament_export_payload(array $state, array $rankings): array
     }
 
     return [
-        'format' => 'fsl_challenger_tournament',
+        'format' => 'fsl_individual_championships',
         'version' => 1,
         'exported_at' => gmdate('c'),
-        'title' => (string) ($state['title'] ?? 'FSL Challenger Bracket'),
+        'title' => (string) ($state['title'] ?? 'FSL Individual Championships'),
         'participant_count' => $inCount,
         'participating' => $participating,
         'results' => $state['results'],
+        'broadcast_dates' => $state['broadcast_dates'] ?? [],
+        'broadcast_assignments' => $state['broadcast_assignments'] ?? [],
     ];
 }
 
@@ -168,7 +174,11 @@ function tournament_import_payload(array $state, array $payload, array $rankings
 {
     $state = tournament_normalize_state($state);
     $format = (string) ($payload['format'] ?? '');
-    if ($format !== '' && $format !== 'fsl_challenger_tournament') {
+    if (
+        $format !== ''
+        && $format !== 'fsl_individual_championships'
+        && $format !== 'fsl_challenger_tournament' // legacy export name
+    ) {
         throw new InvalidArgumentException('Unrecognized export format');
     }
 
@@ -237,6 +247,13 @@ function tournament_import_payload(array $state, array $payload, array $rankings
 
     if (isset($payload['title']) && is_string($payload['title']) && trim($payload['title']) !== '') {
         $state['title'] = trim($payload['title']);
+    }
+
+    if (array_key_exists('broadcast_dates', $payload)) {
+        $state['broadcast_dates'] = tournament_normalize_broadcast_dates($payload['broadcast_dates']);
+    }
+    if (array_key_exists('broadcast_assignments', $payload)) {
+        $state['broadcast_assignments'] = tournament_normalize_broadcast_assignments($payload['broadcast_assignments']);
     }
 
     $state = tournament_normalize_state($state);
@@ -535,6 +552,34 @@ function tournament_infer_winner_from_scores(?string $p1, ?string $p2, ?int $s1,
 }
 
 /**
+ * Force contiguous non-overlapping S → A → B covering 1..$totalPlayers.
+ * Matches rankings.json group bands when tiers are group-aligned (4 players/group).
+ *
+ * @param array<string,array{minRank?:int,maxRank?:int}> $tiers
+ * @return array<string,array{minRank:int,maxRank:int}>
+ */
+function tournament_normalize_code_tiers(array $tiers, int $totalPlayers): array
+{
+    $totalPlayers = max(1, $totalPlayers);
+    $sMax = max(1, (int) ($tiers['codeS']['maxRank'] ?? 24));
+    $aMax = max($sMax + 1, (int) ($tiers['codeA']['maxRank'] ?? ($sMax + 1)));
+    // Clamp A if it overlaps a declared B start (corrupt configs used to do this).
+    $bMinDeclared = (int) ($tiers['codeB']['minRank'] ?? ($aMax + 1));
+    if ($bMinDeclared > $sMax + 1 && $aMax >= $bMinDeclared) {
+        $aMax = $bMinDeclared - 1;
+    }
+    if ($aMax > $totalPlayers) {
+        $aMax = $totalPlayers;
+    }
+    $bMin = min($totalPlayers, max($sMax + 1, $aMax + 1));
+    return [
+        'codeS' => ['minRank' => 1, 'maxRank' => min($sMax, $totalPlayers)],
+        'codeA' => ['minRank' => min($sMax + 1, $totalPlayers), 'maxRank' => $aMax],
+        'codeB' => ['minRank' => $bMin, 'maxRank' => $totalPlayers],
+    ];
+}
+
+/**
  * Code tier for a rank (S, then A, else B) — same priority as rankings/index.php.
  *
  * @param array<string,array{minRank:int,maxRank:int}> $tiers
@@ -659,11 +704,11 @@ function tournament_make_feed_placeholder(int $originGroup): array
 function tournament_default_code_tiers(int $totalPlayers = 58): array
 {
     $third = max(1, (int) ceil($totalPlayers / 3));
-    return [
+    return tournament_normalize_code_tiers([
         'codeS' => ['minRank' => 1, 'maxRank' => $third],
         'codeA' => ['minRank' => $third + 1, 'maxRank' => 2 * $third],
-        'codeB' => ['minRank' => 2 * $third + 1, 'maxRank' => max($totalPlayers, 2 * $third + 1)],
-    ];
+        'codeB' => ['minRank' => 2 * $third + 1, 'maxRank' => $totalPlayers],
+    ], $totalPlayers);
 }
 
 /**
@@ -677,6 +722,8 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
     $state = tournament_normalize_state($state);
     if ($codeTiers === null) {
         $codeTiers = tournament_default_code_tiers(count($rankings));
+    } else {
+        $codeTiers = tournament_normalize_code_tiers($codeTiers, max(1, count($rankings)));
     }
 
     $participating = [];
@@ -931,8 +978,8 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
         $currentCode = (string) $current['code'];
         $ascIdx = 0;
         for ($i = 1; $i < count($groupChamps); $i++) {
-            $challenger = $groupChamps[$i];
-            $chCode = (string) $challenger['code'];
+            $nextChamp = $groupChamps[$i];
+            $chCode = (string) $nextChamp['code'];
             // Seal Code champ when climbing into a higher tier (B → A → S)
             if ($chCode !== $currentCode) {
                 $codeChamps[$currentCode] = [
@@ -942,9 +989,9 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
                 $currentCode = $chCode;
             }
             $id = 'asc-m' . $ascIdx;
-            $label = 'G' . $current['group'] . ' vs G' . $challenger['group'];
+            $label = 'G' . $current['group'] . ' vs G' . $nextChamp['group'];
             $p1 = $current['ready'] ? $current['name'] : null;
-            $p2 = $challenger['ready'] ? $challenger['name'] : null;
+            $p2 = $nextChamp['ready'] ? $nextChamp['name'] : null;
             if ($p1 === null || $p2 === null) {
                 $match = [
                     'id' => $id,
@@ -952,7 +999,7 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
                     'p1' => $p1,
                     'p2' => $p2,
                     'from1' => 'G' . $current['group'],
-                    'from2' => 'G' . $challenger['group'],
+                    'from2' => 'G' . $nextChamp['group'],
                     'winner' => null,
                     'status' => 'waiting',
                     'is_bye' => false,
@@ -964,12 +1011,12 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
             } else {
                 $match = tournament_resolve_match($id, $p1, $p2, $results, $label);
                 $match['from1'] = 'G' . $current['group'];
-                $match['from2'] = 'G' . $challenger['group'];
+                $match['from2'] = 'G' . $nextChamp['group'];
             }
             $match['code'] = $chCode;
             $ascension[] = $match;
             $current = [
-                'group' => (int) $challenger['group'],
+                'group' => (int) $nextChamp['group'],
                 'code' => $chCode,
                 'name' => $match['winner'],
                 'ready' => $match['winner'] !== null && $match['winner'] !== '',
@@ -1009,7 +1056,7 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
         $tally($m);
     }
 
-    return [
+    return tournament_stamp_code_championships([
         'groups' => $groups,
         'feeds' => $feeds,
         'ascension' => $ascension,
@@ -1024,7 +1071,7 @@ function tournament_build_bracket(array $rankings, array $state, ?array $codeTie
             'done' => $done,
             'live' => $live,
         ],
-    ];
+    ]);
 }
 
 /**
@@ -1124,4 +1171,1228 @@ function tournament_index_matches(array $bracket): array
         $out[(string) $m['id']] = $m;
     }
     return $out;
+}
+
+/**
+ * English ordinal (1 → 1st, 2 → 2nd, 4 → 4th).
+ */
+function tournament_ordinal(int $n): string
+{
+    $n = max(0, $n);
+    $mod100 = $n % 100;
+    if ($mod100 >= 11 && $mod100 <= 13) {
+        return $n . 'th';
+    }
+    switch ($n % 10) {
+        case 1:
+            return $n . 'st';
+        case 2:
+            return $n . 'nd';
+        case 3:
+            return $n . 'rd';
+        default:
+            return $n . 'th';
+    }
+}
+
+/**
+ * Diagram / UI label, e.g. "4th broadcast".
+ */
+function tournament_broadcast_label(int $broadcastNum): string
+{
+    return tournament_ordinal(max(1, $broadcastNum)) . ' broadcast';
+}
+
+/**
+ * Wall-clock timezone for Individual Championships broadcast scheduling / display.
+ */
+function tournament_broadcast_timezone(): string
+{
+    return 'America/New_York';
+}
+
+/**
+ * Normalize manual broadcast pins: match_id → broadcast number (1-based).
+ *
+ * @param mixed $raw
+ * @return array<string,int>
+ */
+function tournament_normalize_broadcast_assignments($raw): array
+{
+    if (!is_array($raw)) {
+        return [];
+    }
+    $out = [];
+    foreach ($raw as $id => $num) {
+        $id = trim((string) $id);
+        if ($id === '') {
+            continue;
+        }
+        $n = (int) $num;
+        if ($n < 1) {
+            $n = 1;
+        }
+        if ($n > 64) {
+            $n = 64;
+        }
+        $out[$id] = $n;
+    }
+    ksort($out, SORT_NATURAL | SORT_FLAG_CASE);
+    return $out;
+}
+
+/**
+ * Normalize broadcast date map: keys "1","2",… → "Y-m-d\TH:i" (Eastern wall time).
+ * Empty / invalid entries are dropped (dates are optional).
+ *
+ * @param mixed $raw
+ * @return array<string,string>
+ */
+function tournament_normalize_broadcast_dates($raw): array
+{
+    if (!is_array($raw)) {
+        return [];
+    }
+    $out = [];
+    foreach ($raw as $key => $val) {
+        $n = (int) $key;
+        if ($n < 1 || $n > 64) {
+            continue;
+        }
+        $iso = '';
+        if (is_array($val)) {
+            $iso = trim((string) ($val['iso'] ?? $val['datetime'] ?? $val['at'] ?? ''));
+            if ($iso === '' && isset($val['text'])) {
+                $iso = trim((string) $val['text']);
+            }
+        } else {
+            $iso = trim((string) $val);
+        }
+        if ($iso === '') {
+            continue;
+        }
+        $norm = tournament_parse_broadcast_datetime($iso);
+        if ($norm !== null) {
+            $out[(string) $n] = $norm;
+        }
+    }
+    ksort($out, SORT_NUMERIC);
+    return $out;
+}
+
+/**
+ * Accept "2026-08-22T19:00", "2026-08-22 19:00", "8/22/2026 7:00 PM", etc.
+ * Returns canonical "Y-m-d\TH:i" or null.
+ */
+function tournament_parse_broadcast_datetime(string $raw): ?string
+{
+    $raw = trim($raw);
+    if ($raw === '') {
+        return null;
+    }
+    // datetime-local / ISO without seconds
+    if (preg_match('/^(\d{4}-\d{2}-\d{2})[T ](\d{1,2}:\d{2})(?::\d{2})?/', $raw, $m)) {
+        $hourMin = $m[2];
+        if (preg_match('/^(\d{1,2}):(\d{2})$/', $hourMin, $hm)) {
+            $hourMin = sprintf('%02d:%02d', (int) $hm[1], (int) $hm[2]);
+        }
+        return $m[1] . 'T' . $hourMin;
+    }
+    $tz = new DateTimeZone(tournament_broadcast_timezone());
+    $dt = date_create($raw, $tz);
+    if ($dt === false) {
+        return null;
+    }
+    return $dt->format('Y-m-d\TH:i');
+}
+
+/**
+ * Display string for a stored Eastern wall time, e.g. "8/22/2026 7:00 PM ET".
+ */
+function tournament_format_broadcast_when(?string $iso): ?string
+{
+    $iso = $iso !== null ? trim($iso) : '';
+    if ($iso === '') {
+        return null;
+    }
+    $norm = tournament_parse_broadcast_datetime($iso);
+    if ($norm === null) {
+        return null;
+    }
+    $tz = new DateTimeZone(tournament_broadcast_timezone());
+    $dt = DateTimeImmutable::createFromFormat('Y-m-d\TH:i', $norm, $tz);
+    if ($dt === false) {
+        return null;
+    }
+    // n/j/Y g:i A — e.g. 8/22/2026 7:00 PM ET
+    return $dt->format('n/j/Y g:i A') . ' ET';
+}
+
+/**
+ * Display string for UI labels — formatted Eastern time or "TBD" when unset.
+ */
+function tournament_broadcast_when_or_tbd(?string $iso): string
+{
+    $formatted = tournament_format_broadcast_when($iso);
+    return $formatted ?? 'TBD';
+}
+
+/**
+ * "1st broadcast · 8/22/2026 7:00 PM ET" or "1st broadcast · TBD".
+ */
+function tournament_broadcast_label_full(int $broadcastNum, ?string $whenDisplay = null): string
+{
+    $base = tournament_broadcast_label($broadcastNum);
+    $whenDisplay = $whenDisplay !== null ? trim($whenDisplay) : '';
+    if ($whenDisplay === '') {
+        $whenDisplay = 'TBD';
+    }
+    return $base . ' · ' . $whenDisplay;
+}
+
+/**
+ * Top group number per code (lowest G# in that code tier) — mirrors diagram logic.
+ *
+ * @param array<string,mixed> $bracket
+ * @return array<string,int>
+ */
+function tournament_code_exit_groups(array $bracket): array
+{
+    $groups = is_array($bracket['groups'] ?? null) ? $bracket['groups'] : [];
+    $maxGroup = (int) ($bracket['max_group'] ?? 0);
+    if ($maxGroup < 1 && $groups !== []) {
+        $maxGroup = (int) max(array_map('intval', array_keys($groups)));
+    }
+    $codeExitGroup = [];
+    for ($g = 1; $g <= $maxGroup; $g++) {
+        $gb = is_array($groups[$g] ?? null) ? $groups[$g] : [];
+        $code = strtoupper(trim((string) ($gb['code'] ?? '')));
+        if ($code === '') {
+            continue;
+        }
+        if (!isset($codeExitGroup[$code]) || $g < $codeExitGroup[$code]) {
+            $codeExitGroup[$code] = $g;
+        }
+    }
+    return $codeExitGroup;
+}
+
+/**
+ * Contested match id that crowns each code tier (B / A / S).
+ *
+ * @param array<string,mixed> $bracket
+ * @return array<string,string>
+ */
+function tournament_code_championship_match_ids(array $bracket): array
+{
+    $groups = is_array($bracket['groups'] ?? null) ? $bracket['groups'] : [];
+    $maxGroup = (int) ($bracket['max_group'] ?? 0);
+    if ($maxGroup < 1 && $groups !== []) {
+        $maxGroup = (int) max(array_map('intval', array_keys($groups)));
+    }
+    $out = [];
+    foreach (tournament_code_exit_groups($bracket) as $code => $startG) {
+        $g = $startG;
+        $guard = 0;
+        while ($g >= 1 && $g <= max($maxGroup, $startG) && $guard < 64) {
+            $guard++;
+            $gb = is_array($groups[$g] ?? null) ? $groups[$g] : null;
+            if ($gb === null) {
+                break;
+            }
+            $exitId = tournament_group_exit_match_id($gb);
+            if ($exitId !== null) {
+                $out[$code] = $exitId;
+                break;
+            }
+            if (!empty($gb['feeds_up'])) {
+                $g++;
+                continue;
+            }
+            break;
+        }
+    }
+    return $out;
+}
+
+function tournament_code_championship_label(string $code): string
+{
+    $code = strtoupper(trim($code));
+    if ($code === '') {
+        return 'Championship';
+    }
+    return 'Code ' . $code . ' Championship';
+}
+
+/**
+ * Stamp code_championship + code_championship_label on tier-crowning matches.
+ *
+ * @param array<string,mixed> $bracket
+ * @return array<string,mixed>
+ */
+function tournament_stamp_code_championships(array $bracket): array
+{
+    $champIds = tournament_code_championship_match_ids($bracket);
+    if ($champIds === []) {
+        return $bracket;
+    }
+    $idToCode = array_flip($champIds);
+    foreach ($bracket['groups'] ?? [] as $g => $gb) {
+        if (!is_array($gb) || !isset($gb['rounds']) || !is_array($gb['rounds'])) {
+            continue;
+        }
+        foreach ($gb['rounds'] as $ri => $round) {
+            if (!is_array($round)) {
+                continue;
+            }
+            foreach ($round as $mi => $m) {
+                if (!is_array($m)) {
+                    continue;
+                }
+                $id = trim((string) ($m['id'] ?? ''));
+                if ($id === '' || !isset($idToCode[$id])) {
+                    continue;
+                }
+                $code = $idToCode[$id];
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['code_championship'] = $code;
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['code_championship_label'] = tournament_code_championship_label($code);
+            }
+        }
+    }
+    return $bracket;
+}
+
+/**
+ * Annotate with dates from tournament state.
+ *
+ * @param array<string,mixed> $bracket
+ * @param array<string,mixed> $state
+ * @param array<string,mixed>|null $opts
+ * @return array{bracket:array<string,mixed>,schedule:array<string,mixed>}
+ */
+function tournament_annotate_broadcasts_from_state(array $bracket, array $state, ?array $opts = null): array
+{
+    $opts = is_array($opts) ? $opts : [];
+    if (!isset($opts['broadcast_dates'])) {
+        $opts['broadcast_dates'] = $state['broadcast_dates'] ?? [];
+    }
+    if (!isset($opts['broadcast_assignments'])) {
+        $opts['broadcast_assignments'] = $state['broadcast_assignments'] ?? [];
+    }
+    return tournament_annotate_broadcasts($bracket, $opts);
+}
+
+/**
+ * True when a match is a real contested game (not bye / empty shell).
+ *
+ * @param array<string,mixed> $match
+ */
+function tournament_match_is_contested(array $match): bool
+{
+    if (!empty($match['is_bye'])) {
+        return false;
+    }
+    $st = (string) ($match['status'] ?? '');
+    return $st !== 'bye' && $st !== 'empty';
+}
+
+/**
+ * Last contested match that crowns a group (null if none).
+ *
+ * @param array<string,mixed> $gb
+ */
+function tournament_group_exit_match_id(array $gb): ?string
+{
+    $rounds = is_array($gb['rounds'] ?? null) ? $gb['rounds'] : [];
+    for ($ri = count($rounds) - 1; $ri >= 0; $ri--) {
+        $round = is_array($rounds[$ri]) ? $rounds[$ri] : [];
+        for ($mi = count($round) - 1; $mi >= 0; $mi--) {
+            $m = is_array($round[$mi]) ? $round[$mi] : null;
+            if ($m === null || !tournament_match_is_contested($m)) {
+                continue;
+            }
+            $id = trim((string) ($m['id'] ?? ''));
+            return $id !== '' ? $id : null;
+        }
+    }
+    return null;
+}
+
+/**
+ * Resolve the contested match that produces a lower-group feeder.
+ * Chases solo auto-climb hops (feeds_up) until a real exit match exists.
+ *
+ * @param array<string,mixed> $bracket
+ */
+function tournament_feed_origin_exit_match_id(array $bracket, int $originGroup): ?string
+{
+    $groups = is_array($bracket['groups'] ?? null) ? $bracket['groups'] : [];
+    $maxGroup = (int) ($bracket['max_group'] ?? 0);
+    $g = $originGroup;
+    $guard = 0;
+    while ($g >= 1 && $g <= max($maxGroup, $originGroup) && $guard < 64) {
+        $guard++;
+        $gb = is_array($groups[$g] ?? null) ? $groups[$g] : null;
+        if ($gb === null) {
+            return null;
+        }
+        $exit = tournament_group_exit_match_id($gb);
+        if ($exit !== null) {
+            return $exit;
+        }
+        // Solo climber with no bracket — keep looking lower for the real series.
+        if (!empty($gb['feeds_up'])) {
+            $g++;
+            continue;
+        }
+        return null;
+    }
+    return null;
+}
+
+/**
+ * Contested matches with scheduling metadata (no broadcast numbers yet).
+ *
+ * @param array<string,mixed> $bracket
+ * @return array<string,array<string,mixed>>
+ */
+function tournament_broadcast_match_catalog(array $bracket): array
+{
+    $out = [];
+    foreach ($bracket['groups'] ?? [] as $gKey => $gb) {
+        if (!is_array($gb)) {
+            continue;
+        }
+        $group = (int) ($gb['group'] ?? $gKey);
+        $code = strtoupper(trim((string) ($gb['code'] ?? '')));
+        if ($code === '') {
+            $code = 'S';
+        }
+        foreach ($gb['rounds'] ?? [] as $ri => $round) {
+            if (!is_array($round)) {
+                continue;
+            }
+            foreach ($round as $mi => $m) {
+                if (!is_array($m) || !tournament_match_is_contested($m)) {
+                    continue;
+                }
+                $id = trim((string) ($m['id'] ?? ''));
+                if ($id === '') {
+                    continue;
+                }
+                $entry = [
+                    'id' => $id,
+                    'group' => $group,
+                    'code' => $code,
+                    'round' => $ri + 1,
+                    'match_index' => (int) $mi,
+                    'label' => (string) ($m['label'] ?? ('G' . $group . ' R' . ($ri + 1))),
+                    'p1' => $m['p1'] ?? null,
+                    'p2' => $m['p2'] ?? null,
+                    'status' => (string) ($m['status'] ?? 'waiting'),
+                    'winner' => $m['winner'] ?? null,
+                    'score1' => $m['score1'] ?? null,
+                    'score2' => $m['score2'] ?? null,
+                    'source' => 'group',
+                ];
+                $champ = strtoupper(trim((string) ($m['code_championship'] ?? '')));
+                if ($champ !== '') {
+                    $entry['code_championship'] = $champ;
+                    $entry['code_championship_label'] = trim((string) ($m['code_championship_label'] ?? '')) !== ''
+                        ? (string) $m['code_championship_label']
+                        : tournament_code_championship_label($champ);
+                }
+                $out[$id] = $entry;
+            }
+        }
+    }
+    foreach ($bracket['ascension'] ?? [] as $ai => $m) {
+        if (!is_array($m) || !tournament_match_is_contested($m)) {
+            continue;
+        }
+        $id = trim((string) ($m['id'] ?? ('asc-m' . $ai)));
+        if ($id === '') {
+            continue;
+        }
+        $code = strtoupper(trim((string) ($m['code'] ?? 'S')));
+        $entry = [
+            'id' => $id,
+            'group' => 0,
+            'code' => $code !== '' ? $code : 'S',
+            'round' => 1,
+            'match_index' => (int) $ai,
+            'label' => (string) ($m['label'] ?? 'Ascension'),
+            'p1' => $m['p1'] ?? null,
+            'p2' => $m['p2'] ?? null,
+            'status' => (string) ($m['status'] ?? 'waiting'),
+            'winner' => $m['winner'] ?? null,
+            'score1' => $m['score1'] ?? null,
+            'score2' => $m['score2'] ?? null,
+            'source' => 'ascension',
+        ];
+        $champ = strtoupper(trim((string) ($m['code_championship'] ?? '')));
+        if ($champ !== '') {
+            $entry['code_championship'] = $champ;
+            $entry['code_championship_label'] = trim((string) ($m['code_championship_label'] ?? '')) !== ''
+                ? (string) $m['code_championship_label']
+                : tournament_code_championship_label($champ);
+        }
+        $out[$id] = $entry;
+    }
+    return $out;
+}
+
+/**
+ * Dependency map: match id → list of contested match ids that must finish first.
+ *
+ * @param array<string,mixed> $bracket
+ * @return array<string,list<string>>
+ */
+function tournament_broadcast_dependencies(array $bracket): array
+{
+    $catalog = tournament_broadcast_match_catalog($bracket);
+    $deps = [];
+    foreach ($catalog as $id => $_) {
+        $deps[$id] = [];
+    }
+
+    $add = static function (string $id, string $dep) use (&$deps, $catalog): void {
+        if ($id === '' || $dep === '' || $id === $dep) {
+            return;
+        }
+        if (!isset($catalog[$dep]) || !isset($deps[$id])) {
+            return;
+        }
+        if (!in_array($dep, $deps[$id], true)) {
+            $deps[$id][] = $dep;
+        }
+    };
+
+    // Intra-group: round R+1 match M depends on round R matches 2M and 2M+1.
+    foreach ($bracket['groups'] ?? [] as $gb) {
+        if (!is_array($gb)) {
+            continue;
+        }
+        $rounds = is_array($gb['rounds'] ?? null) ? $gb['rounds'] : [];
+        for ($ri = 1; $ri < count($rounds); $ri++) {
+            $round = is_array($rounds[$ri]) ? $rounds[$ri] : [];
+            $prev = is_array($rounds[$ri - 1]) ? $rounds[$ri - 1] : [];
+            foreach ($round as $mi => $m) {
+                if (!is_array($m) || !tournament_match_is_contested($m)) {
+                    continue;
+                }
+                $id = trim((string) ($m['id'] ?? ''));
+                if ($id === '' || !isset($deps[$id])) {
+                    continue;
+                }
+                foreach ([(int) $mi * 2, (int) $mi * 2 + 1] as $pi) {
+                    if (!isset($prev[$pi]) || !is_array($prev[$pi])) {
+                        continue;
+                    }
+                    if (!tournament_match_is_contested($prev[$pi])) {
+                        continue;
+                    }
+                    $depId = trim((string) ($prev[$pi]['id'] ?? ''));
+                    $add($id, $depId);
+                }
+            }
+        }
+    }
+
+    // Feed placeholders ("G12 winner") → origin group exit match.
+    foreach ($catalog as $id => $row) {
+        foreach ([$row['p1'] ?? null, $row['p2'] ?? null] as $slot) {
+            $name = trim((string) ($slot ?? ''));
+            if ($name === '' || !tournament_is_feed_placeholder($name)) {
+                continue;
+            }
+            if (!preg_match('/^G(\d+)\s+winner$/i', $name, $mm)) {
+                continue;
+            }
+            $origin = (int) $mm[1];
+            $exit = tournament_feed_origin_exit_match_id($bracket, $origin);
+            if ($exit !== null) {
+                $add($id, $exit);
+            }
+        }
+    }
+
+    // Ascension chain: each step depends on prior ascension winner being decided.
+    $asc = is_array($bracket['ascension'] ?? null) ? $bracket['ascension'] : [];
+    $prevAsc = null;
+    foreach ($asc as $m) {
+        if (!is_array($m) || !tournament_match_is_contested($m)) {
+            continue;
+        }
+        $id = trim((string) ($m['id'] ?? ''));
+        if ($id === '' || !isset($deps[$id])) {
+            continue;
+        }
+        if ($prevAsc !== null) {
+            $add($id, $prevAsc);
+        }
+        $prevAsc = $id;
+    }
+
+    return $deps;
+}
+
+/**
+ * Code play order for anticipation: finish B, then A, then S (overall).
+ *
+ * @return array<string,int>
+ */
+function tournament_broadcast_code_priority(?array $codeOrder = null): array
+{
+    $order = $codeOrder ?? ['B', 'A', 'S'];
+    $prio = [];
+    foreach ($order as $i => $code) {
+        $prio[strtoupper(trim((string) $code))] = (int) $i;
+    }
+    foreach (['B', 'A', 'S'] as $c) {
+        if (!isset($prio[$c])) {
+            $prio[$c] = count($prio);
+        }
+    }
+    return $prio;
+}
+
+/**
+ * Sort key for contested matches within / across broadcasts (B→A→S, group desc, round).
+ *
+ * @param array<string,mixed> $row
+ * @param array<string,int> $codePrio
+ * @return list<int|string>
+ */
+function tournament_broadcast_sort_key(array $row, array $codePrio): array
+{
+    $code = (string) ($row['code'] ?? '');
+    $id = (string) ($row['id'] ?? '');
+    return [
+        $codePrio[$code] ?? 99,
+        -((int) ($row['group'] ?? 0)),
+        (int) ($row['round'] ?? 0),
+        (int) ($row['match_index'] ?? 0),
+        $id,
+    ];
+}
+
+/**
+ * Both players known (ready / live / done) — may slide among parallel side-board matches.
+ * Waiting / TBD feed matches stay locked to the winner chain.
+ *
+ * @param array<string,mixed> $row catalog or schedule row
+ */
+function tournament_broadcast_match_is_stated(array $row): bool
+{
+    $st = strtolower(trim((string) ($row['status'] ?? '')));
+    return $st === 'ready' || $st === 'live' || $st === 'done';
+}
+
+/**
+ * Reverse dependency map: match id → list of contested ids that depend on it.
+ *
+ * @param array<string,list<string>> $deps
+ * @return array<string,list<string>>
+ */
+function tournament_broadcast_dependents_map(array $deps): array
+{
+    $out = [];
+    foreach ($deps as $id => $depList) {
+        if (!isset($out[$id])) {
+            $out[$id] = [];
+        }
+        foreach ($depList as $d) {
+            $d = (string) $d;
+            if ($d === '') {
+                continue;
+            }
+            if (!isset($out[$d])) {
+                $out[$d] = [];
+            }
+            if (!in_array($id, $out[$d], true)) {
+                $out[$d][] = (string) $id;
+            }
+        }
+    }
+    return $out;
+}
+
+/**
+ * After auto-pack + pin moves + compact, remap stored pins to final broadcast numbers.
+ * Drops pins for unknown matches; keeps only ids still in the schedule.
+ *
+ * @param array<string,int> $assignments
+ * @param array<string,array<string,mixed>> $byMatch
+ * @return array<string,int>
+ */
+function tournament_broadcast_remap_assignments(array $assignments, array $byMatch): array
+{
+    $out = [];
+    foreach ($assignments as $id => $_) {
+        $id = (string) $id;
+        if (!isset($byMatch[$id])) {
+            continue;
+        }
+        $out[$id] = (int) $byMatch[$id]['broadcast'];
+    }
+    ksort($out, SORT_NATURAL | SORT_FLAG_CASE);
+    return $out;
+}
+
+/**
+ * Validate moving match $matchId to broadcast $target (absolute).
+ * Same-show chaining OK. Blocks winner-chain breaks.
+ *
+ * @param array<string,array<string,mixed>> $byMatch current schedule by_match
+ * @param array<string,list<string>> $deps
+ * @param array<string,list<string>> $dependents
+ * @return string|null error message or null if OK
+ */
+function tournament_broadcast_move_validate(
+    string $matchId,
+    int $target,
+    array $byMatch,
+    array $deps,
+    array $dependents
+): ?string {
+    if ($matchId === '' || !isset($byMatch[$matchId])) {
+        return 'Unknown contested match';
+    }
+    if ($target < 1) {
+        return 'Invalid target broadcast';
+    }
+    $cur = (int) ($byMatch[$matchId]['broadcast'] ?? 0);
+    if ($cur < 1) {
+        return 'Match has no broadcast assignment';
+    }
+    if ($target === $cur) {
+        return null;
+    }
+
+    foreach ($deps[$matchId] ?? [] as $depId) {
+        $depId = (string) $depId;
+        if ($depId === '' || !isset($byMatch[$depId])) {
+            continue;
+        }
+        $depB = (int) $byMatch[$depId]['broadcast'];
+        // Dep ends up later than moved match → break winner feed.
+        if ($depB > $target) {
+            $label = (string) ($byMatch[$depId]['label'] ?? $depId);
+            return 'Cannot move before dependency ' . $label . ' (broadcast ' . $depB . ')';
+        }
+    }
+
+    foreach ($dependents[$matchId] ?? [] as $childId) {
+        $childId = (string) $childId;
+        if ($childId === '' || !isset($byMatch[$childId])) {
+            continue;
+        }
+        $childB = (int) $byMatch[$childId]['broadcast'];
+        // Dependent left in an earlier show than moved match.
+        if ($childB < $target) {
+            $label = (string) ($byMatch[$childId]['label'] ?? $childId);
+            return 'Cannot leave dependent ' . $label . ' in earlier broadcast ' . $childB;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Apply an adjacent broadcast move; returns updated assignments (compact-remapped) or error.
+ *
+ * @param array<string,mixed> $bracket
+ * @param array<string,mixed> $state
+ * @param array<string,mixed>|null $opts schedule opts override
+ * @return array{ok:bool,error:?string,assignments:array<string,int>,schedule:?array<string,mixed>}
+ */
+function tournament_broadcast_move_match(
+    array $bracket,
+    array $state,
+    string $matchId,
+    string $direction,
+    ?array $opts = null
+): array {
+    $matchId = trim($matchId);
+    $direction = strtolower(trim($direction));
+    if ($direction !== 'prev' && $direction !== 'next') {
+        return ['ok' => false, 'error' => 'direction must be prev or next', 'assignments' => [], 'schedule' => null];
+    }
+
+    $opts = is_array($opts) ? $opts : [];
+    if (!isset($opts['broadcast_dates'])) {
+        $opts['broadcast_dates'] = $state['broadcast_dates'] ?? [];
+    }
+    $assignments = tournament_normalize_broadcast_assignments($state['broadcast_assignments'] ?? []);
+    $opts['broadcast_assignments'] = $assignments;
+
+    $schedule = tournament_broadcast_schedule($bracket, $opts);
+    $byMatch = $schedule['by_match'] ?? [];
+    if ($matchId === '' || !isset($byMatch[$matchId])) {
+        return ['ok' => false, 'error' => 'Unknown contested match', 'assignments' => $assignments, 'schedule' => $schedule];
+    }
+
+    $cur = (int) $byMatch[$matchId]['broadcast'];
+    $total = (int) ($schedule['total_broadcasts'] ?? 0);
+    if ($direction === 'prev') {
+        if ($cur <= 1) {
+            return ['ok' => false, 'error' => 'Already in first broadcast', 'assignments' => $assignments, 'schedule' => $schedule];
+        }
+        $target = $cur - 1;
+    } else {
+        $target = $cur + 1;
+        // Allow creating one show past the end only when current is last.
+        if ($cur > $total) {
+            return ['ok' => false, 'error' => 'Invalid current broadcast', 'assignments' => $assignments, 'schedule' => $schedule];
+        }
+    }
+
+    $deps = tournament_broadcast_dependencies($bracket);
+    $dependents = tournament_broadcast_dependents_map($deps);
+    $err = tournament_broadcast_move_validate($matchId, $target, $byMatch, $deps, $dependents);
+    if ($err !== null) {
+        return ['ok' => false, 'error' => $err, 'assignments' => $assignments, 'schedule' => $schedule];
+    }
+
+    // Apply move on top of current layout: pin every match at its current
+    // broadcast, then set the moved match to target (allows overflow past cap).
+    $layoutPins = [];
+    foreach ($byMatch as $id => $row) {
+        $layoutPins[(string) $id] = (int) $row['broadcast'];
+    }
+    $layoutPins[$matchId] = $target;
+
+    $opts['broadcast_assignments'] = $layoutPins;
+    $newSchedule = tournament_broadcast_schedule($bracket, $opts);
+
+    // Persist only intentional pins (prior overrides + this match), remapped after compact.
+    // Do not store every match whose ordinal shifted when an empty show was dropped.
+    $pinIds = array_fill_keys(array_map('strval', array_keys($assignments)), true);
+    $pinIds[$matchId] = true;
+    $remapped = [];
+    foreach ($pinIds as $id => $_) {
+        if (!isset($newSchedule['by_match'][$id])) {
+            continue;
+        }
+        $remapped[$id] = (int) $newSchedule['by_match'][$id]['broadcast'];
+    }
+    ksort($remapped, SORT_NATURAL | SORT_FLAG_CASE);
+
+    return [
+        'ok' => true,
+        'error' => null,
+        'assignments' => $remapped,
+        'schedule' => $newSchedule,
+    ];
+}
+
+/**
+ * Stable broadcast assignment for every contested match.
+ * Same-show chaining allowed; Code S is deferred by default for anticipation.
+ * Broadcast numbers are structural (stable as results come in) — status fields track progress.
+ *
+ * Opts:
+ * - matches_per_broadcast (int, default 4, clamped 1–12)
+ * - code_order (list, default ['B','A','S'])
+ * - same_broadcast_chaining (bool, default true)
+ * - phase_by_code (bool, default true) — finish each code before starting the next
+ *   (keeps Code S off early shows for anticipation; last show of a code may be short)
+ * - broadcast_dates (map) — optional "1" => "2026-08-22T19:00" (US Eastern wall time)
+ * - broadcast_assignments (map) — optional match_id => broadcast# manual pins
+ *
+ * Pin algorithm: auto-pack into capacity, then relocate pinned matches onto their
+ * target broadcast (overflow allowed). Empty shows are compacted and pins remapped
+ * in the returned schedule via broadcast_assignments_effective.
+ *
+ * @param array<string,mixed> $bracket
+ * @param array<string,mixed>|null $opts
+ * @return array{
+ *   matches_per_broadcast:int,
+ *   code_order:list<string>,
+ *   total_matches:int,
+ *   total_broadcasts:int,
+ *   current_broadcast:int|null,
+ *   by_match: array<string,array<string,mixed>>,
+ *   broadcasts: list<array<string,mixed>>,
+ *   broadcast_assignments: array<string,int>,
+ *   broadcast_assignments_effective: array<string,int>
+ * }
+ */
+function tournament_broadcast_schedule(array $bracket, ?array $opts = null): array
+{
+    $opts = is_array($opts) ? $opts : [];
+    $cap = (int) ($opts['matches_per_broadcast'] ?? 4);
+    if ($cap < 1) {
+        $cap = 1;
+    }
+    if ($cap > 12) {
+        $cap = 12;
+    }
+    $codeOrder = [];
+    if (isset($opts['code_order']) && is_array($opts['code_order'])) {
+        foreach ($opts['code_order'] as $c) {
+            $c = strtoupper(trim((string) $c));
+            if ($c !== '' && !in_array($c, $codeOrder, true)) {
+                $codeOrder[] = $c;
+            }
+        }
+    }
+    if ($codeOrder === []) {
+        $codeOrder = ['B', 'A', 'S'];
+    }
+    $chain = array_key_exists('same_broadcast_chaining', $opts)
+        ? (bool) $opts['same_broadcast_chaining']
+        : true;
+    $phaseByCode = array_key_exists('phase_by_code', $opts)
+        ? (bool) $opts['phase_by_code']
+        : true;
+    $broadcastDates = tournament_normalize_broadcast_dates($opts['broadcast_dates'] ?? []);
+    $pinInput = tournament_normalize_broadcast_assignments($opts['broadcast_assignments'] ?? []);
+
+    $catalog = tournament_broadcast_match_catalog($bracket);
+    $deps = tournament_broadcast_dependencies($bracket);
+    $codePrio = tournament_broadcast_code_priority($codeOrder);
+
+    $depsSatisfied = static function (string $id, array $done) use ($deps): bool {
+        foreach ($deps[$id] ?? [] as $d) {
+            if (!isset($done[$d])) {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    $pickBest = static function (array $candidates) use ($catalog, $codePrio): ?string {
+        $best = null;
+        $bestKey = null;
+        foreach ($candidates as $id) {
+            $row = $catalog[$id];
+            $key = tournament_broadcast_sort_key($row, $codePrio);
+            if ($best === null || $key < $bestKey) {
+                $best = $id;
+                $bestKey = $key;
+            }
+        }
+        return $best;
+    };
+
+    $activeCode = static function (array $remaining) use ($catalog, $codePrio): ?string {
+        $bestCode = null;
+        $bestP = null;
+        foreach ($remaining as $id) {
+            $code = (string) ($catalog[$id]['code'] ?? '');
+            $p = $codePrio[$code] ?? 99;
+            if ($bestP === null || $p < $bestP) {
+                $bestP = $p;
+                $bestCode = $code;
+            }
+        }
+        return $bestCode;
+    };
+
+    $remaining = array_keys($catalog);
+    $scheduled = [];
+    $shows = [];
+    $guard = 0;
+    $maxGuard = max(1, count($remaining)) * 4;
+    while ($remaining !== [] && $guard < $maxGuard) {
+        $guard++;
+        $show = [];
+        $done = $scheduled;
+        $phaseCode = $phaseByCode ? $activeCode($remaining) : null;
+        while (count($show) < $cap) {
+            $candidates = [];
+            foreach ($remaining as $id) {
+                if (isset($done[$id])) {
+                    continue;
+                }
+                if ($phaseCode !== null && (string) ($catalog[$id]['code'] ?? '') !== $phaseCode) {
+                    continue;
+                }
+                $checkDone = $chain ? $done : $scheduled;
+                if ($depsSatisfied($id, $checkDone)) {
+                    $candidates[] = $id;
+                }
+            }
+            $pick = $pickBest($candidates);
+            if ($pick === null) {
+                break;
+            }
+            $show[] = $pick;
+            $done[$pick] = true;
+        }
+        if ($show === []) {
+            // Cycle / missing dep edge — force best remaining so we never stall.
+            $pick = $pickBest($remaining);
+            if ($pick === null) {
+                break;
+            }
+            $show[] = $pick;
+        }
+        $shows[] = $show;
+        foreach ($show as $id) {
+            $scheduled[$id] = true;
+            $remaining = array_values(array_filter(
+                $remaining,
+                static function ($rid) use ($id) {
+                    return $rid !== $id;
+                }
+            ));
+        }
+    }
+
+    // Apply manual pins: relocate match onto target broadcast (overflow OK).
+    $pins = [];
+    foreach ($pinInput as $id => $bNum) {
+        if (!isset($catalog[$id])) {
+            continue;
+        }
+        $pins[$id] = max(1, (int) $bNum);
+    }
+    if ($pins !== []) {
+        $loc = [];
+        foreach ($shows as $bi => $show) {
+            foreach ($show as $si => $id) {
+                $loc[$id] = [$bi, $si];
+            }
+        }
+        foreach ($pins as $id => $bNum) {
+            $targetBi = $bNum - 1;
+            if (isset($loc[$id])) {
+                [$fromBi, $fromSi] = $loc[$id];
+                if ($fromBi === $targetBi) {
+                    continue;
+                }
+                array_splice($shows[$fromBi], $fromSi, 1);
+                // Fix loc indices in the shortened source show.
+                $loc = [];
+                foreach ($shows as $bi => $show) {
+                    foreach ($show as $si => $mid) {
+                        $loc[$mid] = [$bi, $si];
+                    }
+                }
+            }
+            while (count($shows) <= $targetBi) {
+                $shows[] = [];
+            }
+            $shows[$targetBi][] = $id;
+            $loc[$id] = [$targetBi, count($shows[$targetBi]) - 1];
+        }
+
+        // Repair winner-chain: no match may sit in an earlier broadcast than any dep.
+        $rebuildLoc = static function (array $shows): array {
+            $loc = [];
+            foreach ($shows as $bi => $show) {
+                foreach ($show as $si => $mid) {
+                    $loc[$mid] = [$bi, $si];
+                }
+            }
+            return $loc;
+        };
+        $loc = $rebuildLoc($shows);
+        $orderIds = array_keys($catalog);
+        usort($orderIds, static function (string $a, string $b) use ($catalog, $codePrio): int {
+            return tournament_broadcast_sort_key($catalog[$a] ?? ['id' => $a], $codePrio)
+                <=> tournament_broadcast_sort_key($catalog[$b] ?? ['id' => $b], $codePrio);
+        });
+        foreach ($orderIds as $id) {
+            if (!isset($loc[$id])) {
+                continue;
+            }
+            $minBi = 0;
+            foreach ($deps[$id] ?? [] as $depId) {
+                if (!isset($loc[$depId])) {
+                    continue;
+                }
+                $minBi = max($minBi, (int) $loc[$depId][0]);
+            }
+            [$curBi, $curSi] = $loc[$id];
+            if ($curBi >= $minBi) {
+                continue;
+            }
+            array_splice($shows[$curBi], $curSi, 1);
+            $loc = $rebuildLoc($shows);
+            while (count($shows) <= $minBi) {
+                $shows[] = [];
+            }
+            $shows[$minBi][] = $id;
+            $loc = $rebuildLoc($shows);
+        }
+
+        // Sort each show by priority (deps may share a show via chaining).
+        foreach ($shows as $bi => $show) {
+            usort($show, static function (string $a, string $b) use ($catalog, $codePrio): int {
+                $ka = tournament_broadcast_sort_key($catalog[$a] ?? ['id' => $a], $codePrio);
+                $kb = tournament_broadcast_sort_key($catalog[$b] ?? ['id' => $b], $codePrio);
+                return $ka <=> $kb;
+            });
+            $shows[$bi] = $show;
+        }
+
+        // Compact empty broadcasts; dates stay keyed by absolute number (user may re-check).
+        $shows = array_values(array_filter($shows, static function (array $show): bool {
+            return $show !== [];
+        }));
+    }
+
+    $broadcasts = [];
+    $byMatch = [];
+    $currentBroadcast = null;
+    $effectiveAssignments = [];
+    foreach ($shows as $bi => $show) {
+        $bNum = $bi + 1;
+        $bLabel = tournament_broadcast_label($bNum);
+        $whenIso = $broadcastDates[(string) $bNum] ?? null;
+        $whenDisplay = tournament_broadcast_when_or_tbd($whenIso);
+        $bLabelFull = tournament_broadcast_label_full($bNum, $whenDisplay);
+        $rows = [];
+        $allDone = true;
+        $anyReady = false;
+        foreach ($show as $si => $id) {
+            $row = $catalog[$id];
+            $st = (string) $row['status'];
+            if ($st !== 'done') {
+                $allDone = false;
+            }
+            if ($st === 'ready' || $st === 'live') {
+                $anyReady = true;
+            }
+            $pinned = isset($pins[$id]);
+            $entry = array_merge($row, [
+                'broadcast' => $bNum,
+                'broadcast_label' => $bLabel,
+                'broadcast_label_full' => $bLabelFull,
+                'broadcast_when' => $whenDisplay,
+                'broadcast_when_iso' => $whenIso,
+                'slot' => $si + 1,
+                'depends_on' => $deps[$id] ?? [],
+                'broadcast_pinned' => $pinned,
+                'stated' => tournament_broadcast_match_is_stated($row),
+            ]);
+            $byMatch[$id] = $entry;
+            $effectiveAssignments[$id] = $bNum;
+            $rows[] = $entry;
+        }
+        $codes = [];
+        foreach ($rows as $r) {
+            $c = (string) $r['code'];
+            if ($c !== '' && !in_array($c, $codes, true)) {
+                $codes[] = $c;
+            }
+        }
+        $broadcasts[] = [
+            'broadcast' => $bNum,
+            'broadcast_label' => $bLabel,
+            'broadcast_label_full' => $bLabelFull,
+            'broadcast_when' => $whenDisplay,
+            'broadcast_when_iso' => $whenIso,
+            'matches' => $rows,
+            'match_count' => count($rows),
+            'all_done' => $allDone,
+            'has_ready' => $anyReady,
+            'codes' => $codes,
+        ];
+        if ($currentBroadcast === null && !$allDone) {
+            $currentBroadcast = $bNum;
+        }
+    }
+
+    return [
+        'matches_per_broadcast' => $cap,
+        'code_order' => $codeOrder,
+        'same_broadcast_chaining' => $chain,
+        'phase_by_code' => $phaseByCode,
+        'broadcast_dates' => $broadcastDates,
+        'broadcast_assignments' => $pins,
+        'broadcast_assignments_effective' => $effectiveAssignments,
+        'total_matches' => count($catalog),
+        'total_broadcasts' => count($broadcasts),
+        'current_broadcast' => $currentBroadcast,
+        'by_match' => $byMatch,
+        'broadcasts' => $broadcasts,
+    ];
+}
+
+/**
+ * Stamp broadcast / broadcast_label / slot onto each contested match in the bracket.
+ *
+ * @param array<string,mixed> $bracket
+ * @param array<string,mixed>|null $opts
+ * @return array{bracket:array<string,mixed>,schedule:array<string,mixed>}
+ */
+function tournament_annotate_broadcasts(array $bracket, ?array $opts = null): array
+{
+    $schedule = tournament_broadcast_schedule($bracket, $opts);
+    $byMatch = $schedule['by_match'];
+
+    foreach ($bracket['groups'] ?? [] as $g => $gb) {
+        if (!is_array($gb) || !isset($gb['rounds']) || !is_array($gb['rounds'])) {
+            continue;
+        }
+        foreach ($gb['rounds'] as $ri => $round) {
+            if (!is_array($round)) {
+                continue;
+            }
+            foreach ($round as $mi => $m) {
+                if (!is_array($m)) {
+                    continue;
+                }
+                $id = (string) ($m['id'] ?? '');
+                if ($id === '' || !isset($byMatch[$id])) {
+                    continue;
+                }
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['broadcast'] = $byMatch[$id]['broadcast'];
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['broadcast_label'] = $byMatch[$id]['broadcast_label'];
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['broadcast_label_full'] = $byMatch[$id]['broadcast_label_full'];
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['broadcast_when'] = $byMatch[$id]['broadcast_when'];
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['broadcast_when_iso'] = $byMatch[$id]['broadcast_when_iso'];
+                $bracket['groups'][$g]['rounds'][$ri][$mi]['slot'] = $byMatch[$id]['slot'];
+            }
+        }
+    }
+    foreach ($bracket['ascension'] ?? [] as $ai => $m) {
+        if (!is_array($m)) {
+            continue;
+        }
+        $id = (string) ($m['id'] ?? '');
+        if ($id === '' || !isset($byMatch[$id])) {
+            continue;
+        }
+        $bracket['ascension'][$ai]['broadcast'] = $byMatch[$id]['broadcast'];
+        $bracket['ascension'][$ai]['broadcast_label'] = $byMatch[$id]['broadcast_label'];
+        $bracket['ascension'][$ai]['broadcast_label_full'] = $byMatch[$id]['broadcast_label_full'];
+        $bracket['ascension'][$ai]['broadcast_when'] = $byMatch[$id]['broadcast_when'];
+        $bracket['ascension'][$ai]['broadcast_when_iso'] = $byMatch[$id]['broadcast_when_iso'];
+        $bracket['ascension'][$ai]['slot'] = $byMatch[$id]['slot'];
+    }
+
+    $bracket['broadcast_schedule'] = [
+        'matches_per_broadcast' => $schedule['matches_per_broadcast'],
+        'total_broadcasts' => $schedule['total_broadcasts'],
+        'current_broadcast' => $schedule['current_broadcast'],
+        'code_order' => $schedule['code_order'],
+        'phase_by_code' => !empty($schedule['phase_by_code']),
+        'broadcast_dates' => $schedule['broadcast_dates'] ?? [],
+        'broadcast_assignments' => $schedule['broadcast_assignments'] ?? [],
+        'has_manual_assignments' => ($schedule['broadcast_assignments'] ?? []) !== [],
+        'broadcasts' => array_map(static function (array $b): array {
+            return [
+                'broadcast' => (int) $b['broadcast'],
+                'broadcast_label' => (string) $b['broadcast_label'],
+                'broadcast_label_full' => (string) ($b['broadcast_label_full'] ?? $b['broadcast_label']),
+                'broadcast_when' => $b['broadcast_when'] ?? null,
+                'broadcast_when_iso' => $b['broadcast_when_iso'] ?? null,
+                'match_count' => (int) $b['match_count'],
+                'codes' => array_values($b['codes'] ?? []),
+                'all_done' => !empty($b['all_done']),
+                'has_ready' => !empty($b['has_ready']),
+            ];
+        }, $schedule['broadcasts'] ?? []),
+    ];
+
+    return [
+        'bracket' => $bracket,
+        'schedule' => $schedule,
+    ];
 }

@@ -29,6 +29,7 @@ include 'includes/check_permission.php';
 
 // Include database connection
 require_once 'includes/db.php';
+require_once __DIR__ . '/rankings/rankings_roster.php';
 
 // Include utility files
 // Note: Required functions are defined in this file
@@ -48,6 +49,9 @@ $message = '';
 $messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $rosterOldName = null;
+    $rosterNewName = null;
+    $rosterStatusChanged = false;
     try {
         $db->beginTransaction();
         
@@ -96,6 +100,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
                     }
                     
+                    $oldStmt = $db->prepare('SELECT Real_Name, Status FROM Players WHERE Player_ID = ?');
+                    $oldStmt->execute([$playerId]);
+                    $oldRow = $oldStmt->fetch(PDO::FETCH_ASSOC) ?: null;
+                    // Missing or unknown status keeps the current one
+                    if (!in_array($_POST['status'] ?? '', ['active', 'inactive', 'banned', 'other'], true)) {
+                        $status = $oldRow['Status'] ?? 'active';
+                    }
+                    if ($oldRow) {
+                        $rosterOldName = (string) $oldRow['Real_Name'];
+                        $rosterNewName = (string) $realName;
+                        $rosterStatusChanged = $oldRow['Status'] !== $status;
+                    }
+
                     // Update player information
                     $updateQuery = "UPDATE Players SET 
                                     Real_Name = :real_name,
@@ -388,6 +405,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $insertStmt->bindParam(':alias_name', $aliasName);
                     $insertStmt->execute();
                     
+                    $rosterStatusChanged = $status === 'active';
                     $message = "Player and alias added successfully";
                     $messageType = "success";
                     break;
@@ -398,6 +416,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         $db->commit();
+        if ($rosterOldName !== null) {
+            rankings_roster_rename($rosterOldName, $rosterNewName);
+        }
+        if ($rosterStatusChanged) {
+            $rosterNote = rankings_roster_sync_quiet($db);
+            if ($rosterNote !== '') {
+                $message .= ' ' . $rosterNote;
+            }
+        }
     } catch (Exception $e) {
         $db->rollBack();
         $message = $e->getMessage();

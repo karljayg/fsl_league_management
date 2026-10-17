@@ -430,7 +430,7 @@ $teamColors = [
                             </td>
                             <td class="text-center">
                                 <?php if ($player): ?>
-                                    <span class="ranking-badge"><?= $player['ranking'] ?></span>
+                                    <span class="ranking-badge"><?= draft_rank_label($player) ?></span>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>
@@ -470,7 +470,7 @@ $teamColors = [
                             </td>
                             <td class="text-center">
                                 <?php if ($player): ?>
-                                    <span class="group-badge">G<?= $player['bucket_index'] ?></span>
+                                    <span class="group-badge"><?= draft_group_label($player) ?></span>
                                 <?php else: ?>
                                     -
                                 <?php endif; ?>

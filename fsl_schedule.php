@@ -246,9 +246,9 @@ function getYouTubeVideoId($url) {
     return null;
 }
 
-/** S11+: Friday and/or Saturday play window (times fixed; dates from Saturday anchor in match_date) */
+/** S11: Friday and/or Saturday play window (times fixed; dates from Saturday anchor in match_date). S12 stores the broadcast itself. */
 function formatSchedulePlayWindow($season, $matchDateStr) {
-    if ((int) $season < 11 || empty($matchDateStr)) {
+    if ((int) $season !== 11 || empty($matchDateStr)) {
         return null;
     }
     $sat = new DateTime($matchDateStr);
@@ -456,9 +456,32 @@ echo "<!-- Data: $cacheStatus -->\n";
 
         <div class="season-info">
             <h2>Season Format</h2>
-            <?php if ((int) $currentSeason >= 11): ?>
+            <?php if ((int) $currentSeason === 11): ?>
             <p class="season-play-window-note">Each team match may be played on <strong>Friday and/or Saturday</strong> (7:00 PM Friday or 12:00 PM Saturday, <span class="timezone">US Eastern</span>).</p>
+            <?php elseif ((int) $currentSeason === 12): ?>
+            <p class="season-play-window-note">Two broadcasts each weekend: <strong>Friday 7:00 PM</strong> and <strong>Saturday 12:00 PM</strong> (<span class="timezone">US Eastern</span>), starting November 6.</p>
             <?php endif; ?>
+            <?php if ((int) $currentSeason === 12): ?>
+            <div class="season-format-content">
+                <a href="images/FSL_s12_team_league_format.png" target="_blank" class="season-format-image-wrap">
+                    <img src="images/FSL_s12_team_league_format.png" alt="FSL Season 12 team league format" class="season-format-image">
+                </a>
+                <div class="season-format-text">
+                    <p>The group is a <strong>double round robin</strong>. All four teams play each other twice, home and away, across six rounds (12 matches). A is Special Tactics, B is HiveMind, C is PSIOP Gaming, and D is PulledTheBoys. Standings from those matches set Seeds 1 through 4.</p>
+                    <p>Playoffs are two semifinals (Seed 1 vs Seed 4, Seed 2 vs Seed 3), a third-place match, and the grand final. Thanksgiving, Christmas, and New Year's weekends are off.</p>
+                </div>
+            </div>
+            <?php elseif ((int) $currentSeason === 9): ?>
+            <div class="season-format-content">
+                <a href="images/FSL_s9_team_league_format.png" target="_blank" class="season-format-image-wrap">
+                    <img src="images/FSL_s9_team_league_format.png" alt="FSL Season 9 team league format" class="season-format-image">
+                </a>
+                <div class="season-format-text">
+                    <p>Five teams played a <strong>double round robin</strong>: 10 rounds, 20 matches, one bye each round. A is PulledTheBoys, B is Angry Space Hares, C is Infinite Cyclists, D is Rages Raiders, and E is Cheesy Nachos.</p>
+                    <p>The top three advanced: Seed 2 vs Seed 3 in the semifinal, then Seed 1 vs that winner in the final. 22 matches in all.</p>
+                </div>
+            </div>
+            <?php else: ?>
             <div class="season-format-content">
                 <a href="images/FSL_GSL_format_season10.png" target="_blank" class="season-format-image-wrap">
                     <img src="images/FSL_GSL_format_season10.png" alt="FSL GSL Format Season 10" class="season-format-image">
@@ -468,6 +491,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                     <p>Those seeds then feed into a <strong>ladder-style playoff</strong>: Seeds 3 and 4 start in Week 1, Seed 2 enters in Week 2, and Seed 1 advances straight to the Grand Finals.</p>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
 
         <!-- MATCH SCHEDULE -->

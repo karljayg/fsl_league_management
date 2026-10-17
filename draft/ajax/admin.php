@@ -152,7 +152,12 @@ try {
     $token = $input['token'] ?? '';
     $action = $input['action'] ?? '';
 
-    // Admin access - no token required
+    if (!draft_user_is_site_admin()) {
+        http_response_code(403);
+        echo json_encode(['success' => false, 'error' => 'Admin login required. Log in again and reload this page.']);
+        exit;
+    }
+
     $response = ['success' => false];
 
     switch ($action) {
