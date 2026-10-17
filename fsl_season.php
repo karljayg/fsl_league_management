@@ -343,10 +343,11 @@ include_once 'includes/header.php';
 <body>
     <div class="container">
         <h1>FSL Season History</h1>
-        <p class="page-subtitle">11 Seasons &nbsp;·&nbsp; 2020 – 2026 &nbsp;·&nbsp; PSISTORM Gaming</p>
+        <p class="page-subtitle">12 Seasons &nbsp;·&nbsp; 2020 – 2027 &nbsp;·&nbsp; PSISTORM Gaming</p>
 
         <!-- Season quick-nav -->
         <nav class="season-nav">
+            <a href="#12" class="tl">S12</a>
             <a href="#11" class="tl">S11</a>
             <a href="#10" class="tl">S10</a>
             <a href="#9" class="tl">S9</a>
@@ -363,12 +364,53 @@ include_once 'includes/header.php';
 
         <!-- Hero video -->
         <div class="hero-video">
-            <iframe src="https://www.youtube.com/embed/vt04Xbq57Dk?mute=1&vq=medium&autoplay=1&origin=http://psistorm.com" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <iframe src="https://www.youtube.com/embed/z5an0-1imIU?mute=1&vq=medium&autoplay=1&origin=http://psistorm.com" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
-        <p class="hero-caption">9 Seasons of FSL — a look back</p>
+        <p class="hero-caption">Season 12 Draft — one new team, 46 players, 30 picks</p>
 
         <!-- ═══════════════════════ TEAM LEAGUE ERA ═══════════════════════ -->
         <div class="era-divider">⚔ Team League Era</div>
+
+        <!-- ── Season 12 ── -->
+        <div class="season tl" id="12">
+            <div class="season-header">
+                <div class="season-num">12</div>
+                <div class="season-title-group">
+                    <h2>HiveMind &amp; the Redraft</h2>
+                    <p class="season-meta-line">Nov 2026 – Jan 2027 &nbsp;·&nbsp; Double Round-Robin + Playoffs &nbsp;·&nbsp; <em>Upcoming</em></p>
+                </div>
+            </div>
+
+            <p class="season-desc">Season 12 rebuilds the league. The <a href="view_team.php?name=Angry+Space+Hares">Angry Space Hares</a> go inactive — two Grand Finals, a 7–1 regular season, and an 8–7 ace last year against the eventual champions — and brand-new <a href="view_team.php?name=HiveMind">HiveMind</a> take their slot. Every team kept four (captain, co-captain, two protected); everyone else went back into a 30-pick snake draft. <a href="view_player.php?name=MonkeyShaman">MonkeyShaman</a> and <a href="view_player.php?name=PossiblyMayB">PossiblyMayB</a> take over as commissioners from <a href="view_player.php?name=Greeempire">Greeempire</a>. Newcomers <a href="view_player.php?name=Mulltastic">Mulltastic</a> (ranked #1), <a href="view_player.php?name=MygraiN">MygraiN</a>, and <a href="view_player.php?name=Meadowtownn">Meadowtownn</a> join returning vets <a href="view_player.php?name=Vales">Vales</a>, <a href="view_player.php?name=cyan">cyan</a>, <a href="view_player.php?name=stublu88">stublu88</a>, and <a href="view_player.php?name=NotSlothinAround">NotSlothinAround</a>.</p>
+
+            <p class="season-link"><a href="fsl_schedule.php?season=12">View Season 12 Standings &amp; Schedule →</a></p>
+
+            <div class="results">
+                <strong>Opening matches (scheduled):</strong><br>
+                Fri Nov 6, 7:00 PM ET — <a href="view_team.php?name=Special+Tactics">Special Tactics</a> vs <a href="view_team.php?name=HiveMind">HiveMind</a> &nbsp;·&nbsp;
+                Sat Nov 7, 12:00 PM ET — <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a> vs <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a><br><br>
+                <strong>Headline draft moves:</strong><br>
+                #1 <a href="view_team.php?name=HiveMind">HiveMind</a> open with newcomer <a href="view_player.php?name=MygraiN">MygraiN</a><br>
+                #7 <a href="view_team.php?name=PSIOP+Gaming">PSIOP</a> take <a href="view_player.php?name=DarkMenace">DarkMenace</a> from last season's champions<br>
+                #16 <a href="view_team.php?name=HiveMind">HiveMind</a> wait on <a href="view_player.php?name=Chat-Omic">Chat-Omic</a> (ranked 4th overall)<br>
+                #22 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> steal <a href="view_player.php?name=Mulltastic">Mulltastic</a> — #1 in the power rankings<br>
+                #29 <a href="view_team.php?name=Special+Tactics">Special Tactics</a> add <a href="view_player.php?name=Warbunnies">Warbunnies</a>, last season's Hares captain<br><br>
+                <strong>What's new:</strong><br>
+                <a href="view_team.php?name=HiveMind">HiveMind</a> replace the Hares (inherit 1st overall pick)<br>
+                Full redraft — 16 keepers, 30 snake-draft picks in 14 minutes<br>
+                Double round-robin (home &amp; away), then semis, 3rd place, Grand Final (Jan 23)
+            </div>
+
+            <button class="toggle-btn roster-btn" onclick="togglePanel(this, 'rosters-s12')">&#9658; Show Team Rosters</button>
+            <div id="rosters-s12" class="collapsible-panel" style="display:none;">
+                <div class="results" style="margin-top:8px;">
+                    <strong><a href="view_team.php?name=HiveMind">HiveMind</a></strong> (Capt: <a href="view_player.php?name=Jmpz">Jmpz</a> · Co: <a href="view_player.php?name=PossiblyMayB">PossiblyMayB</a> · Prot: <a href="view_player.php?name=FRost">FRost</a>, <a href="view_player.php?name=SunnyD">SunnyD</a>): <a href="view_player.php?name=MygraiN">MygraiN</a>, <a href="view_player.php?name=Infestor-x">Infestor-x</a>, <a href="view_player.php?name=Dpoo">Dpoo</a>, <a href="view_player.php?name=Chat-Omic">Chat-Omic</a>, <a href="view_player.php?name=LanixMagi">LanixMagi</a>, <a href="view_player.php?name=Parkanian">Parkanian</a>, <a href="view_player.php?name=Vales">Vales</a><br>
+                    <strong><a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a></strong> (Capt: <a href="view_player.php?name=NuKLeO">NuKLeO</a> · Co: <a href="view_player.php?name=Crankytoaster">Crankytoaster</a> · Prot: <a href="view_player.php?name=MedicJR">MedicJR</a>, <a href="view_player.php?name=BeanTheBard">BeanTheBard</a>): <a href="view_player.php?name=Meadowtownn">Meadowtownn</a>, <a href="view_player.php?name=DarkMenace">DarkMenace</a>, <a href="view_player.php?name=Darkblade">Darkblade</a>, <a href="view_player.php?name=NotSlothinAround">NotSlothinAround</a>, <a href="view_player.php?name=stublu88">stublu88</a>, <a href="view_player.php?name=Reevou">Reevou</a>, <a href="view_player.php?name=Nuke">Nuke</a><br>
+                    <strong><a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a></strong> (Capt: <a href="view_player.php?name=Neutrophil">Neutrophil</a> · Co: <a href="view_player.php?name=MonkeyShaman">MonkeyShaman</a> · Prot: <a href="view_player.php?name=LittleReaper">LittleReaper</a>, <a href="view_player.php?name=Papella">Papella</a>): <a href="view_player.php?name=AntoineQ">AntoineQ</a>, <a href="view_player.php?name=SaraNghae">SaraNghae</a>, <a href="view_player.php?name=MvonLipwig">MvonLipwig</a>, <a href="view_player.php?name=Sopuli">Sopuli</a>, <a href="view_player.php?name=cyan">cyan</a>, <a href="view_player.php?name=Mulltastic">Mulltastic</a>, <a href="view_player.php?name=Pacha">Pacha</a>, <a href="view_player.php?name=WindShadow">WindShadow</a><br>
+                    <strong><a href="view_team.php?name=Special+Tactics">Special Tactics</a></strong> (Capt: <a href="view_player.php?name=Freeedom">Freeedom</a> · Co: <a href="view_player.php?name=HyperTurtle">HyperTurtle</a> · Prot: <a href="view_player.php?name=Cubano">Cubano</a>, <a href="view_player.php?name=SCVSir">SCVSir</a>): <a href="view_player.php?name=HarOuz">HarOuz</a>, <a href="view_player.php?name=Nachoz">Nachoz</a>, <a href="view_player.php?name=RevenantRage">RevenantRage</a>, <a href="view_player.php?name=GreatArchon">GreatArchon</a>, <a href="view_player.php?name=HurtnTime">HurtnTime</a>, <a href="view_player.php?name=SirMalagant">SirMalagant</a>, <a href="view_player.php?name=sOs">sOs</a>, <a href="view_player.php?name=Warbunnies">Warbunnies</a>
+                </div>
+            </div>
+        </div>
 
         <!-- ── Season 11 ── -->
         <div class="season tl" id="11">
@@ -376,21 +418,34 @@ include_once 'includes/header.php';
                 <div class="season-num">11</div>
                 <div class="season-title-group">
                     <h2>Friday Broadcasts &amp; Fresh Draftees</h2>
-                    <p class="season-meta-line">Jun – Aug 2026 &nbsp;·&nbsp; GSL Group Stage + Ladder Playoff &nbsp;·&nbsp; <em>In progress</em></p>
+                    <p class="season-meta-line">Jun – Aug 2026 &nbsp;·&nbsp; GSL Group Stage + Ladder Playoff</p>
                 </div>
             </div>
 
-            <p class="season-desc">Season 11 keeps the S10 GSL-style group and playoff ladder with a scheduling change: each team match can be played on <strong>Friday and/or Saturday</strong> (7:00 PM Friday or 12:00 PM Saturday, US Eastern). The supplemental draft added new faces across all four teams — including <a href="view_player.php?name=Darkblade">Darkblade</a>, <a href="view_player.php?name=Cubano">Cubano</a>, <a href="view_player.php?name=FRost">FRost</a>, <a href="view_player.php?name=Infestor-x">Infestor-x</a>, <a href="view_player.php?name=SunnyD">SunnyD</a>, and <a href="view_player.php?name=BeanTheBard">BeanTheBard</a> — alongside returning picks such as <a href="view_player.php?name=MedicJr">MedicJr</a>, <a href="view_player.php?name=RegreT">RegreT</a>, and <a href="view_player.php?name=Parkanian">Parkanian</a>.</p>
+            <div class="champion-row">
+                🏆 <a href="view_team.php?name=Special+Tactics">Special Tactics</a> (Team League)
+                &nbsp;·&nbsp; <a href="view_player.php?name=MedicJR">MedicJR</a> (Code S)
+                &nbsp;·&nbsp; <a href="view_player.php?name=Papella">Papella</a> (Code A)
+                &nbsp;·&nbsp; <a href="view_player.php?name=BeanTheBard">BeanTheBard</a> (Code B)
+                <span class="champion-note">&nbsp;— 4th seed to champion</span>
+            </div>
+
+            <p class="season-desc">Season 11 kept the S10 GSL-style group and playoff ladder with a scheduling change: each team match could be played on <strong>Friday and/or Saturday</strong> (7:00 PM Friday or 12:00 PM Saturday, US Eastern). The supplemental draft added new faces across all four teams — including <a href="view_player.php?name=Darkblade">Darkblade</a>, <a href="view_player.php?name=Cubano">Cubano</a>, <a href="view_player.php?name=FRost">FRost</a>, <a href="view_player.php?name=Infestor-x">Infestor-x</a>, <a href="view_player.php?name=SunnyD">SunnyD</a>, and <a href="view_player.php?name=BeanTheBard">BeanTheBard</a> — alongside returning picks such as <a href="view_player.php?name=MedicJR">MedicJR</a>, <a href="view_player.php?name=RegreT">RegreT</a>, and <a href="view_player.php?name=Parkanian">Parkanian</a>. Fourth-seeded <a href="view_team.php?name=Special+Tactics">Special Tactics</a> then won all three playoff matches: <a href="view_player.php?name=DarkMenace">DarkMenace</a> closed an 8–7 ace against the Hares, <a href="view_player.php?name=SirMalagant">SirMalagant</a> another 7–6 against <a href="view_team.php?name=PSIOP+Gaming">PSIOP</a>, and a <strong>14–4</strong> Grand Final over <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a>.</p>
 
             <p class="season-link"><a href="fsl_schedule.php?season=11">View Season 11 Standings &amp; Schedule →</a></p>
 
             <div class="results">
-                <strong>Opening matches (scheduled):</strong><br>
-                Wk1 <a href="view_team.php?name=Angry+Space+Hares">Angry Space Hares</a> vs <a href="view_team.php?name=Special+Tactics">Special Tactics</a> &nbsp;·&nbsp;
-                Wk2 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> vs <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a><br><br>
-                <strong>What's new:</strong><br>
-                Friday and/or Saturday team-match broadcast windows<br>
-                Supplemental draft — 12 players assigned to the four active rosters
+                <strong>Group Stage:</strong><br>
+                Wk1 <a href="view_team.php?name=Angry+Space+Hares">ASH</a> def. <a href="view_team.php?name=Special+Tactics">Special Tactics</a> 6–4 &nbsp;·&nbsp; Wk2 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> def. <a href="view_team.php?name=PSIOP+Gaming">PSIOP</a> 11–7<br>
+                Wk3 <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> def. <a href="view_team.php?name=Angry+Space+Hares">ASH</a> 10–6 (→ Seed 1) &nbsp;·&nbsp; Wk4 <a href="view_team.php?name=PSIOP+Gaming">PSIOP</a> def. <a href="view_team.php?name=Special+Tactics">Special Tactics</a> 7–6 (→ Seed 4)<br>
+                Wk5 <a href="view_team.php?name=PSIOP+Gaming">PSIOP</a> def. <a href="view_team.php?name=Angry+Space+Hares">ASH</a> 7–6 (→ Seeds 2 &amp; 3)<br><br>
+                <strong>Playoffs:</strong><br>
+                Wk6 <a href="view_team.php?name=Special+Tactics">Special Tactics</a> def. <a href="view_team.php?name=Angry+Space+Hares">ASH</a> 8–7 &nbsp;·&nbsp; Wk7 <a href="view_team.php?name=Special+Tactics">Special Tactics</a> def. <a href="view_team.php?name=PSIOP+Gaming">PSIOP Gaming</a> 7–6<br>
+                Wk8 <strong>GRAND FINALS:</strong> <a href="view_team.php?name=Special+Tactics">Special Tactics</a> def. <a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a> 14–4 🏆<br><br>
+                <strong>Individual championships:</strong><br>
+                <strong>Code S:</strong> <a href="view_player.php?name=MedicJR">MedicJR</a> def. <a href="view_player.php?name=Cubano">Cubano</a> 3–2<br>
+                <strong>Code A:</strong> <a href="view_player.php?name=Papella">Papella</a> def. <a href="view_player.php?name=PossiblyMayB">PossiblyMayB</a> 3–2<br>
+                <strong>Code B:</strong> <a href="view_player.php?name=BeanTheBard">BeanTheBard</a> def. <a href="view_player.php?name=LanixMagi">LanixMagi</a> 2–1
             </div>
         </div>
 
