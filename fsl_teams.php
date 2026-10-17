@@ -491,7 +491,9 @@ include_once 'includes/header.php';
         </div>
         <?php endif; ?>
         <h2><a href="view_team.php?name=<?= urlencode($teamName) ?>" class="team-link"><?= htmlspecialchars($teamName) ?></a></h2>
-        <?= fsl_status_badge($teamStatus[$teamName] ?? 'active') ?>
+        <?php if (!fsl_is_active_status($teamStatus[$teamName] ?? 'active')): ?>
+        <?= fsl_status_badge($teamStatus[$teamName] ?? 'defunct') ?>
+        <?php endif; ?>
         <div style="text-align: center; margin-bottom: 5px; color: #b0b0b0; font-size: 0.9em;">
           <?= count($players) ?> player<?= count($players) === 1 ? '' : 's' ?>
         </div>

@@ -407,7 +407,7 @@ $renderSeasonRecordRows = function () use ($latestSeason, $seasonWins, $seasonLo
         <?php if ($teamLogo): ?>
         <img src="<?= htmlspecialchars($teamLogo) ?>" alt="<?= htmlspecialchars($teamName) ?>" class="team-header-logo">
         <?php endif; ?>
-        <h1><?= htmlspecialchars($teamName) ?> <?= fsl_status_badge($team['Status'] ?? 'active') ?></h1>
+        <h1><?= htmlspecialchars($teamName) ?></h1>
     </div>
     
     <div class="team-profile-container">
@@ -801,12 +801,6 @@ $renderSeasonRecordRows = function () use ($latestSeason, $seasonWins, $seasonLo
 
 <style>
 <?= fsl_status_badge_css() ?>
-.team-header-container h1 .fsl-status-badge {
-    font-size: 0.42em;
-    vertical-align: middle;
-    margin-left: 10px;
-}
-
 .team-header-container {
     display: flex;
     align-items: center;
