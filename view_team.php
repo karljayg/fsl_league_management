@@ -16,6 +16,7 @@ session_start();
 require_once 'includes/db.php';
 require_once 'includes/team_logo.php';
 require_once 'includes/season_utils.php';
+require_once 'includes/status_badge.php';
 
 // Include the championship JSON processor
 require_once 'includes/championship_json_processor.php';
@@ -42,6 +43,7 @@ $teamQuery = "
         t.Team_Name,
         t.Captain_ID,
         t.Co_Captain_ID,
+        COALESCE(t.Status, 'active') AS Status,
         t.TeamLeague_Championship_Record
     FROM Teams t
     WHERE t.Team_Name = :teamName
@@ -197,7 +199,9 @@ try {
         'totalMapsL' => (int) ($teamStatsFromMatches['totalMapsL'] ?? 0),
         'totalSetsW' => (int) ($teamStatsFromMatches['totalSetsW'] ?? 0),
         'totalSetsL' => (int) ($teamStatsFromMatches['totalSetsL'] ?? 0),
-        'players' => count($roster)
+        'players' => count($roster) > 0
+            ? count($roster)
+            : count(array_unique(array_column($inactivePlayers, 'Player_ID')))
     ];
     
     $teamStats['mapWinRate'] = $teamStats['totalMapsW'] + $teamStats['totalMapsL'] > 0 
@@ -210,24 +214,48 @@ try {
     
     // Get current season
     $currentSeason = getCurrentSeason($db);
-    
-    // Get current season record for the team
-    $seasonRecordQuery = "
-        SELECT 
-            SUM(CASE WHEN winner_team_id = :teamId THEN 1 ELSE 0 END) as wins,
-            SUM(CASE WHEN (team1_id = :teamId OR team2_id = :teamId) AND winner_team_id != :teamId AND winner_team_id IS NOT NULL THEN 1 ELSE 0 END) as losses
-        FROM fsl_schedule 
-        WHERE season = :currentSeason AND (team1_id = :teamId OR team2_id = :teamId) AND status = 'completed'
+    $isActiveTeam = (($team['Status'] ?? 'active') === 'active');
+
+    // Completed W-L by season (newest first)
+    $seasonHistoryQuery = "
+        SELECT
+            season,
+            SUM(CASE WHEN winner_team_id = :winTeam THEN 1 ELSE 0 END) AS wins,
+            SUM(CASE WHEN winner_team_id IS NOT NULL AND winner_team_id != :lossTeam THEN 1 ELSE 0 END) AS losses
+        FROM fsl_schedule
+        WHERE status = 'completed'
+          AND (team1_id = :team1 OR team2_id = :team2)
+        GROUP BY season
+        ORDER BY season DESC
     ";
+    $stmt = $db->prepare($seasonHistoryQuery);
+    $stmt->execute([
+        'winTeam' => $team['Team_ID'],
+        'lossTeam' => $team['Team_ID'],
+        'team1' => $team['Team_ID'],
+        'team2' => $team['Team_ID'],
+    ]);
+    $seasonHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $latestSeason = $currentSeason;
+    if (!$isActiveTeam && !empty($seasonHistory)) {
+        $latestSeason = (int) $seasonHistory[0]['season'];
+    }
+
+    $seasonWins = 0;
+    $seasonLosses = 0;
+    $previousSeasonRecords = [];
+    foreach ($seasonHistory as $row) {
+        $seasonNum = (int) $row['season'];
+        if ($seasonNum === (int) $latestSeason) {
+            $seasonWins = (int) ($row['wins'] ?? 0);
+            $seasonLosses = (int) ($row['losses'] ?? 0);
+        } elseif ($seasonNum < (int) $latestSeason) {
+            $previousSeasonRecords[] = $row;
+        }
+    }
     
-    $stmt = $db->prepare($seasonRecordQuery);
-    $stmt->execute(['teamId' => $team['Team_ID'], 'currentSeason' => $currentSeason]);
-    $seasonRecord = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    $seasonWins = $seasonRecord['wins'] ?? 0;
-    $seasonLosses = $seasonRecord['losses'] ?? 0;
-    
-    // Get recent team matches (completed from fsl_schedule)
+    // Get recent team matches (completed from fsl_schedule) for the displayed season
     $recentTeamMatchesQuery = "
         SELECT 
             s.schedule_id,
@@ -244,7 +272,7 @@ try {
         LEFT JOIN Teams t1 ON s.team1_id = t1.Team_ID
         LEFT JOIN Teams t2 ON s.team2_id = t2.Team_ID
         LEFT JOIN Teams tw ON s.winner_team_id = tw.Team_ID
-        WHERE s.season = :currentSeason 
+        WHERE s.season = :latestSeason 
         AND (s.team1_id = :teamId OR s.team2_id = :teamId)
         AND s.status = 'completed'
         ORDER BY s.week_number DESC
@@ -252,7 +280,7 @@ try {
     ";
     
     $stmt = $db->prepare($recentTeamMatchesQuery);
-    $stmt->execute(['teamId' => $team['Team_ID'], 'currentSeason' => $currentSeason]);
+    $stmt->execute(['teamId' => $team['Team_ID'], 'latestSeason' => $latestSeason]);
     $recentTeamMatches = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get upcoming team schedule (scheduled from fsl_schedule)
@@ -352,6 +380,25 @@ function getDomainFromUrl($url) {
 function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
     return processChampionshipJSON($jsonData, $outputMode);
 }
+
+$renderSeasonRecordRows = function () use ($latestSeason, $seasonWins, $seasonLosses, $previousSeasonRecords) {
+    ?>
+    <tr>
+        <th><a href="fsl_schedule.php?season=<?= (int) $latestSeason ?>" style="color: inherit; text-decoration: none;">Season <?= (int) $latestSeason ?> Record:</a></th>
+        <td><a href="fsl_schedule.php?season=<?= (int) $latestSeason ?>" style="color: inherit; text-decoration: none;"><?= (int) $seasonWins ?> - <?= (int) $seasonLosses ?></a></td>
+    </tr>
+    <?php if (!empty($previousSeasonRecords)): ?>
+    <tr>
+        <th>Previous seasons:</th>
+        <td class="season-history">
+            <?php foreach ($previousSeasonRecords as $i => $prev): ?>
+                <?php if ($i > 0): ?><span class="text-muted px-1">·</span><?php endif; ?>
+                <a href="fsl_schedule.php?season=<?= (int) $prev['season'] ?>" class="season-history-link"><?= 'S' . (int) $prev['season'] . ' ' . (int) $prev['wins'] . '–' . (int) $prev['losses'] ?></a>
+            <?php endforeach; ?>
+        </td>
+    </tr>
+    <?php endif;
+};
 ?>
 
 <div class="container mt-4">
@@ -360,7 +407,7 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
         <?php if ($teamLogo): ?>
         <img src="<?= htmlspecialchars($teamLogo) ?>" alt="<?= htmlspecialchars($teamName) ?>" class="team-header-logo">
         <?php endif; ?>
-        <h1><?= htmlspecialchars($teamName) ?></h1>
+        <h1><?= htmlspecialchars($teamName) ?> <?= fsl_status_badge($team['Status'] ?? 'active') ?></h1>
     </div>
     
     <div class="team-profile-container">
@@ -378,6 +425,10 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                             ?>
                             <form method="POST" action="">
                                 <table class="table table-dark table-striped">
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td><?= fsl_status_badge($team['Status'] ?? 'active') ?></td>
+                                    </tr>
                                     <tr>
                                         <th>Team Captain:</th>
                                         <td>
@@ -421,16 +472,17 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                                         <th>Sets W-L:</th>
                                         <td><?= $teamStats['totalSetsW'] ?>-<?= $teamStats['totalSetsL'] ?> (<?= $teamStats['setWinRate'] ?>%)</td>
                                     </tr>
-                                    <tr>
-                                        <th><a href="fsl_schedule.php" style="color: inherit; text-decoration: none;">Season <?= $currentSeason ?> Record:</a></th>
-                                        <td><a href="fsl_schedule.php" style="color: inherit; text-decoration: none;"><?= $seasonWins ?> - <?= $seasonLosses ?></a></td>
-                                    </tr>
+                                    <?php $renderSeasonRecordRows(); ?>
                                 </table>
                             </form>
                             <?php
                         else:
                             ?>
                             <table class="table table-dark table-striped">
+                                <tr>
+                                    <th>Status:</th>
+                                    <td><?= fsl_status_badge($team['Status'] ?? 'active') ?></td>
+                                </tr>
                                 <tr>
                                     <th>Team Captain:</th>
                                     <td><?= htmlspecialchars($captainName) ?></td>
@@ -451,10 +503,7 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                                     <th>Sets W-L:</th>
                                     <td><?= $teamStats['totalSetsW'] ?>-<?= $teamStats['totalSetsL'] ?> (<?= $teamStats['setWinRate'] ?>%)</td>
                                 </tr>
-                                <tr>
-                                    <th><a href="fsl_schedule.php" style="color: inherit; text-decoration: none;">Season <?= $currentSeason ?> Record:</a></th>
-                                    <td><a href="fsl_schedule.php" style="color: inherit; text-decoration: none;"><?= $seasonWins ?> - <?= $seasonLosses ?></a></td>
-                                </tr>
+                                <?php $renderSeasonRecordRows(); ?>
                             </table>
                             <?php
                         endif;
@@ -477,7 +526,7 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
         <!-- Recent Team Matches Card -->
         <div class="card mb-4">
             <div class="card-header bg-dark text-light">
-                <h2>Recent Team Matches</h2>
+                <h2><?= (!$isActiveTeam && (int) $latestSeason !== (int) $currentSeason) ? ('Season ' . (int) $latestSeason . ' Matches') : 'Recent Team Matches' ?></h2>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -528,6 +577,7 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
             </div>
         </div>
         
+        <?php if (!empty($upcomingSchedule)): ?>
         <!-- Upcoming Schedule Card -->
         <div class="card mb-4">
             <div class="card-header bg-dark text-light">
@@ -570,6 +620,7 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         
         <!-- Team Roster Card -->
         <div class="card mb-4">
@@ -602,9 +653,11 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                                         : 0;
                                 ?>
                                 <tr>
-                                    <td><a href="view_player.php?name=<?= urlencode($player['Real_Name'] ?? 'Unknown Player') ?>" class="player-link" title="<?= $player['Player_ID'] == $team['Captain_ID'] ? 'Captain' : ($player['Player_ID'] == $team['Co_Captain_ID'] ? 'Co-captain' : '') ?>">
-                                        <?= htmlspecialchars($player['Real_Name'] ?? 'Unknown Player') ?>
-                                    </a></td>
+                                    <td>
+                                        <a href="view_player.php?name=<?= urlencode($player['Real_Name'] ?? 'Unknown Player') ?>" class="player-link" title="<?= $player['Player_ID'] == $team['Captain_ID'] ? 'Captain' : ($player['Player_ID'] == $team['Co_Captain_ID'] ? 'Co-captain' : '') ?>">
+                                            <?= htmlspecialchars($player['Real_Name'] ?? 'Unknown Player') ?>
+                                        </a>
+                                    </td>
                                     <td>
                                         <?php if (!empty($player['Division'])): ?>
                                         <span class="division-badge division-<?= htmlspecialchars($player['Division']) ?>">
@@ -652,9 +705,11 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
                             <?php else: ?>
                                 <?php foreach ($inactivePlayers as $player): ?>
                                 <tr>
-                                    <td><a href="view_player.php?name=<?= urlencode($player['Real_Name'] ?? 'Unknown Player') ?>" class="player-link">
-                                        <?= htmlspecialchars($player['Real_Name'] ?? 'Unknown Player') ?>
-                                    </a></td>
+                                    <td>
+                                        <a href="view_player.php?name=<?= urlencode($player['Real_Name'] ?? 'Unknown Player') ?>" class="player-link">
+                                            <?= htmlspecialchars($player['Real_Name'] ?? 'Unknown Player') ?>
+                                        </a>
+                                    </td>
                                     <td>
                                         <?php if (!empty($player['Division'])): ?>
                                         <span class="division-badge division-<?= htmlspecialchars($player['Division']) ?>">
@@ -745,6 +800,13 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
 </div>
 
 <style>
+<?= fsl_status_badge_css() ?>
+.team-header-container h1 .fsl-status-badge {
+    font-size: 0.42em;
+    vertical-align: middle;
+    margin-left: 10px;
+}
+
 .team-header-container {
     display: flex;
     align-items: center;
@@ -967,6 +1029,19 @@ function formatTeamChampionshipRecord($jsonData, $outputMode = 2) {
     display: block;
     white-space: pre-line;
     color: #e0e0e0;
+}
+
+.season-history {
+    line-height: 1.7;
+}
+.season-history-link {
+    color: #cfd4dc;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.season-history-link:hover {
+    color: #00d4ff;
+    text-decoration: none;
 }
 
 @media (max-width: 768px) {

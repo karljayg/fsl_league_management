@@ -4,10 +4,12 @@ session_start();
 require_once 'includes/db.php';
 require_once 'includes/team_logo.php';
 require_once 'includes/season_utils.php';
+require_once 'includes/status_badge.php';
 
 $currentSeason = getCurrentSeason($db);
 
 // Get teams and their players; include Status for active/defunct when column exists. LEFT JOIN so defunct teams with no active players still appear.
+// Active teams: current roster only. Inactive teams: keep last-known players (including inactive).
 // Pick race from FSL_STATISTICS row with most maps played (MapsW + MapsL) when player has multiple rows
 $teamsQueryWithStatus = "
     SELECT 
@@ -18,10 +20,12 @@ $teamsQueryWithStatus = "
         COALESCE(t.Status, 'active') AS Status,
         p.Player_ID,
         p.Real_Name as Player_Name,
+        p.Status as Player_Status,
         s.Race,
         s.Division
     FROM Teams t
-    LEFT JOIN Players p ON p.Team_ID = t.Team_ID AND p.Status = 'active'
+    LEFT JOIN Players p ON p.Team_ID = t.Team_ID
+        AND (COALESCE(t.Status, 'active') <> 'active' OR p.Status = 'active')
     LEFT JOIN FSL_STATISTICS s ON p.Player_ID = s.Player_ID
         AND s.Player_Record_ID = (
             SELECT s2.Player_Record_ID FROM FSL_STATISTICS s2
@@ -92,34 +96,68 @@ try {
     sort($activeTeams, SORT_FLAG_CASE | SORT_STRING);
     sort($defunctTeams, SORT_FLAG_CASE | SORT_STRING);
     
-    // Get season records for all teams (used for both active and defunct)
+    // Last completed season a team actually played (for defunct/inactive teams).
+    $lastCompletedSeasonSubquery = "
+        SELECT team_id, MAX(season) AS last_season
+        FROM (
+            SELECT team1_id AS team_id, season
+            FROM fsl_schedule
+            WHERE status = 'completed' AND team1_id IS NOT NULL
+            UNION ALL
+            SELECT team2_id AS team_id, season
+            FROM fsl_schedule
+            WHERE status = 'completed' AND team2_id IS NOT NULL
+        ) u
+        GROUP BY team_id
+    ";
+    $displaySeasonJoin = "
+        INNER JOIN (
+            SELECT
+                t2.Team_ID,
+                CASE
+                    WHEN COALESCE(t2.Status, 'active') = 'active' THEN :currentSeason
+                    ELSE ls.last_season
+                END AS display_season
+            FROM Teams t2
+            LEFT JOIN ($lastCompletedSeasonSubquery) ls ON ls.team_id = t2.Team_ID
+        ) rec ON rec.Team_ID = t.Team_ID
+    ";
+
+    // Active teams: current season. Inactive teams: last season they completed a match.
     $seasonRecordsQuery = "
         SELECT 
             t.Team_ID,
             t.Team_Name,
+            rec.display_season,
             SUM(CASE WHEN s.winner_team_id = t.Team_ID THEN 1 ELSE 0 END) as wins,
             SUM(CASE WHEN (s.team1_id = t.Team_ID OR s.team2_id = t.Team_ID) AND s.winner_team_id != t.Team_ID AND s.winner_team_id IS NOT NULL THEN 1 ELSE 0 END) as losses
         FROM Teams t
-        LEFT JOIN fsl_schedule s ON (s.team1_id = t.Team_ID OR s.team2_id = t.Team_ID) AND s.season = :currentSeason AND s.status = 'completed'
-        GROUP BY t.Team_ID, t.Team_Name
+        $displaySeasonJoin
+        LEFT JOIN fsl_schedule s ON (s.team1_id = t.Team_ID OR s.team2_id = t.Team_ID)
+            AND s.status = 'completed'
+            AND s.season = rec.display_season
+        GROUP BY t.Team_ID, t.Team_Name, rec.display_season
     ";
     
     $stmt = $db->prepare($seasonRecordsQuery);
     $stmt->execute(['currentSeason' => $currentSeason]);
     $seasonRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Season sets/maps (games) from fsl_matches for current season
+    // Sets/maps for the same display season as the W-L record
     $seasonMapsSetsQuery = "
         SELECT 
             t.Team_ID,
             t.Team_Name,
+            rec.display_season,
             COALESCE(SUM(CASE WHEN fm.winner_team_id = t.Team_ID THEN 1 ELSE 0 END), 0) as sets_w,
             COALESCE(SUM(CASE WHEN fm.loser_team_id = t.Team_ID THEN 1 ELSE 0 END), 0) as sets_l,
             COALESCE(SUM(CASE WHEN fm.winner_team_id = t.Team_ID THEN fm.map_win WHEN fm.loser_team_id = t.Team_ID THEN fm.map_loss ELSE 0 END), 0) as maps_w,
             COALESCE(SUM(CASE WHEN fm.winner_team_id = t.Team_ID THEN fm.map_loss WHEN fm.loser_team_id = t.Team_ID THEN fm.map_win ELSE 0 END), 0) as maps_l
         FROM Teams t
-        LEFT JOIN fsl_matches fm ON (fm.winner_team_id = t.Team_ID OR fm.loser_team_id = t.Team_ID) AND fm.season = :currentSeason
-        GROUP BY t.Team_ID, t.Team_Name
+        $displaySeasonJoin
+        LEFT JOIN fsl_matches fm ON (fm.winner_team_id = t.Team_ID OR fm.loser_team_id = t.Team_ID)
+            AND fm.season = rec.display_season
+        GROUP BY t.Team_ID, t.Team_Name, rec.display_season
     ";
     $stmt = $db->prepare($seasonMapsSetsQuery);
     $stmt->execute(['currentSeason' => $currentSeason]);
@@ -140,6 +178,9 @@ try {
         $tid = (int)($record['Team_ID'] ?? 0);
         $ms = $mapsSetsByTeamId[$tid] ?? ['sets_w' => 0, 'sets_l' => 0, 'maps_w' => 0, 'maps_l' => 0];
         $teamRecords[$record['Team_Name']] = [
+            'season' => isset($record['display_season']) && $record['display_season'] !== null
+                ? (int) $record['display_season']
+                : $currentSeason,
             'wins' => $record['wins'] ?? 0,
             'losses' => $record['losses'] ?? 0,
             'sets_w' => $ms['sets_w'],
@@ -253,8 +294,8 @@ include_once 'includes/header.php';
       text-align: center;
     }
     .teams-section-heading--inactive {
-      color: #888;
-      border-bottom-color: rgba(255, 255, 255, 0.15);
+      color: #e53935;
+      border-bottom-color: rgba(229, 57, 53, 0.45);
       text-align: center;
     }
     .teams-container {
@@ -366,6 +407,12 @@ include_once 'includes/header.php';
         color: #00d4ff;
         text-shadow: 0 0 5px #00d4ff;
     }
+    <?= fsl_status_badge_css() ?>
+    .team > .fsl-status-badge {
+      display: block;
+      width: fit-content;
+      margin: 0 auto 10px;
+    }
     
     .team-link {
       text-decoration: none;
@@ -396,9 +443,10 @@ include_once 'includes/header.php';
     <h1>FSL Team Roster</h1>
 
     <?php
-    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason, $rankingsLookup) {
+    $teamCard = function ($teamName, $players) use ($teams, $teamRecords, $currentSeason, $rankingsLookup, $teamStatus) {
         $teamLogo = getTeamLogo($teamName);
         $rec = $teamRecords[$teamName] ?? [];
+        $displaySeason = (int) ($rec['season'] ?? $currentSeason);
         $wins = $rec['wins'] ?? 0;
         $losses = $rec['losses'] ?? 0;
         $setsW = $rec['sets_w'] ?? 0;
@@ -443,11 +491,12 @@ include_once 'includes/header.php';
         </div>
         <?php endif; ?>
         <h2><a href="view_team.php?name=<?= urlencode($teamName) ?>" class="team-link"><?= htmlspecialchars($teamName) ?></a></h2>
+        <?= fsl_status_badge($teamStatus[$teamName] ?? 'active') ?>
         <div style="text-align: center; margin-bottom: 5px; color: #b0b0b0; font-size: 0.9em;">
           <?= count($players) ?> player<?= count($players) === 1 ? '' : 's' ?>
         </div>
         <div style="text-align: center; margin-bottom: 8px; color: #00d4ff;">
-          <strong><a href="fsl_schedule.php" style="color:rgb(46, 111, 124); text-decoration: none;">Season <?= $currentSeason ?>: <font size="+2" color="#00d4ff"><?= $wins ?> - <?= $losses ?></font></a></strong>
+          <strong><a href="fsl_schedule.php?season=<?= $displaySeason ?>" style="color:rgb(46, 111, 124); text-decoration: none;">Season <?= $displaySeason ?>: <font size="+2" color="#00d4ff"><?= $wins ?> - <?= $losses ?></font></a></strong>
         </div>
         <div style="text-align: center; margin-bottom: 15px; color: #b0b0b0; font-size: 0.85em;">
           <?= $mapsW ?>-<?= $mapsL ?> games, <?= $setsW ?>-<?= $setsL ?> sets
@@ -470,14 +519,16 @@ include_once 'includes/header.php';
             ?>
             <tr>
               <td class="rank-cell"><?= $rankLabel ?></td>
-              <td><a href="view_player.php?name=<?= urlencode($player['Player_Name']) ?>" class="player-link" title="<?= $player['Player_ID'] == $captainId ? 'Captain' : ($player['Player_ID'] == $coCaptainId ? 'Co-captain' : '') ?>">
+              <td>
+                <a href="view_player.php?name=<?= urlencode($player['Player_Name']) ?>" class="player-link" title="<?= $player['Player_ID'] == $captainId ? 'Captain' : ($player['Player_ID'] == $coCaptainId ? 'Co-captain' : '') ?>">
                   <?= htmlspecialchars($player['Player_Name']) ?>
                   <?php if ($player['Player_ID'] == $captainId): ?>
                       <strong>(C)</strong>
                   <?php elseif ($player['Player_ID'] == $coCaptainId): ?>
                       <small>(c)</small>
                   <?php endif; ?>
-              </a></td>
+                </a>
+              </td>
               <td>
                 <?php if (!empty($player['Race'])): ?>
                     <?php

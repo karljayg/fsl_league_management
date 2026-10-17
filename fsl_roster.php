@@ -2,6 +2,7 @@
 // Start session and include database connection
 session_start();
 require_once 'includes/db.php';
+require_once 'includes/status_badge.php';
 
 // Check if user has any role assigned (using the function from includes/nav.php)
 // Note: hasRole() function is defined in includes/nav.php which is included via header.php
@@ -278,6 +279,7 @@ include_once 'includes/header.php';
       }
     }
     
+    <?= fsl_status_badge_css() ?>
     footer {
       text-align: center;
       padding: 20px;
@@ -374,7 +376,7 @@ include_once 'includes/header.php';
                 <br><a href="player_analysis.php?tab=spider&player=<?= $player['Player_ID'] ?>" class="spider-link">📊 Spider Chart</a>
               <?php endif; ?>
             </td>
-            <td><?= htmlspecialchars(isset($player['Status']) ? ucfirst((string) $player['Status']) : 'N/A') ?></td>
+            <td><?= !empty($player['Status']) ? fsl_status_badge($player['Status']) : 'N/A' ?></td>
             <td>
               <?php if (!empty($player['Team_Name'])): ?>
                 <a href="view_team.php?name=<?= urlencode($player['Team_Name']) ?>" class="team-link">

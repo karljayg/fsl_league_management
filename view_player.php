@@ -16,6 +16,7 @@ session_start();
 require_once 'includes/db.php';
 require_once 'config.php';
 require_once 'includes/team_logo.php';
+require_once 'includes/status_badge.php';
 
 // No permission required - this page is public
 
@@ -604,7 +605,7 @@ function getRaceIconFromCode($raceCode) {
                         <div class="info-item">
                             <?php if (!empty($playerInfo[0]['Status'])): ?>
                             <label>Status:</label>
-                            <span><?= htmlspecialchars($playerInfo[0]['Status']) ?></span>
+                            <?= fsl_status_badge($playerInfo[0]['Status']) ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -1451,6 +1452,8 @@ function getRaceIconFromCode($raceCode) {
             font-size: 1em;
         }
     }
+
+    <?= fsl_status_badge_css() ?>
 
     /* Team Role Badge Styles */
     .team-role-badge {
