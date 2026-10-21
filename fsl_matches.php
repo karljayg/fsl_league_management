@@ -268,6 +268,7 @@ function getDomainFromUrl($url) {
                 </tbody>
             </table>
         </div>
+        <nav id="matches-pagination" class="matches-pagination" aria-label="Match pages"></nav>
     </div>
 </div>
 
@@ -471,6 +472,92 @@ function getDomainFromUrl($url) {
         color: #ffffff;
         text-shadow: 0 0 5px #00d4ff;
     }
+
+    #fsl-matches-table tbody tr {
+        display: none;
+    }
+
+    .matches-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 12px 20px;
+        margin-top: 18px;
+    }
+
+    .matches-page-summary {
+        width: 100%;
+        text-align: center;
+        color: #cfd4dc;
+        margin: 0;
+    }
+
+    .matches-pagination .pagination {
+        margin: 0;
+    }
+
+    .matches-pagination .page-link {
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #00d4ff;
+        min-width: 2.5rem;
+        text-align: center;
+    }
+
+    .matches-pagination .page-link:hover {
+        background: rgba(0, 212, 255, 0.15);
+        color: #ffffff;
+        border-color: #00d4ff;
+    }
+
+    .matches-pagination .page-item.active .page-link {
+        background: #00d4ff;
+        border-color: #00d4ff;
+        color: #0f0c29;
+    }
+
+    .matches-pagination .page-item.disabled .page-link {
+        background: rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #777777;
+    }
+
+    .page-jump {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+    }
+
+    .page-jump label,
+    .page-jump span {
+        margin: 0;
+        color: #cfd4dc;
+    }
+
+    .page-jump input {
+        width: 4.5rem;
+        padding: 6px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.3);
+        color: #e0e0e0;
+    }
+
+    .page-jump-btn {
+        background: #00d4ff;
+        color: #0f0c29;
+        border: 0;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .page-jump-btn:hover {
+        filter: brightness(1.1);
+    }
 </style>
 
 <script>
@@ -481,11 +568,29 @@ function getDomainFromUrl($url) {
         const playerSearch = document.getElementById('player-search');
         const clearFiltersBtn = document.getElementById('clear-filters');
         const matchRows = document.querySelectorAll('#fsl-matches-table tbody tr');
-        
-        function applyFilters() {
+        const pagination = document.getElementById('matches-pagination');
+        const pageSize = 20;
+        const initialPage = parseInt(new URL(window.location).searchParams.get('page') || '1', 10);
+        let currentPage = Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1;
+
+        function matchingRows() {
+            return Array.prototype.filter.call(matchRows, function (row) {
+                return row.dataset.match === '1';
+            });
+        }
+
+        function totalPagesFor(count) {
+            return Math.max(1, Math.ceil(count / pageSize));
+        }
+
+        function applyFilters(resetPage) {
             const seasonValue = seasonFilter.value;
             const raceValue = raceFilter.value;
             const searchValue = playerSearch.value.toLowerCase();
+
+            if (resetPage) {
+                currentPage = 1;
+            }
             
             matchRows.forEach(row => {
                 const season = row.children[1].textContent; // Season column
@@ -499,14 +604,103 @@ function getDomainFromUrl($url) {
                 const searchMatch = searchValue === '' || 
                     winnerName.includes(searchValue) || 
                     loserName.includes(searchValue);
-                
-                if (seasonMatch && raceMatch && searchMatch) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+
+                row.dataset.match = (seasonMatch && raceMatch && searchMatch) ? '1' : '0';
+                row.style.display = 'none';
             });
+
+            const totalPages = totalPagesFor(matchingRows().length);
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
             
+            renderPage(false);
+            updateURL();
+        }
+
+        function renderPage(scrollToTable) {
+            const rows = matchingRows();
+            const totalPages = totalPagesFor(rows.length);
+            if (currentPage > totalPages) {
+                currentPage = totalPages;
+            }
+            if (currentPage < 1) {
+                currentPage = 1;
+            }
+
+            const start = (currentPage - 1) * pageSize;
+            const end = Math.min(start + pageSize, rows.length);
+            rows.forEach(function (row, index) {
+                row.style.display = (index >= start && index < end) ? 'table-row' : 'none';
+            });
+
+            renderPager(rows.length, totalPages, start, end);
+
+            if (scrollToTable) {
+                document.getElementById('fsl-matches-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function pageWindow(totalPages) {
+            if (totalPages <= 7) {
+                return Array.from({ length: totalPages }, function (_, i) { return i + 1; });
+            }
+            const pages = [1];
+            const left = Math.max(2, currentPage - 1);
+            const right = Math.min(totalPages - 1, currentPage + 1);
+            if (left > 2) {
+                pages.push('…');
+            }
+            for (let page = left; page <= right; page++) {
+                pages.push(page);
+            }
+            if (right < totalPages - 1) {
+                pages.push('…');
+            }
+            pages.push(totalPages);
+            return pages;
+        }
+
+        function renderPager(total, totalPages, start, end) {
+            const summary = total === 0
+                ? 'No matches found'
+                : 'Showing ' + (start + 1) + '–' + end + ' of ' + total;
+
+            const items = pageWindow(totalPages).map(function (page) {
+                if (page === '…') {
+                    return '<li class="page-item disabled"><span class="page-link">…</span></li>';
+                }
+                const active = page === currentPage ? ' active' : '';
+                const current = page === currentPage ? ' aria-current="page"' : '';
+                return '<li class="page-item' + active + '"><button type="button" class="page-link" data-page="' + page + '"' + current + '>' + page + '</button></li>';
+            }).join('');
+
+            const prevDisabled = currentPage <= 1 ? ' disabled' : '';
+            const nextDisabled = currentPage >= totalPages ? ' disabled' : '';
+
+            pagination.innerHTML =
+                '<p class="matches-page-summary">' + summary + '</p>' +
+                '<ul class="pagination">' +
+                    '<li class="page-item' + prevDisabled + '"><button type="button" class="page-link" data-page="prev"' + (prevDisabled ? ' disabled' : '') + '>Previous</button></li>' +
+                    items +
+                    '<li class="page-item' + nextDisabled + '"><button type="button" class="page-link" data-page="next"' + (nextDisabled ? ' disabled' : '') + '>Next</button></li>' +
+                '</ul>' +
+                '<form class="page-jump" id="page-jump-form">' +
+                    '<label for="page-jump-input">Page</label>' +
+                    '<input id="page-jump-input" type="number" min="1" max="' + totalPages + '" value="' + currentPage + '" inputmode="numeric" aria-label="Page number">' +
+                    '<span>of ' + totalPages + '</span>' +
+                    '<button type="submit" class="page-jump-btn">Go</button>' +
+                '</form>';
+        }
+
+        function goToPage(page, scrollToTable) {
+            const totalPages = totalPagesFor(matchingRows().length);
+            page = parseInt(page, 10);
+            if (!Number.isFinite(page)) {
+                return;
+            }
+            currentPage = Math.min(Math.max(1, page), totalPages);
+            renderPage(scrollToTable);
             updateURL();
         }
         
@@ -542,6 +736,11 @@ function getDomainFromUrl($url) {
             if (currentDir) {
                 url.searchParams.set('dir', currentDir);
             }
+
+            url.searchParams.delete('page');
+            if (currentPage > 1) {
+                url.searchParams.set('page', String(currentPage));
+            }
             
             window.history.replaceState({}, '', url);
         }
@@ -569,13 +768,37 @@ function getDomainFromUrl($url) {
         }
         
         // Add event listeners
-        seasonFilter.addEventListener('change', applyFilters);
-        raceFilter.addEventListener('change', applyFilters);
-        playerSearch.addEventListener('input', applyFilters);
+        seasonFilter.addEventListener('change', function () { applyFilters(true); });
+        raceFilter.addEventListener('change', function () { applyFilters(true); });
+        playerSearch.addEventListener('input', function () { applyFilters(true); });
         clearFiltersBtn.addEventListener('click', clearFilters);
+
+        pagination.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-page]');
+            if (!button || button.disabled) {
+                return;
+            }
+            const target = button.dataset.page;
+            if (target === 'prev') {
+                goToPage(currentPage - 1, true);
+            } else if (target === 'next') {
+                goToPage(currentPage + 1, true);
+            } else {
+                goToPage(target, true);
+            }
+        });
+
+        pagination.addEventListener('submit', function (event) {
+            if (event.target.id !== 'page-jump-form') {
+                return;
+            }
+            event.preventDefault();
+            const input = document.getElementById('page-jump-input');
+            goToPage(input.value, true);
+        });
         
         // Initial filter application
-        applyFilters();
+        applyFilters(false);
     });
 </script>
 

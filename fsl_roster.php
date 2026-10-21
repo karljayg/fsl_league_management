@@ -75,8 +75,202 @@ $stmt->execute($params);
 
 $roster = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+function fsl_roster_division_rank($division): int {
+    $order = ['S' => 0, 'A' => 1, 'B' => 2];
+    $key = strtoupper(trim((string) $division));
+    return $order[$key] ?? 99;
+}
+
+function fsl_roster_race_html($race): string {
+    $icons = [
+        'T' => 'images/terran_icon.png',
+        'P' => 'images/protoss_icon.png',
+        'Z' => 'images/zerg_icon.png',
+        'R' => 'images/random_icon.png',
+    ];
+    $race = trim((string) $race);
+    if ($race === '' || strcasecmp($race, 'N/A') === 0) {
+        return 'N/A';
+    }
+    $html = '';
+    if (isset($icons[$race])) {
+        $html .= '<img src="' . $icons[$race] . '" alt="' . htmlspecialchars($race) . '" class="race-icon">';
+    }
+    $html .= htmlspecialchars($race);
+    return $html;
+}
+
+function fsl_roster_win_rate($mapsW, $mapsL): string {
+    $mapsW = (int) $mapsW;
+    $mapsL = (int) $mapsL;
+    if ($mapsW + $mapsL <= 0) {
+        return 'N/A';
+    }
+    return number_format(($mapsW / ($mapsW + $mapsL)) * 100, 1) . '%';
+}
+
+/**
+ * One summary row per player: highest division and most-played race.
+ * Other division/race rows stay on the expand control, with their own map totals.
+ */
+function fsl_roster_group_players(array $rows): array {
+    $players = [];
+    foreach ($rows as $row) {
+        $id = $row['Player_ID'];
+        if (!isset($players[$id])) {
+            $players[$id] = [
+                'Player_ID' => $id,
+                'Real_Name' => $row['Real_Name'],
+                'Status' => $row['Status'] ?? '',
+                'Team_Name' => $row['Team_Name'] ?? '',
+                'entries' => [],
+            ];
+        }
+        $div = trim((string) ($row['Division'] ?? ''));
+        $race = trim((string) ($row['Race'] ?? ''));
+        if (strcasecmp($div, 'N/A') === 0) {
+            $div = '';
+        }
+        if (strcasecmp($race, 'N/A') === 0) {
+            $race = '';
+        }
+        if ($div === '' && $race === '') {
+            continue;
+        }
+        $key = $div . '|' . $race;
+        $mapsW = (int) ($row['MapsW'] ?? 0);
+        $mapsL = (int) ($row['MapsL'] ?? 0);
+        $maps = $mapsW + $mapsL;
+        if (!isset($players[$id]['entries'][$key]) || $maps > $players[$id]['entries'][$key]['maps']) {
+            $players[$id]['entries'][$key] = [
+                'Division' => $div,
+                'Race' => $race,
+                'MapsW' => $mapsW,
+                'MapsL' => $mapsL,
+                'SetsW' => (int) ($row['SetsW'] ?? 0),
+                'SetsL' => (int) ($row['SetsL'] ?? 0),
+                'maps' => $maps,
+            ];
+        }
+    }
+
+    foreach ($players as &$player) {
+        $entries = array_values($player['entries']);
+        $bestDiv = '';
+        $bestDivRank = 999;
+        $raceMaps = [];
+        $raceBestDiv = [];
+        foreach ($entries as $entry) {
+            if ($entry['Division'] !== '') {
+                $rank = fsl_roster_division_rank($entry['Division']);
+                if ($rank < $bestDivRank) {
+                    $bestDivRank = $rank;
+                    $bestDiv = $entry['Division'];
+                }
+            }
+            if ($entry['Race'] === '') {
+                continue;
+            }
+            $raceMaps[$entry['Race']] = ($raceMaps[$entry['Race']] ?? 0) + $entry['maps'];
+            $rank = fsl_roster_division_rank($entry['Division']);
+            if (!isset($raceBestDiv[$entry['Race']]) || $rank < $raceBestDiv[$entry['Race']]) {
+                $raceBestDiv[$entry['Race']] = $rank;
+            }
+        }
+
+        $bestRace = '';
+        $bestRaceMaps = -1;
+        $bestRaceDiv = 999;
+        foreach ($raceMaps as $race => $maps) {
+            $divRank = $raceBestDiv[$race] ?? 999;
+            $betterMaps = $maps > $bestRaceMaps;
+            $sameMapsBetterDiv = $maps === $bestRaceMaps && $divRank < $bestRaceDiv;
+            $sameTieAlpha = $maps === $bestRaceMaps && $divRank === $bestRaceDiv && ($bestRace === '' || strcmp($race, $bestRace) < 0);
+            if ($betterMaps || $sameMapsBetterDiv || $sameTieAlpha) {
+                $bestRace = $race;
+                $bestRaceMaps = $maps;
+                $bestRaceDiv = $divRank;
+            }
+        }
+
+        $matched = null;
+        foreach ($entries as $entry) {
+            if ($bestDiv !== '' && $bestRace !== '' && $entry['Division'] === $bestDiv && $entry['Race'] === $bestRace) {
+                $matched = $entry;
+                break;
+            }
+        }
+
+        if ($matched) {
+            $summary = $matched;
+            $extras = [];
+            foreach ($entries as $entry) {
+                if ($entry['Division'] === $matched['Division'] && $entry['Race'] === $matched['Race']) {
+                    continue;
+                }
+                $extras[] = $entry;
+            }
+        } else {
+            $summary = [
+                'Division' => $bestDiv,
+                'Race' => $bestRace,
+                'MapsW' => 0,
+                'MapsL' => 0,
+                'SetsW' => 0,
+                'SetsL' => 0,
+            ];
+            foreach ($entries as $entry) {
+                if ($bestRace !== '' && $entry['Race'] === $bestRace) {
+                    $summary['MapsW'] += $entry['MapsW'];
+                    $summary['MapsL'] += $entry['MapsL'];
+                    $summary['SetsW'] += $entry['SetsW'];
+                    $summary['SetsL'] += $entry['SetsL'];
+                }
+            }
+            $extras = $entries;
+        }
+
+        usort($extras, function ($a, $b) {
+            $byDiv = fsl_roster_division_rank($a['Division']) <=> fsl_roster_division_rank($b['Division']);
+            if ($byDiv !== 0) {
+                return $byDiv;
+            }
+            return strcmp($a['Race'], $b['Race']);
+        });
+
+        $lines = [$summary];
+        foreach ($extras as $extra) {
+            $lines[] = $extra;
+        }
+        $player['lines'] = $lines;
+        unset($player['entries']);
+    }
+    unset($player);
+
+    $grouped = array_values($players);
+    usort($grouped, function ($a, $b) {
+        $statusRank = function ($status) {
+            return strtolower(trim((string) $status)) === 'active' ? 0 : 1;
+        };
+        $byStatus = $statusRank($a['Status']) <=> $statusRank($b['Status']);
+        if ($byStatus !== 0) {
+            return $byStatus;
+        }
+        $byTeam = strcasecmp((string) $a['Team_Name'], (string) $b['Team_Name']);
+        if ($byTeam !== 0) {
+            return $byTeam;
+        }
+        return strcasecmp((string) $a['Real_Name'], (string) $b['Real_Name']);
+    });
+
+    return $grouped;
+}
+
+$rosterPlayers = fsl_roster_group_players($roster);
+
 // Calculate total statistics
 $totalPlayers = count($roster);
+$uniquePlayers = count($rosterPlayers);
 $totalMapsW = 0;
 $totalMapsL = 0;
 $totalSetsW = 0;
@@ -218,6 +412,55 @@ include_once 'includes/header.php';
     .win-rate {
       color: #98ff98;
     }
+
+    .roster-toggle,
+    .roster-toggle-spacer {
+      display: inline-block;
+      width: 1.35rem;
+      margin-right: 0.2rem;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    .roster-toggle {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #00d4ff;
+      font-weight: 700;
+      font-size: 1.15rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .roster-toggle:hover,
+    .roster-toggle:focus {
+      color: #ffffff;
+      outline: none;
+    }
+
+    .player-name-line {
+      white-space: nowrap;
+    }
+
+    .roster-player td {
+      vertical-align: top;
+    }
+
+    .stat-line {
+      min-height: 1.7rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .stat-line.is-extra {
+      display: none;
+      margin-top: 0.35rem;
+    }
+
+    .roster-player.is-open .stat-line.is-extra {
+      display: flex;
+    }
     
     .filters {
       display: flex;
@@ -325,6 +568,10 @@ include_once 'includes/header.php';
 
     <div class="stats-container">
       <div class="stat-card">
+        <h3>Unique Players</h3>
+        <div class="stat-value"><?= $uniquePlayers ?></div>
+      </div>
+      <div class="stat-card">
         <h3>Total Players*</h3>
         <div class="stat-value"><?= $totalPlayers ?></div>
       </div>
@@ -363,21 +610,26 @@ include_once 'includes/header.php';
         </tr>
       </thead>
       <tbody>
-        <?php foreach ($roster as $player): ?>
-          <tr>
-            <td>
-              <a href="view_player.php?name=<?= urlencode($player['Real_Name']) ?>" class="player-link">
-                <?= htmlspecialchars($player['Real_Name']) ?>
-              </a>
-              <?php if (!empty($player['Alias_Name'])): ?>
-                <small>(<?= htmlspecialchars($player['Alias_Name']) ?>)</small>
-              <?php endif; ?>
+        <?php foreach ($rosterPlayers as $player): ?>
+          <?php $lines = $player['lines']; ?>
+          <tr class="roster-player">
+            <td class="player-cell">
+              <div class="player-name-line">
+                <?php if (count($lines) > 1): ?>
+                  <button type="button" class="roster-toggle" aria-expanded="false" aria-label="Show other divisions and races">+</button>
+                <?php else: ?>
+                  <span class="roster-toggle-spacer" aria-hidden="true"></span>
+                <?php endif; ?>
+                <a href="view_player.php?name=<?= urlencode($player['Real_Name']) ?>" class="player-link">
+                  <?= htmlspecialchars($player['Real_Name']) ?>
+                </a>
+              </div>
               <?php if (isset($_SESSION['user_id']) && hasRole()): ?>
-                <br><a href="player_analysis.php?tab=spider&player=<?= $player['Player_ID'] ?>" class="spider-link">📊 Spider Chart</a>
+                <a href="player_analysis.php?tab=spider&player=<?= $player['Player_ID'] ?>" class="spider-link">📊 Spider Chart</a>
               <?php endif; ?>
             </td>
             <td><?= !empty($player['Status']) ? fsl_status_badge($player['Status']) : 'N/A' ?></td>
-            <td>
+            <td class="team-cell">
               <?php if (!empty($player['Team_Name'])): ?>
                 <a href="view_team.php?name=<?= urlencode($player['Team_Name']) ?>" class="team-link">
                   <?= htmlspecialchars($player['Team_Name']) ?>
@@ -386,60 +638,41 @@ include_once 'includes/header.php';
                 Free Agent
               <?php endif; ?>
             </td>
-            <td>
-              <?php if (!empty($player['Race'])): ?>
-                <?php 
-                $raceIcon = '';
-                switch ($player['Race']) {
-                  case 'T':
-                    $raceIcon = 'images/terran_icon.png';
-                    break;
-                  case 'P':
-                    $raceIcon = 'images/protoss_icon.png';
-                    break;
-                  case 'Z':
-                    $raceIcon = 'images/zerg_icon.png';
-                    break;
-                  case 'R':
-                    $raceIcon = 'images/random_icon.png';
-                    break;
-                }
-                
-                if (!empty($raceIcon)) {
-                  echo '<img src="' . $raceIcon . '" alt="' . htmlspecialchars($player['Race']) . '" class="race-icon">';
-                }
-                echo htmlspecialchars($player['Race']);
-                ?>
-              <?php else: ?>
-                N/A
-              <?php endif; ?>
-            </td>
-            <td class="division-<?= htmlspecialchars($player['Division'] ?? '') ?>">
-              <?= htmlspecialchars($player['Division'] ?? 'N/A') ?>
+            <td class="race-cell">
+              <?php foreach ($lines as $index => $line): ?>
+                <div class="stat-line<?= $index > 0 ? ' is-extra' : '' ?>" data-line="<?= $index ?>" data-race="<?= htmlspecialchars($line['Race'] !== '' ? $line['Race'] : 'N/A') ?>" data-division="<?= htmlspecialchars($line['Division'] !== '' ? $line['Division'] : 'N/A') ?>">
+                  <?= fsl_roster_race_html($line['Race']) ?>
+                </div>
+              <?php endforeach; ?>
             </td>
             <td>
-              <?php if (isset($player['MapsW']) && isset($player['MapsL'])): ?>
-                <?= $player['MapsW'] ?>-<?= $player['MapsL'] ?>
-              <?php else: ?>
-                N/A
-              <?php endif; ?>
+              <?php foreach ($lines as $index => $line): ?>
+                <?php $divisionLabel = $line['Division'] !== '' ? $line['Division'] : 'N/A'; ?>
+                <div class="stat-line<?= $index > 0 ? ' is-extra' : '' ?> division-<?= htmlspecialchars($divisionLabel) ?>" data-line="<?= $index ?>">
+                  <?= htmlspecialchars($divisionLabel) ?>
+                </div>
+              <?php endforeach; ?>
             </td>
             <td>
-              <?php if (isset($player['SetsW']) && isset($player['SetsL'])): ?>
-                <?= $player['SetsW'] ?>-<?= $player['SetsL'] ?>
-              <?php else: ?>
-                N/A
-              <?php endif; ?>
+              <?php foreach ($lines as $index => $line): ?>
+                <div class="stat-line<?= $index > 0 ? ' is-extra' : '' ?>" data-line="<?= $index ?>">
+                  <?= (int) $line['MapsW'] ?>-<?= (int) $line['MapsL'] ?>
+                </div>
+              <?php endforeach; ?>
             </td>
-            <td class="win-rate">
-              <?php
-              if (isset($player['MapsW']) && isset($player['MapsL']) && ($player['MapsW'] + $player['MapsL']) > 0) {
-                $winRate = ($player['MapsW'] / ($player['MapsW'] + $player['MapsL'])) * 100;
-                echo number_format($winRate, 1) . '%';
-              } else {
-                echo 'N/A';
-              }
-              ?>
+            <td>
+              <?php foreach ($lines as $index => $line): ?>
+                <div class="stat-line<?= $index > 0 ? ' is-extra' : '' ?>" data-line="<?= $index ?>">
+                  <?= (int) $line['SetsW'] ?>-<?= (int) $line['SetsL'] ?>
+                </div>
+              <?php endforeach; ?>
+            </td>
+            <td>
+              <?php foreach ($lines as $index => $line): ?>
+                <div class="stat-line win-rate<?= $index > 0 ? ' is-extra' : '' ?>" data-line="<?= $index ?>">
+                  <?= fsl_roster_win_rate($line['MapsW'], $line['MapsL']) ?>
+                </div>
+              <?php endforeach; ?>
             </td>
           </tr>
         <?php endforeach; ?>
@@ -460,24 +693,38 @@ include_once 'includes/header.php';
       const raceValue = raceFilter.value;
       const divisionValue = divisionFilter.value;
       const searchValue = playerSearch.value.toLowerCase();
+      const filteringCombo = raceValue !== 'all' || divisionValue !== 'all';
       
       playerRows.forEach(row => {
-        const playerName = row.children[0].textContent.toLowerCase(); // Player Name column
-        const team = row.children[2].textContent.toLowerCase(); // Team column (after Status)
-        const race = row.children[3].textContent; // Race column
-        const division = row.children[4].textContent; // Division column
-        
-        const raceMatch = raceValue === 'all' || race === raceValue;
-        const divisionMatch = divisionValue === 'all' || division === divisionValue;
-        const searchMatch = searchValue === '' || 
-          playerName.includes(searchValue) || 
+        const playerName = row.querySelector('.player-cell').textContent.toLowerCase();
+        const team = row.querySelector('.team-cell').textContent.toLowerCase();
+        const searchMatch = searchValue === '' ||
+          playerName.includes(searchValue) ||
           team.includes(searchValue);
-        
-        if (raceMatch && divisionMatch && searchMatch) {
-          row.style.display = '';
-        } else {
-          row.style.display = 'none';
-        }
+
+        const raceLines = row.querySelectorAll('.race-cell .stat-line');
+        let anyMatch = !filteringCombo;
+
+        raceLines.forEach(line => {
+          const lineId = line.dataset.line;
+          const raceMatch = raceValue === 'all' || line.dataset.race === raceValue;
+          const divisionMatch = divisionValue === 'all' || line.dataset.division === divisionValue;
+          const comboMatch = raceMatch && divisionMatch;
+          if (comboMatch) {
+            anyMatch = true;
+          }
+
+          let visible = false;
+          if (searchMatch && comboMatch) {
+            visible = filteringCombo || lineId === '0' || row.classList.contains('is-open');
+          }
+
+          row.querySelectorAll('.stat-line[data-line="' + lineId + '"]').forEach(el => {
+            el.style.display = visible ? 'flex' : 'none';
+          });
+        });
+
+        row.style.display = searchMatch && anyMatch ? '' : 'none';
       });
       
       updateURL();
@@ -535,6 +782,18 @@ include_once 'includes/header.php';
     divisionFilter.addEventListener('change', applyFilters);
     playerSearch.addEventListener('input', applyFilters);
     clearFiltersBtn.addEventListener('click', clearFilters);
+
+    document.querySelectorAll('.roster-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const row = btn.closest('tr');
+        const open = !row.classList.contains('is-open');
+        row.classList.toggle('is-open', open);
+        btn.textContent = open ? '\u2212' : '+';
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.setAttribute('aria-label', open ? 'Hide other divisions and races' : 'Show other divisions and races');
+        applyFilters();
+      });
+    });
     
     // Initial filter application
     applyFilters();
