@@ -35,11 +35,30 @@ if (isset($_SESSION['user_id']) && fsl_valid_user_id($_SESSION['user_id'])) {
     }
 }
 
-$scheduleLayout = fsl_schedule_layout_value($_GET['layout'] ?? 'cards');
+$scheduleLayout = fsl_schedule_layout_value($_GET['layout'] ?? 'list');
 $editMode = $canEditSchedule && (($_GET['edit'] ?? '') === '1');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canEditSchedule && $scheduleDb instanceof PDO) {
     fsl_schedule_handle_post($scheduleDb);
+}
+
+if ($canEditSchedule && $scheduleDb instanceof PDO && isset($_GET['add_broadcast'])) {
+    $addSeason = (int) ($_GET['season'] ?? 0);
+    $addLayout = fsl_schedule_layout_value($_GET['layout'] ?? 'list');
+    $addScheduleId = (int) $_GET['add_broadcast'];
+    if ($addSeason > 0 && $addScheduleId > 0 && fsl_schedule_broadcasts_schema_ready($scheduleDb)) {
+        $err = fsl_schedule_add_broadcast_slot($scheduleDb, $addScheduleId, $addSeason);
+        if ($err !== null) {
+            fsl_schedule_flash('danger', $err);
+        } else {
+            fsl_schedule_bust_cache($addSeason);
+            fsl_schedule_flash('success', 'Broadcast slot added.');
+        }
+        $weekStmt = $scheduleDb->prepare('SELECT week_number FROM fsl_schedule WHERE schedule_id = ? AND season = ?');
+        $weekStmt->execute([$addScheduleId, $addSeason]);
+        $addWeek = (int) $weekStmt->fetchColumn();
+        fsl_schedule_redirect_edit($addSeason, $addLayout, $addWeek);
+    }
 }
 
 $scheduleFlash = $_SESSION['fsl_schedule_flash'] ?? null;
@@ -158,6 +177,7 @@ if ($cachedData === null) {
         $stmt = $db->prepare($scheduleQuery);
         $stmt->execute([$currentSeason]);
         $season9Schedule = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        fsl_schedule_attach_broadcasts($db, $season9Schedule);
 
     // Pre-fetch all match data for all schedule entries at once (batch query)
     $allScheduleIds = array_column($season9Schedule, 'schedule_id');
@@ -269,6 +289,28 @@ if ($cachedData !== null) {
     $scheduledSeasons = $cachedData['scheduledSeasons'] ?? [$currentSeason];
     $staffSchema = !empty($cachedData['staffSchema']);
     $defaultProduction = $cachedData['defaultProduction'] ?? null;
+}
+
+if (!empty($season9Schedule)) {
+    try {
+        if (!isset($db) || !$db instanceof PDO) {
+            require_once 'includes/db.php';
+        }
+        if (isset($db) && $db instanceof PDO && fsl_schedule_broadcasts_schema_ready($db)) {
+            $needsBroadcastAttach = false;
+            foreach ($season9Schedule as $schedRow) {
+                if (!array_key_exists('broadcasts', $schedRow)) {
+                    $needsBroadcastAttach = true;
+                    break;
+                }
+            }
+            if ($needsBroadcastAttach) {
+                fsl_schedule_attach_broadcasts($db, $season9Schedule);
+            }
+        }
+    } catch (Throwable $e) {
+        // Cache-only path: skip attach if DB unavailable.
+    }
 }
 
 // If a specific season was requested but has no schedule data, send to matches page
@@ -552,7 +594,7 @@ echo "<!-- Data: $cacheStatus -->\n";
             <?php if ((int) $currentSeason === 11): ?>
             <p class="season-play-window-note">Each team match may be played on <strong>Friday and/or Saturday</strong> (7:00 PM Friday or 12:00 PM Saturday, <span class="timezone">US Eastern</span>).</p>
             <?php elseif ((int) $currentSeason === 12): ?>
-            <p class="season-play-window-note">Two broadcasts each weekend: <strong>Friday 7:00 PM</strong> and <strong>Saturday 12:00 PM</strong> (<span class="timezone">US Eastern</span>), starting November 6.</p>
+            <p class="season-play-window-note">One matchup per week. On-air times and casters are set per <strong>broadcast slot</strong> (often Friday 7:00 PM and Saturday 12:00 PM <span class="timezone">US Eastern</span>).</p>
             <?php endif; ?>
             <?php if ((int) $currentSeason === 12): ?>
             <div class="season-format-content">
@@ -614,95 +656,153 @@ echo "<!-- Data: $cacheStatus -->\n";
             <?php endif; ?>
 
             <?php if ($scheduleLayout === 'list'): ?>
-            <div class="broadcast-list">
+            <div class="broadcast-list broadcast-list-grouped">
                 <?php foreach ($season9Schedule as $match):
+                    $weekNum = (int) $match['week_number'];
                     $team1_name = $match['team1_name'];
                     $team2_name = $match['team2_name'];
                     $team1_is_placeholder = empty($match['team1_id']);
                     $team2_is_placeholder = empty($match['team2_id']);
                     $team1Logo = getTeamLogo($team1_name);
                     $team2Logo = getTeamLogo($team2_name);
-                    $playWindow = formatSchedulePlayWindow($match['season'], $match['match_date']);
-                    $crewHtml = $staffSchema ? fsl_schedule_crew_html($match, $defaultProduction, $editMode) : '';
                     $hasScore = $match['team1_score'] !== null && $match['team2_score'] !== null;
-                    $showStaff = $crewHtml !== '' || ($editMode && $staffSchema);
-                    $rowClass = 'broadcast-list-row';
-                    if (!$showStaff) {
-                        $rowClass .= ' no-staff';
-                    }
+                    $listSlots = fsl_schedule_match_uses_broadcast_slots($match)
+                        ? $match['broadcasts']
+                        : [null];
+                    $playWindow = formatSchedulePlayWindow($match['season'], $match['match_date']);
+                    $showCrewColumn = $staffSchema && (
+                        fsl_schedule_match_uses_broadcast_slots($match)
+                        || $playWindow === null
+                    );
+                    $weekGroupClass = 'week-group';
                     if ($editMode && $staffSchema) {
-                        $rowClass .= ' is-editing';
+                        $weekGroupClass .= ' week-group-editing';
                     }
+                    $matchStatus = (string) ($match['status'] ?? 'scheduled');
+                    $matchNoteLabel = fsl_schedule_match_note_label($match);
                 ?>
-                <article class="<?= fsl_schedule_h($rowClass) ?>" id="week<?= (int) $match['week_number'] ?>">
-                    <div class="broadcast-when">
-                        <div class="broadcast-week">Week <?= (int) $match['week_number'] ?></div>
-                        <?php if ($playWindow): ?>
-                            <div class="broadcast-date"><?= fsl_schedule_h($playWindow['fri_label']) ?></div>
-                            <div class="broadcast-date"><?= fsl_schedule_h($playWindow['sat_label']) ?></div>
-                            <div class="broadcast-time">7:00 PM Friday · 12:00 PM Saturday <span class="timezone">US Eastern</span></div>
-                        <?php elseif (!empty($match['match_date'])): ?>
-                            <?php $matchDateTime = new DateTime($match['match_date']); ?>
-                            <div class="broadcast-date"><?= fsl_schedule_h($matchDateTime->format('l, F j, Y')) ?></div>
-                            <div class="broadcast-time"><?= fsl_schedule_h($matchDateTime->format('g:i A')) ?> <span class="timezone">US Eastern</span></div>
-                        <?php else: ?>
-                            <div class="broadcast-date">TBD</div>
-                        <?php endif; ?>
-                        <div class="match-status <?= fsl_schedule_h($match['status']) ?>"><?= fsl_schedule_h(ucfirst($match['status'])) ?></div>
-                    </div>
-                    <div class="broadcast-teams">
-                        <div class="broadcast-team">
-                            <?php if ($team1Logo): ?>
-                                <?php if ($team1_is_placeholder): ?>
-                                    <img src="<?= fsl_schedule_h($team1Logo) ?>" alt="" class="broadcast-team-logo">
-                                <?php else: ?>
-                                    <a href="view_team.php?name=<?= urlencode($team1_name) ?>"><img src="<?= fsl_schedule_h($team1Logo) ?>" alt="" class="broadcast-team-logo"></a>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            <div>
-                                <?php if ($team1_is_placeholder): ?>
-                                    <span class="broadcast-team-name"><?= fsl_schedule_h($team1_name) ?></span>
-                                <?php else: ?>
-                                    <a class="broadcast-team-name" href="view_team.php?name=<?= urlencode($team1_name) ?>"><?= fsl_schedule_h($team1_name) ?></a>
-                                    <span class="team-record"><?= getTeamRecord($team1_name, $standings) ?></span>
+                <section class="<?= fsl_schedule_h($weekGroupClass) ?>" id="week<?= $weekNum ?>">
+                    <div class="week-group-summary broadcast-list-row no-staff">
+                        <div class="broadcast-when">
+                            <div class="broadcast-week-heading">
+                                <span class="broadcast-week">Week <?= $weekNum ?></span>
+                                <?php if ($matchNoteLabel !== ''): ?>
+                                    <span class="broadcast-match-phase"><?= fsl_schedule_h($matchNoteLabel) ?></span>
                                 <?php endif; ?>
                             </div>
+                            <div class="match-status <?= fsl_schedule_h($matchStatus) ?>"><?= fsl_schedule_h(ucfirst(str_replace('_', ' ', $matchStatus))) ?></div>
                         </div>
-                        <div class="broadcast-vs"><?= $hasScore ? ((int) $match['team1_score'] . ' – ' . (int) $match['team2_score']) : 'vs' ?></div>
-                        <div class="broadcast-team">
-                            <?php if ($team2Logo): ?>
-                                <?php if ($team2_is_placeholder): ?>
-                                    <img src="<?= fsl_schedule_h($team2Logo) ?>" alt="" class="broadcast-team-logo">
-                                <?php else: ?>
-                                    <a href="view_team.php?name=<?= urlencode($team2_name) ?>"><img src="<?= fsl_schedule_h($team2Logo) ?>" alt="" class="broadcast-team-logo"></a>
+                        <div class="broadcast-teams">
+                            <div class="broadcast-team">
+                                <?php if ($team1Logo): ?>
+                                    <?php if ($team1_is_placeholder): ?>
+                                        <img src="<?= fsl_schedule_h($team1Logo) ?>" alt="" class="broadcast-team-logo">
+                                    <?php else: ?>
+                                        <a href="view_team.php?name=<?= urlencode($team1_name) ?>"><img src="<?= fsl_schedule_h($team1Logo) ?>" alt="" class="broadcast-team-logo"></a>
+                                    <?php endif; ?>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                            <div>
-                                <?php if ($team2_is_placeholder): ?>
-                                    <span class="broadcast-team-name"><?= fsl_schedule_h($team2_name) ?></span>
-                                <?php else: ?>
-                                    <a class="broadcast-team-name" href="view_team.php?name=<?= urlencode($team2_name) ?>"><?= fsl_schedule_h($team2_name) ?></a>
-                                    <span class="team-record"><?= getTeamRecord($team2_name, $standings) ?></span>
+                                <div>
+                                    <?php if ($team1_is_placeholder): ?>
+                                        <span class="broadcast-team-name"><?= fsl_schedule_h($team1_name) ?></span>
+                                    <?php else: ?>
+                                        <a class="broadcast-team-name" href="view_team.php?name=<?= urlencode($team1_name) ?>"><?= fsl_schedule_h($team1_name) ?></a>
+                                        <span class="team-record"><?= getTeamRecord($team1_name, $standings) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="broadcast-vs"><?= $hasScore ? ((int) $match['team1_score'] . ' – ' . (int) $match['team2_score']) : 'vs' ?></div>
+                            <div class="broadcast-team">
+                                <?php if ($team2Logo): ?>
+                                    <?php if ($team2_is_placeholder): ?>
+                                        <img src="<?= fsl_schedule_h($team2Logo) ?>" alt="" class="broadcast-team-logo">
+                                    <?php else: ?>
+                                        <a href="view_team.php?name=<?= urlencode($team2_name) ?>"><img src="<?= fsl_schedule_h($team2Logo) ?>" alt="" class="broadcast-team-logo"></a>
+                                    <?php endif; ?>
                                 <?php endif; ?>
+                                <div>
+                                    <?php if ($team2_is_placeholder): ?>
+                                        <span class="broadcast-team-name"><?= fsl_schedule_h($team2_name) ?></span>
+                                    <?php else: ?>
+                                        <a class="broadcast-team-name" href="view_team.php?name=<?= urlencode($team2_name) ?>"><?= fsl_schedule_h($team2_name) ?></a>
+                                        <span class="team-record"><?= getTeamRecord($team2_name, $standings) ?></span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
-                        <?php if (!empty($match['notes'])): ?>
-                            <div class="broadcast-notes"><?= fsl_schedule_h($match['notes']) ?></div>
-                        <?php endif; ?>
                     </div>
-                    <?php if ($showStaff): ?>
-                    <div class="broadcast-staff">
-                        <?php if ($crewHtml !== ''): ?>
-                            <?= $crewHtml ?>
-                        <?php else: ?>
-                            <span class="broadcast-staff-empty">Staff not set</span>
-                        <?php endif; ?>
+                    <div class="week-group-body">
+                        <table class="slot-table">
+                            <colgroup>
+                                <col class="col-slot-day">
+                                <col class="col-slot-when">
+                                <?php if ($showCrewColumn): ?><col class="col-slot-crew"><?php endif; ?>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Day</th>
+                                    <th scope="col">On air</th>
+                                    <?php if ($showCrewColumn): ?><th scope="col">Crew</th><?php endif; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($listSlots as $broadcastRow):
+                                    $slotPlayWindow = ($broadcastRow === null) ? $playWindow : null;
+                                    $crewSource = $broadcastRow ?? $match;
+                                    $slotCancelled = $broadcastRow !== null && (int) ($broadcastRow['cancelled'] ?? 0) === 1;
+                                    $crewHtml = ($staffSchema && !$slotCancelled && ($broadcastRow !== null || $playWindow === null))
+                                        ? fsl_schedule_crew_html($crewSource, $defaultProduction, $editMode)
+                                        : '';
+                                    $dayLabel = 'Broadcast';
+                                    if ($broadcastRow !== null) {
+                                        $dayLabel = trim((string) ($broadcastRow['slot_label'] ?? '')) ?: 'Broadcast';
+                                    } elseif ($slotPlayWindow) {
+                                        $dayLabel = 'Window';
+                                    }
+                                ?>
+                                <tr class="slot-table-row<?= $slotCancelled ? ' slot-cancelled' : '' ?>">
+                                    <td class="slot-day" data-label="Day">
+                                        <span class="slot-day-badge"><?= fsl_schedule_h($dayLabel) ?></span>
+                                    </td>
+                                    <td class="slot-when" data-label="On air">
+                                        <?php if ($slotCancelled): ?>
+                                            <span class="text-muted">No stream</span>
+                                        <?php elseif ($broadcastRow !== null && !empty($broadcastRow['broadcast_at'])): ?>
+                                            <?php $slotDt = new DateTime($broadcastRow['broadcast_at']); ?>
+                                            <span class="slot-date"><?= fsl_schedule_h($slotDt->format('F j, Y')) ?></span>
+                                            <span class="slot-time"><?= fsl_schedule_h($slotDt->format('g:i A')) ?> <span class="timezone">US Eastern</span></span>
+                                        <?php elseif ($slotPlayWindow): ?>
+                                            <span class="slot-date"><?= fsl_schedule_h($slotPlayWindow['fri_label']) ?> · <?= fsl_schedule_h($slotPlayWindow['sat_label']) ?></span>
+                                            <span class="slot-time">7:00 PM Friday · 12:00 PM Saturday <span class="timezone">US Eastern</span></span>
+                                        <?php elseif (!empty($match['match_date'])): ?>
+                                            <?php $matchDateTime = new DateTime($match['match_date']); ?>
+                                            <span class="slot-date"><?= fsl_schedule_h($matchDateTime->format('l, F j, Y')) ?></span>
+                                            <span class="slot-time"><?= fsl_schedule_h($matchDateTime->format('g:i A')) ?> <span class="timezone">US Eastern</span></span>
+                                        <?php else: ?>
+                                            <span class="slot-date">TBD</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <?php if ($showCrewColumn): ?>
+                                    <td class="slot-crew" data-label="Crew">
+                                        <?php if ($slotPlayWindow && $broadcastRow === null): ?>
+                                            <span class="broadcast-staff-empty">Play window only (no per-slot crew)</span>
+                                        <?php elseif ($crewHtml !== ''): ?>
+                                            <div class="broadcast-staff slot-crew-staff"><?= $crewHtml ?></div>
+                                        <?php else: ?>
+                                            <span class="broadcast-staff-empty"><?= $slotCancelled ? '—' : 'Staff not set' ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <?php endif; ?>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                         <?php if ($editMode && $staffSchema): ?>
+                        <div class="week-group-edit">
                             <?php fsl_schedule_render_broadcast_form($match, $scheduleTeams, $registeredPlayers, $productionRoster, $defaultProduction, fsl_schedule_edit_token(), $scheduleLayout); ?>
+                        </div>
                         <?php endif; ?>
                     </div>
-                    <?php endif; ?>
-                </article>
+                </section>
                 <?php endforeach; ?>
             </div>
             <?php else: ?>
@@ -809,13 +909,47 @@ echo "<!-- Data: $cacheStatus -->\n";
                         </div>
                     </div>
 
-                    <?php if (!empty($match['notes'])): ?>
+                    <?php
+                    $cardNoteLabel = fsl_schedule_match_note_label($match);
+                    if ($cardNoteLabel !== ''):
+                    ?>
                         <div class="match-notes">
-                            <em><?= htmlspecialchars($match['notes']) ?></em>
+                            <em><?= htmlspecialchars($cardNoteLabel) ?></em>
                         </div>
                     <?php endif; ?>
 
                     <?php if ($staffSchema): ?>
+                        <?php if (fsl_schedule_match_uses_broadcast_slots($match)): ?>
+                            <?php foreach ($match['broadcasts'] as $broadcastRow): ?>
+                                <?php if ((int) ($broadcastRow['cancelled'] ?? 0) === 1) {
+                                    continue;
+                                } ?>
+                                <?php $slotCrew = fsl_schedule_crew_html($broadcastRow, $defaultProduction, $editMode); ?>
+                                <?php if ($slotCrew !== '' || $editMode): ?>
+                                <div class="broadcast-crew broadcast-slot-crew">
+                                    <?php if (!empty($broadcastRow['broadcast_at']) || trim((string) ($broadcastRow['slot_label'] ?? '')) !== ''): ?>
+                                    <div class="broadcast-slot-heading">
+                                        <?php
+                                        $slotLabel = trim((string) ($broadcastRow['slot_label'] ?? ''));
+                                        if (!empty($broadcastRow['broadcast_at'])) {
+                                            $slotDt = new DateTime($broadcastRow['broadcast_at']);
+                                            echo fsl_schedule_h($slotLabel !== '' ? $slotLabel . ' · ' : '');
+                                            echo fsl_schedule_h($slotDt->format('l, F j, Y \a\t g:i A'));
+                                            echo ' <span class="timezone">US Eastern</span>';
+                                        } else {
+                                            echo fsl_schedule_h($slotLabel !== '' ? $slotLabel : 'Broadcast');
+                                        }
+                                        ?>
+                                    </div>
+                                    <?php endif; ?>
+                                    <?= $slotCrew ?>
+                                </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <?php if ($editMode): ?>
+                                <?php fsl_schedule_render_broadcast_form($match, $scheduleTeams, $registeredPlayers, $productionRoster, $defaultProduction, fsl_schedule_edit_token(), $scheduleLayout); ?>
+                            <?php endif; ?>
+                        <?php else: ?>
                         <?php $crewHtml = fsl_schedule_crew_html($match, $defaultProduction, $editMode); ?>
                         <?php if ($crewHtml !== '' || $editMode): ?>
                         <div class="broadcast-crew">
@@ -824,6 +958,7 @@ echo "<!-- Data: $cacheStatus -->\n";
                                 <?php fsl_schedule_render_broadcast_form($match, $scheduleTeams, $registeredPlayers, $productionRoster, $defaultProduction, fsl_schedule_edit_token(), $scheduleLayout); ?>
                             <?php endif; ?>
                         </div>
+                        <?php endif; ?>
                         <?php endif; ?>
                     <?php endif; ?>
 
@@ -2292,10 +2427,448 @@ echo "<!-- Data: $cacheStatus -->\n";
         min-width: 0;
     }
 
+    fieldset.matchup-edit-form,
+    fieldset.broadcast-slot-edit-form {
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin: 10px 0 0;
+    }
+
+    fieldset.matchup-edit-form legend,
+    fieldset.broadcast-slot-edit-form legend {
+        color: #00d4ff;
+        font-size: 0.95rem;
+        width: auto;
+        padding: 0 6px;
+    }
+
+    .broadcast-slot-heading {
+        color: #aaa;
+        font-size: 0.9rem;
+        margin-bottom: 8px;
+    }
+
+    .broadcast-slot-crew + .broadcast-slot-crew {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
     .broadcast-list {
         display: flex;
         flex-direction: column;
         gap: 14px;
+    }
+
+    .broadcast-list-grouped {
+        gap: 16px;
+    }
+
+    .week-group {
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.3);
+        scroll-margin-top: 20px;
+    }
+
+    .week-group-summary.broadcast-list-row {
+        border: 0;
+        border-radius: 0;
+        margin: 0;
+        border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+    }
+
+    .week-group-summary .broadcast-week-heading {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 8px;
+        line-height: 1.25;
+    }
+
+    .week-group-summary .broadcast-match-phase {
+        color: #aaa;
+        font-size: 0.95em;
+        font-weight: 600;
+    }
+
+    .week-group-summary .broadcast-match-phase::before {
+        content: '·';
+        margin-right: 8px;
+        color: #666;
+        font-weight: 400;
+    }
+
+    .week-group-summary .broadcast-when .match-status {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 0.75em;
+    }
+
+    .week-group-summary .broadcast-teams {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 12px 20px;
+        align-self: center;
+        width: 100%;
+        min-height: 64px;
+    }
+
+    .week-group-summary .broadcast-team {
+        flex: 1 1 0;
+        min-width: 0;
+        align-items: center;
+    }
+
+    .week-group-summary .broadcast-team:first-child {
+        justify-content: flex-end;
+    }
+
+    .week-group-summary .broadcast-team:last-child {
+        justify-content: flex-start;
+    }
+
+    .week-group-summary .broadcast-team > a {
+        line-height: 0;
+        flex-shrink: 0;
+    }
+
+    .week-group-summary .broadcast-team > div {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .week-group-summary .broadcast-vs {
+        flex: 0 0 auto;
+        align-self: center;
+        line-height: 1;
+        padding: 0 6px;
+    }
+
+    .broadcast-list-grouped .slot-table {
+        table-layout: auto;
+        width: 100%;
+    }
+
+    .slot-table {
+        width: 100%;
+        margin: 0;
+        border-collapse: collapse;
+    }
+
+    .slot-table th {
+        text-align: left;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #888;
+        padding: 8px 16px;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .slot-table td {
+        padding: 10px 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .broadcast-list-grouped .col-slot-day {
+        width: 1%;
+        white-space: nowrap;
+    }
+
+    .broadcast-list-grouped .col-slot-when {
+        width: auto;
+    }
+
+    .broadcast-list-grouped .col-slot-crew {
+        width: 1%;
+        white-space: nowrap;
+    }
+
+    .broadcast-list-grouped .slot-crew {
+        width: 1%;
+        white-space: nowrap;
+    }
+
+    .slot-table tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .slot-day-badge {
+        display: inline-block;
+        background: rgba(0, 212, 255, 0.15);
+        color: #00d4ff;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+
+    .slot-cancelled .slot-day-badge {
+        opacity: 0.55;
+    }
+
+    .broadcast-list-grouped .slot-when {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: baseline;
+        justify-content: flex-start;
+        gap: 0 10px;
+        width: 100%;
+        min-width: 260px;
+    }
+
+    .broadcast-list-grouped .slot-when .slot-date {
+        color: #bbb;
+        font-size: 0.98em;
+        font-weight: 500;
+        flex: 0 1 auto;
+        min-width: 0;
+    }
+
+    .broadcast-list-grouped .slot-when .slot-date::after {
+        content: ' ·';
+        color: #666;
+        font-weight: 400;
+    }
+
+    .broadcast-list-grouped .slot-when .slot-time {
+        color: #fff;
+        font-size: 1.08em;
+        font-weight: 700;
+        flex: 0 0 auto;
+        text-align: left;
+        white-space: nowrap;
+    }
+
+    .slot-when .slot-date {
+        display: block;
+        color: #ccc;
+    }
+
+    .slot-when .slot-time {
+        display: block;
+        color: #fff;
+        font-weight: 600;
+        margin-top: 2px;
+    }
+
+    .broadcast-list-grouped .slot-table th:last-child {
+        text-align: right;
+    }
+
+    .slot-crew {
+        text-align: right;
+    }
+
+    .slot-crew-staff.broadcast-staff {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px 14px;
+        margin-left: auto;
+    }
+
+    .slot-crew-staff .staff-chip {
+        min-width: 0;
+        gap: 6px;
+        flex: 0 1 auto;
+    }
+
+    .slot-crew-staff .staff-portrait,
+    .slot-crew-staff .staff-tbd-mark {
+        width: 28px;
+        height: 28px;
+        border-width: 1px;
+    }
+
+    .slot-crew-staff .staff-role {
+        font-size: 0.62em;
+        line-height: 1.1;
+    }
+
+    .slot-crew-staff .staff-name {
+        font-size: 0.82em;
+        line-height: 1.15;
+    }
+
+    .slot-crew .broadcast-staff-empty {
+        font-size: 0.85em;
+    }
+
+    .week-group-edit {
+        padding: 12px 16px 16px;
+        border-top: 1px dashed rgba(0, 212, 255, 0.25);
+        background: rgba(0, 0, 0, 0.15);
+    }
+
+    .week-group-editing .week-group-edit .broadcast-edit-form {
+        width: 100%;
+    }
+
+    @media (max-width: 768px) {
+        .broadcast-list-grouped .week-group-summary.broadcast-list-row {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            padding: 12px 14px;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-when {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px 12px;
+            width: 100%;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-when .match-status {
+            margin-top: 0;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-teams {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 6px;
+            min-height: 0;
+            width: 100%;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-team,
+        .broadcast-list-grouped .week-group-summary .broadcast-team:first-child,
+        .broadcast-list-grouped .week-group-summary .broadcast-team:last-child {
+            flex: 0 0 auto;
+            justify-content: center;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-vs {
+            align-self: center;
+            padding: 2px 0;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-team-logo {
+            width: 52px;
+            height: 52px;
+        }
+
+        .broadcast-list-grouped .week-group-summary .broadcast-team-name {
+            font-size: 0.95em;
+        }
+
+        .broadcast-list-grouped .slot-table,
+        .broadcast-list-grouped .slot-table tbody {
+            display: block;
+            width: 100%;
+        }
+
+        .broadcast-list-grouped .slot-table colgroup {
+            display: none;
+        }
+
+        .broadcast-list-grouped .slot-table thead {
+            display: none;
+        }
+
+        .broadcast-list-grouped .slot-table tr {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .broadcast-list-grouped .slot-table tr:last-child {
+            border-bottom: 0;
+        }
+
+        .broadcast-list-grouped .slot-table td {
+            display: block;
+            width: 100%;
+            max-width: none;
+            border: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .broadcast-list-grouped .slot-table td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .broadcast-list-grouped .slot-table td.slot-day,
+        .broadcast-list-grouped .slot-table td.slot-when {
+            display: block;
+        }
+
+        .broadcast-list-grouped .slot-table td.slot-day::before,
+        .broadcast-list-grouped .slot-table td.slot-when::before {
+            display: none;
+        }
+
+        .broadcast-list-grouped .slot-table td.slot-day {
+            margin-bottom: 4px;
+        }
+
+        .broadcast-list-grouped .slot-when {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: flex-start;
+            gap: 0 8px;
+            width: 100%;
+        }
+
+        .broadcast-list-grouped .slot-when .slot-date {
+            font-size: 0.92em;
+            flex: 0 1 auto;
+            min-width: 0;
+        }
+
+        .broadcast-list-grouped .slot-when .slot-time {
+            margin-top: 0;
+            text-align: left;
+            font-size: 1em;
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .broadcast-list-grouped .slot-table td.slot-crew {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            text-align: left;
+        }
+
+        .broadcast-list-grouped .col-slot-crew,
+        .broadcast-list-grouped .slot-crew {
+            width: 100%;
+            white-space: normal;
+        }
+
+        .broadcast-list-grouped .slot-crew-staff.broadcast-staff {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-left: 0;
+            gap: 6px 10px;
+        }
+
+        .broadcast-list-grouped .slot-when {
+            min-width: 0;
+        }
     }
 
     .broadcast-list-row {
@@ -2604,9 +3177,12 @@ echo "<!-- Data: $cacheStatus -->\n";
     }
 
     @media (max-width: 800px) {
-        .broadcast-list-row,
-        .broadcast-list-row.no-staff,
-        .broadcast-teams {
+        .broadcast-list-row:not(.week-group-summary),
+        .broadcast-list-row.no-staff:not(.week-group-summary) {
+            grid-template-columns: 1fr;
+        }
+
+        .broadcast-list-row:not(.week-group-summary) .broadcast-teams {
             grid-template-columns: 1fr;
         }
 

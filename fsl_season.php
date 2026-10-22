@@ -535,7 +535,7 @@ include_once 'includes/header.php';
                     <strong><a href="view_team.php?name=Infinite+Cyclists">Infinite Cyclists</a></strong> (Capt: <a href="view_player.php?name=HyperTurtle">HyperTurtle</a>): <a href="view_player.php?name=GreatArchon">GreatArchon</a>, <a href="view_player.php?name=ArduousGem">ArduousGem</a>, <a href="view_player.php?name=SCVSir">SCVSir</a>, <a href="view_player.php?name=Staged">Staged</a><br>
                     <strong><a href="view_team.php?name=Angry+Space+Hares">Angry Space Hares</a></strong> (Capt: <a href="view_player.php?name=Warbunnies">Warbunnies</a>): <a href="view_player.php?name=Chat-Omic">Chat-omic</a>, <a href="view_player.php?name=Pebble">Pebble</a>, <a href="view_player.php?name=Sopuli">Sopuli</a>, <a href="view_player.php?name=HurtnTime">HurtnTime</a><br>
                     <strong><a href="view_team.php?name=PulledTheBoys">PulledTheBoys</a></strong> (Capt: <a href="view_player.php?name=Neutrophil">Neutrophil</a>): <a href="view_player.php?name=Dpoo">Dpoo</a>, <a href="view_player.php?name=ChienPwn">ChienPwn</a>, <a href="view_player.php?name=MedicJr">MedicJr</a>, <a href="view_player.php?name=MvonLipwig">MvonLipwig</a>, <a href="view_player.php?name=MonkeyShaman">MonkeyShaman</a><br>
-                    <em style="color:#888;">Protected: <a href="view_player.php?name=Freeedom">Freeedom</a>, <a href="view_player.php?name=Sequovia">Sequovia</a>, <a href="view_player.php?name=HarOuz">HarOuz</a>, <a href="view_player.php?name=LightHood">LightHood</a>, <a href="view_player.php?name=DarkMenace">DarkMenace</a>, <a href="view_player.php?name=SirMalagant">SirMalagant</a>, <a href="view_player.php?name=NukLeo">Nuke</a>, <a href="view_player.php?name=Greeempire">Greeempire</a>, <a href="view_player.php?name=Vales">Vales</a>, <a href="view_player.php?name=LittleReaper">LittleReaper</a></em>
+                    <em style="color:#888;">Protected: <a href="view_player.php?name=Freeedom">Freeedom</a>, <a href="view_player.php?name=Sequoia">Sequoia</a>, <a href="view_player.php?name=HarOuz">HarOuz</a>, <a href="view_player.php?name=LightHood">LightHood</a>, <a href="view_player.php?name=DarkMenace">DarkMenace</a>, <a href="view_player.php?name=SirMalagant">SirMalagant</a>, <a href="view_player.php?name=NukLeo">Nuke</a>, <a href="view_player.php?name=Greeempire">Greeempire</a>, <a href="view_player.php?name=Vales">Vales</a>, <a href="view_player.php?name=LittleReaper">LittleReaper</a></em>
                 </div>
             </div>
 
@@ -711,14 +711,14 @@ include_once 'includes/header.php';
             </div>
 
             <div class="champion-row">
-                🏆 <a href="view_player.php?name=Neutrophil">Neutrophil</a> (Code S) &nbsp;·&nbsp; <a href="view_player.php?name=Domistrength">Domistrength</a> (Code A) &nbsp;·&nbsp; <a href="view_player.php?name=StuBlue">StuBlue</a> (Code B)
+                🏆 <a href="view_player.php?name=Neutrophil">Neutrophil</a> (Code S) &nbsp;·&nbsp; <a href="view_player.php?name=Domistrength">Domistrength</a> (Code A) &nbsp;·&nbsp; <a href="view_player.php?name=stublu88">stublu88</a> (Code B)
             </div>
 
             <p class="season-desc">Season 4 introduced 2v2 for the first time, expanding FSL's vision. Matches at 7 PM Eastern featured Bo3 Round-Robin, Bo5 playoffs, and Bo7 finals.</p>
 
             <div class="results">
                 <strong>Code S:</strong> <a href="view_player.php?name=Neutrophil">Neutrophil</a> def. <a href="view_player.php?name=DarkMenace">DarkMenace</a> 4–3 &nbsp;·&nbsp; <strong>Code A:</strong> <a href="view_player.php?name=Domistrength">Domistrength</a> def. <a href="view_player.php?name=TheArchaic">TheArchaic</a> 3–1<br>
-                <strong>Code B:</strong> <a href="view_player.php?name=StuBlue">StuBlue</a> def. <a href="view_player.php?name=Charizma">Charizma</a> 3–1 &nbsp;·&nbsp; <strong>2v2:</strong> <a href="view_player.php?name=Regret">Regret</a>/<a href="view_player.php?name=TheArchaic">TheArchaic</a> def. <a href="view_player.php?name=DarkMenace">DarkMenace</a>/<a href="view_player.php?name=LittleReaper">LittleReaper</a> 3–1
+                <strong>Code B:</strong> <a href="view_player.php?name=stublu88">stublu88</a> def. <a href="view_player.php?name=Charizma">Charizma</a> 3–1 &nbsp;·&nbsp; <strong>2v2:</strong> <a href="view_player.php?name=Regret">Regret</a>/<a href="view_player.php?name=TheArchaic">TheArchaic</a> def. <a href="view_player.php?name=DarkMenace">DarkMenace</a>/<a href="view_player.php?name=LittleReaper">LittleReaper</a> 3–1
             </div>
 
             <button class="toggle-btn" onclick="togglePanel(this, 'vods-s4')">&#9658; Show VODs</button>
