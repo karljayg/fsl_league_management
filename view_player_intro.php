@@ -57,6 +57,25 @@ if ($playerName !== 'TEST') {
         }
     }
 }
+
+// Apex and www are the same site. Use the host the page was served from so the
+// canvas stays same-origin whether or not the www redirect is on.
+$videoHost = strtolower((string) parse_url($videoUrl, PHP_URL_HOST));
+$pageHost = strtolower((string) preg_replace('/:\d+$/', '', $_SERVER['HTTP_HOST'] ?? ''));
+$videoBare = preg_replace('/^www\./', '', $videoHost);
+$pageBare = preg_replace('/^www\./', '', $pageHost);
+if ($videoHost !== '' && $videoBare === $pageBare && $videoHost !== $pageHost) {
+    $videoUrl = preg_replace(
+        '#^(https?://)' . preg_quote($videoHost, '#') . '#i',
+        '$1' . $pageHost,
+        $videoUrl,
+        1
+    );
+}
+$videoUrlJs = json_encode(
+    $videoUrl,
+    JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
 ?>
 
 <style>
@@ -82,7 +101,7 @@ if ($playerName !== 'TEST') {
 </style>
 
 <div class="player-intro-container">
-    <video id="<?= $videoId ?>" autoplay loop muted playsinline webkit-playsinline>
+    <video id="<?= $videoId ?>" autoplay loop muted playsinline webkit-playsinline crossorigin="anonymous">
         <source src="<?= htmlspecialchars($videoUrl) ?>" type="video/mp4">
     </video>
     <canvas id="<?= $canvasId ?>"></canvas>
@@ -100,11 +119,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const ctx = canvas.getContext('2d');
+    const introUrl = <?= $videoUrlJs ?>;
+
+    // Same registrable host (psistorm.com / www.psistorm.com): use the page host.
+    // Anything else (localhost) keeps the remote URL and relies on CORS below.
+    function introSrcForPage(url) {
+        try {
+            const parsed = new URL(url, window.location.href);
+            const bare = (host) => host.replace(/^www\./i, '').toLowerCase();
+            if (bare(parsed.hostname) === bare(window.location.hostname) && parsed.hostname !== window.location.hostname) {
+                parsed.hostname = window.location.hostname;
+            }
+            return parsed.toString();
+        } catch (e) {
+            return url;
+        }
+    }
+
+    video.crossOrigin = 'anonymous';
+    const playbackUrl = introSrcForPage(introUrl);
+    if (video.currentSrc !== playbackUrl) {
+        video.src = playbackUrl;
+    }
     
     // Variables
     let threshold = 100; // Green screen threshold
     let smoothing = 10;  // Edge smoothing
     let videoLoaded = false;
+    let taintedRetry = false;
     
     // Set canvas size
     function setCanvasSize() {
@@ -119,6 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        try {
         // Draw the current frame to the canvas
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
@@ -149,6 +192,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Put the modified image data back on the canvas
         ctx.putImageData(imageData, 0, 0);
+        } catch (e) {
+            if (!taintedRetry) {
+                taintedRetry = true;
+                videoLoaded = false;
+                video.crossOrigin = 'anonymous';
+                video.src = playbackUrl;
+                video.load();
+            } else {
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+                return;
+            }
+        }
         
         // Continue processing
         requestAnimationFrame(processFrame);
@@ -170,7 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Fallback - if video doesn't start loading
     setTimeout(() => {
         if (!videoLoaded) {
-            video.src = "<?= htmlspecialchars($videoUrl) ?>";
+            video.crossOrigin = 'anonymous';
+            video.src = playbackUrl;
             video.load();
         }
     }, 3000);
