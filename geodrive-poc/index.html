@@ -24,7 +24,7 @@
 (()=>{'use strict';
 const START={lat:38.9515,lng:-77.4475};
 const RADIUS_M=16093.44, MPH_TO_MPS=.44704, EARTH=6371000;
-const MAX_SPEED_MPS=223.5, MAX_REVERSE_MPS=12, ACCEL_BASE=18, ACCEL_TOP=12, COAST_DRAG=1.25, THROTTLE_DRAG=.18, HIGH_SPEED_DRAG=.007;
+const MAX_REVERSE_MPS=12, ACCEL_BASE=18, ACCEL_TOP=12, COAST_DRAG=1.25, THROTTLE_DRAG=.18, HIGH_SPEED_DRAG=.004;
 const el=id=>document.getElementById(id);const canvas=el('canvas'),ctx=canvas.getContext('2d');
 let map=null,ready=false,last=0,mode=0,velocity=0,heading=0,mapHeading=0,lat=START.lat,lng=START.lng,travel=0,boundary=false;
 const keys=new Set();const viewNames=['CHASE','HIGH CHASE','TOP DOWN'];
@@ -40,7 +40,7 @@ function drawCarShape(){ctx.fillStyle='#08142288';ctx.beginPath();ctx.ellipse(0,
 function draw(){let dpr=Math.min(devicePixelRatio||1,2),w=innerWidth,h=innerHeight;if(canvas.width!==Math.floor(w*dpr)||canvas.height!==Math.floor(h*dpr)){canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+'px';canvas.style.height=h+'px';}ctx.setTransform(dpr,0,0,dpr,0,0);
 const x=w/2,y=mode===2?h*.64:h*.77;ctx.save();ctx.translate(x,y);if(mode===2)ctx.rotate(toRad(heading));if(mode===2){ctx.fillStyle='#60e2bd';ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(-12,16);ctx.lineTo(0,9);ctx.lineTo(12,16);ctx.closePath();ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=2;ctx.stroke();}else drawCarShape();ctx.restore();}
 function frame(t){const dt=Math.min((t-last)/1000||0,.06);last=t;const gas=keys.has('w')||keys.has('arrowup'),reverse=keys.has('s')||keys.has('arrowdown'),left=keys.has('a')||keys.has('arrowleft'),right=keys.has('d')||keys.has('arrowright');
-if(ready){if(gas){const fwd=Math.max(velocity,0);velocity+=(ACCEL_BASE+ACCEL_TOP*Math.exp(-fwd/55))*dt;const drag=THROTTLE_DRAG+Math.max(0,fwd-35)*HIGH_SPEED_DRAG;velocity*=Math.exp(-drag*dt);}else if(reverse){velocity-=13*dt;}else{velocity*=Math.exp(-COAST_DRAG*dt);}if(keys.has(' '))velocity*=Math.exp(-5*dt);velocity=clamp(velocity,-MAX_REVERSE_MPS,MAX_SPEED_MPS);if(Math.abs(velocity)<.07)velocity=0;
+if(ready){if(gas){const fwd=Math.max(velocity,0);velocity+=(ACCEL_BASE+ACCEL_TOP*Math.exp(-fwd/55))*dt;const drag=THROTTLE_DRAG+Math.max(0,fwd-80)*HIGH_SPEED_DRAG;velocity*=Math.exp(-drag*dt);}else if(reverse){velocity-=13*dt;}else{velocity*=Math.exp(-COAST_DRAG*dt);}if(keys.has(' '))velocity*=Math.exp(-5*dt);if(velocity<-MAX_REVERSE_MPS)velocity=-MAX_REVERSE_MPS;if(Math.abs(velocity)<.07)velocity=0;
 const steer=(right?1:0)-(left?1:0);if(steer&&velocity!==0)heading=(heading+steer*steerRate(velocity)*dt*Math.sign(velocity)+360)%360;
 if(velocity!==0){let next=move(lat,lng,heading,velocity*dt);if(distMeters(START.lat,START.lng,next.lat,next.lng)<RADIUS_M){lat=next.lat;lng=next.lng;travel+=Math.abs(velocity*dt);boundary=false;}else{velocity=0;boundary=true;}}
 syncCamera(dt);el('speed').textContent=Math.round(Math.abs(velocity)/MPH_TO_MPS);el('heading').textContent=String(Math.round(heading)).padStart(3,'0')+'°';el('distance').textContent=(distMeters(START.lat,START.lng,lat,lng)/1609.344).toFixed(2)+' mi';el('coord').textContent=lat.toFixed(4)+', '+lng.toFixed(4);el('centerMsg').style.display=boundary?'block':'none';}
