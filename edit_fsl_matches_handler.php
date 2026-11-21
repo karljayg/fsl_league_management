@@ -99,6 +99,10 @@ try {
         case 'delete_match':
             handleDeleteMatch($db);
             break;
+
+        case 'reorder_matches':
+            handleReorderMatches($db);
+            break;
             
         default:
             throw new Exception("Unknown action: " . $action);
@@ -325,15 +329,19 @@ function handleAddMatch($db) {
     $db->beginTransaction();
     
     try {
-        // Insert the new match
+        // Next id is the highest row still stored, plus one. Deleted ids are not reused
+        // except when they were the tail and that tail has been removed.
+        $nextId = (int) $db->query('SELECT COALESCE(MAX(fsl_match_id), 0) + 1 FROM fsl_matches')->fetchColumn();
+
         $insertQuery = "INSERT INTO fsl_matches 
-                        (season, season_extra_info, notes, t_code, winner_player_id, winner_race, 
+                        (fsl_match_id, season, season_extra_info, notes, t_code, winner_player_id, winner_race, 
                          best_of, map_win, map_loss, loser_player_id, loser_race, winner_team_id, loser_team_id, source, vod)
                         VALUES 
-                        (:season, :season_extra_info, :notes, :t_code, :winner_player_id, :winner_race,
+                        (:fsl_match_id, :season, :season_extra_info, :notes, :t_code, :winner_player_id, :winner_race,
                          :best_of, :map_win, :map_loss, :loser_player_id, :loser_race, :winner_team_id, :loser_team_id, :source, :vod)";
         
         $stmt = $db->prepare($insertQuery);
+        $stmt->bindValue(':fsl_match_id', $nextId, PDO::PARAM_INT);
         $stmt->bindParam(':season', $_POST['season']);
         $stmt->bindParam(':season_extra_info', $_POST['season_extra_info']);
         $stmt->bindParam(':notes', $_POST['notes']);
@@ -350,11 +358,18 @@ function handleAddMatch($db) {
         $stmt->bindParam(':source', $_POST['source']);
         $stmt->bindParam(':vod', $_POST['vod']);
         $stmt->execute();
-        
-        $newMatchId = $db->lastInsertId();
+
+        $newMatchId = $nextId;
+
+        if (fsl_matches_has_order_number($db)) {
+            $orderStmt = $db->prepare("UPDATE fsl_matches SET order_number = ? WHERE fsl_match_id = ?");
+            $orderStmt->execute([$newMatchId, $newMatchId]);
+        }
         
         // Commit transaction
         $db->commit();
+
+        fsl_clear_matches_cache();
         
         error_log("Successfully added new match ID: $newMatchId");
         
@@ -398,21 +413,139 @@ function handleDeleteMatch($db) {
             throw new Exception("No match found with ID: $matchId");
         }
         
-        // Commit transaction
         $db->commit();
-        
-        error_log("Successfully deleted match ID: $matchId");
-        
+    } catch (Exception $e) {
+        if ($db->inTransaction()) {
+            $db->rollback();
+        }
+        throw $e;
+    }
+
+    // Rewind only when this id sat at the end. A later row still in the table
+    // keeps the counter above that row.
+    fsl_matches_rewind_tail($db, (int) $matchId);
+
+    error_log("Successfully deleted match ID: $matchId");
+
+    $output = ob_get_clean();
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Match deleted successfully',
+        'debug' => $output
+    ]);
+}
+
+/**
+ * After a delete of the current high id, set the next insert to MAX(fsl_match_id)+1.
+ * MySQL ignores a lower AUTO_INCREMENT while any higher id is still stored.
+ */
+function fsl_matches_rewind_tail(PDO $db, int $deletedId): void
+{
+    if ($deletedId < 1) {
+        return;
+    }
+    $max = (int) $db->query('SELECT COALESCE(MAX(fsl_match_id), 0) FROM fsl_matches')->fetchColumn();
+    $next = $max + 1;
+    if ($deletedId < $next) {
+        return;
+    }
+    $db->exec('ALTER TABLE fsl_matches AUTO_INCREMENT = ' . $next);
+}
+
+/**
+ * Reassign play-order slots among the matches currently on screen.
+ * match_ids is top-to-bottom display order. Existing order_number values
+ * for those rows are kept as the slot set and redistributed, so neighbors
+ * off this page are untouched.
+ */
+function handleReorderMatches($db) {
+    if (!fsl_matches_has_order_number($db)) {
+        throw new Exception("Play order is not available until order_number exists");
+    }
+
+    $matchIds = [];
+    if (isset($_POST['match_ids']) && is_array($_POST['match_ids'])) {
+        foreach ($_POST['match_ids'] as $rawId) {
+            if (!is_numeric($rawId)) {
+                throw new Exception("Invalid match id in order list");
+            }
+            $matchIds[] = (int) $rawId;
+        }
+    }
+
+    if (count($matchIds) < 2) {
+        throw new Exception("Need at least two matches to reorder");
+    }
+
+    if (count($matchIds) !== count(array_unique($matchIds))) {
+        throw new Exception("Duplicate match ids in order list");
+    }
+
+    $placeholders = implode(',', array_fill(0, count($matchIds), '?'));
+
+    $db->beginTransaction();
+    try {
+        $lockSql = "
+            SELECT fsl_match_id, COALESCE(order_number, fsl_match_id) AS order_number
+            FROM fsl_matches
+            WHERE fsl_match_id IN ($placeholders)
+            FOR UPDATE
+        ";
+        $lockStmt = $db->prepare($lockSql);
+        $lockStmt->execute($matchIds);
+        $rows = $lockStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (count($rows) !== count($matchIds)) {
+            throw new Exception("One or more matches were not found");
+        }
+
+        $slots = [];
+        foreach ($rows as $row) {
+            $slots[] = (int) $row['order_number'];
+        }
+        rsort($slots, SORT_NUMERIC);
+
+        $update = $db->prepare("UPDATE fsl_matches SET order_number = ? WHERE fsl_match_id = ?");
+        foreach ($matchIds as $index => $matchId) {
+            $update->execute([$slots[$index], $matchId]);
+        }
+
+        $db->commit();
+        fsl_clear_matches_cache();
+
         $output = ob_get_clean();
         echo json_encode([
-            'status' => 'success', 
-            'message' => 'Match deleted successfully',
+            'status' => 'success',
+            'message' => 'Play order saved',
             'debug' => $output
         ]);
-        
     } catch (Exception $e) {
-        $db->rollback();
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
         throw $e;
+    }
+}
+
+function fsl_matches_has_order_number($db) {
+    $stmt = $db->query("SHOW COLUMNS FROM fsl_matches LIKE 'order_number'");
+    return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function fsl_clear_matches_cache() {
+    $cacheFile = __DIR__ . '/cache/fsl_matches.json';
+    if (is_file($cacheFile)) {
+        unlink($cacheFile);
+    }
+
+    $cacheDir = __DIR__ . '/cache';
+    if (!is_dir($cacheDir)) {
+        return;
+    }
+    foreach (glob($cacheDir . '/fsl_schedule_*.json') ?: [] as $scheduleCache) {
+        if (is_file($scheduleCache)) {
+            unlink($scheduleCache);
+        }
     }
 }
 ?> 

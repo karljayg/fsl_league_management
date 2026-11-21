@@ -6,7 +6,7 @@
  * id is TBD: nobody is assigned yet, and it does not fall back to the roster default.
  */
 
-const FSL_SCHEDULE_CACHE_VERSION = 4;
+const FSL_SCHEDULE_CACHE_VERSION = 5;
 
 function fsl_schedule_h($value): string
 {

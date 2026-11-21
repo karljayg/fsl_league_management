@@ -32,6 +32,21 @@ if (file_exists(CACHE_FILE)) {
     }
 }
 
+// Drop a cache built before order_number existed, once that column is present.
+if (is_array($matches) && $matches !== [] && !array_key_exists('order_number', $matches[0])) {
+    require_once 'includes/db.php';
+    try {
+        $probe = new PDO("mysql:host={$db_host};dbname={$db_name}", $db_user, $db_pass);
+        $probe->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        if ($probe->query("SHOW COLUMNS FROM fsl_matches LIKE 'order_number'")->fetch(PDO::FETCH_ASSOC)) {
+            $matches = null;
+            $cacheStatus = '';
+        }
+    } catch (PDOException $e) {
+        // Keep the existing cache if the probe fails.
+    }
+}
+
 if ($matches === null) {
     // Include database connection
     require_once 'includes/db.php';
@@ -43,8 +58,15 @@ if ($matches === null) {
 
         // Get FSL matches (default sort - will be re-sorted client-side or via URL params)
         // winner_team_id/loser_team_id are set for Team League matches; null for others
+        $hasOrderNumber = (bool) $db->query("SHOW COLUMNS FROM fsl_matches LIKE 'order_number'")->fetch(PDO::FETCH_ASSOC);
+        $orderSelect = $hasOrderNumber ? "COALESCE(fm.order_number, fm.fsl_match_id) AS order_number," : "";
+        $orderBy = $hasOrderNumber
+            ? "ORDER BY COALESCE(fm.order_number, fm.fsl_match_id) DESC, fm.fsl_match_id DESC"
+            : "ORDER BY fm.fsl_match_id DESC";
+
         $query = "SELECT 
             fm.fsl_match_id,
+            $orderSelect
             fm.season,
             fm.season_extra_info,
             fm.notes,
@@ -71,7 +93,7 @@ if ($matches === null) {
             ON p_w.User_ID = u_w.id
         LEFT JOIN users u_l 
             ON p_l.User_ID = u_l.id
-        ORDER BY fm.fsl_match_id DESC";
+        $orderBy";
 
         $matches = $db->query($query)->fetchAll(PDO::FETCH_ASSOC);
         
@@ -94,7 +116,8 @@ if ($matches === null) {
 }
 
 // Get URL parameters for sorting (applied to cached data)
-$sortField = isset($_GET['sort']) ? htmlspecialchars($_GET['sort']) : 'fsl_match_id';
+$defaultSort = (is_array($matches) && $matches !== [] && array_key_exists('order_number', $matches[0])) ? 'order_number' : 'fsl_match_id';
+$sortField = isset($_GET['sort']) ? htmlspecialchars($_GET['sort']) : $defaultSort;
 $sortDirection = isset($_GET['dir']) ? htmlspecialchars($_GET['dir']) : 'desc';
 
 // Get URL parameters for filtering
@@ -103,16 +126,26 @@ $seasonFilter = isset($_GET['season']) ? htmlspecialchars($_GET['season']) : 'al
 $raceFilter = isset($_GET['race']) ? htmlspecialchars($_GET['race']) : 'all';
 
 // Validate sort field
-$validSortFields = ['fsl_match_id', 'season', 'winner_name', 'loser_name', 'winner_race', 'loser_race', 'map_win', 'map_loss'];
+$validSortFields = ['fsl_match_id', 'order_number', 'season', 'winner_name', 'loser_name', 'winner_race', 'loser_race', 'map_win', 'map_loss'];
 if (!in_array($sortField, $validSortFields)) {
-    $sortField = 'fsl_match_id';
+    $sortField = $defaultSort;
 }
+
+// Public page sorts by play order; Order column stays admin-only on the editor.
+$showPlayOrder = false;
 
 // Sort cached data in PHP
 usort($matches, function($a, $b) use ($sortField, $sortDirection) {
     $aVal = $a[$sortField] ?? '';
     $bVal = $b[$sortField] ?? '';
-    $cmp = is_numeric($aVal) && is_numeric($bVal) ? $aVal <=> $bVal : strcasecmp($aVal, $bVal);
+    if ($sortField === 'order_number') {
+        $aVal = $a['order_number'] ?? $a['fsl_match_id'];
+        $bVal = $b['order_number'] ?? $b['fsl_match_id'];
+    }
+    $cmp = is_numeric($aVal) && is_numeric($bVal) ? $aVal <=> $bVal : strcasecmp((string) $aVal, (string) $bVal);
+    if ($cmp === 0) {
+        $cmp = ($a['fsl_match_id'] <=> $b['fsl_match_id']);
+    }
     return $sortDirection === 'desc' ? -$cmp : $cmp;
 });
 
@@ -205,6 +238,11 @@ function getDomainFromUrl($url) {
                         <th class="sortable <?= getSortClass('fsl_match_id') ?>" data-sort="fsl_match_id">
                             <a href="<?= getSortUrl('fsl_match_id') ?>">ID</a>
                         </th>
+                        <?php if ($showPlayOrder): ?>
+                        <th class="sortable <?= getSortClass('order_number') ?>" data-sort="order_number">
+                            <a href="<?= getSortUrl('order_number') ?>">Order</a>
+                        </th>
+                        <?php endif; ?>
                         <th class="sortable <?= getSortClass('season') ?>" data-sort="season">
                             <a href="<?= getSortUrl('season') ?>">Season</a>
                         </th>
@@ -237,6 +275,9 @@ function getDomainFromUrl($url) {
                     <?php foreach ($matches as $match): ?>
                         <tr>
                             <td><a href="view_match.php?id=<?= urlencode($match['fsl_match_id']) ?>" class="match-id-link"><?= htmlspecialchars($match['fsl_match_id']) ?></a></td>
+                            <?php if ($showPlayOrder): ?>
+                            <td><?= htmlspecialchars($match['order_number']) ?></td>
+                            <?php endif; ?>
                             <td><?= htmlspecialchars($match['season']) ?></td>
                             <td><?= htmlspecialchars($match['season_extra_info'] ?? '') ?></td>
                             <td><?= htmlspecialchars($match['notes'] ?? '') ?></td>
@@ -568,6 +609,7 @@ function getDomainFromUrl($url) {
         const playerSearch = document.getElementById('player-search');
         const clearFiltersBtn = document.getElementById('clear-filters');
         const matchRows = document.querySelectorAll('#fsl-matches-table tbody tr');
+        const orderColOffset = <?= $showPlayOrder ? 1 : 0 ?>;
         const pagination = document.getElementById('matches-pagination');
         const pageSize = 20;
         const initialPage = parseInt(new URL(window.location).searchParams.get('page') || '1', 10);
@@ -593,11 +635,11 @@ function getDomainFromUrl($url) {
             }
             
             matchRows.forEach(row => {
-                const season = row.children[1].textContent; // Season column
-                const winnerName = row.children[6].textContent.toLowerCase(); // Winner column
-                const winnerRace = row.children[7].textContent; // Winner Race column
-                const loserName = row.children[9].textContent.toLowerCase(); // Loser column
-                const loserRace = row.children[10].textContent; // Loser Race column
+                const season = row.children[1 + orderColOffset].textContent; // Season column
+                const winnerName = row.children[6 + orderColOffset].textContent.toLowerCase(); // Winner column
+                const winnerRace = row.children[7 + orderColOffset].textContent; // Winner Race column
+                const loserName = row.children[9 + orderColOffset].textContent.toLowerCase(); // Loser column
+                const loserRace = row.children[10 + orderColOffset].textContent; // Loser Race column
                 
                 const seasonMatch = seasonValue === 'all' || season === seasonValue;
                 const raceMatch = raceValue === 'all' || winnerRace === raceValue || loserRace === raceValue;

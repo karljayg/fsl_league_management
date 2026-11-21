@@ -257,3 +257,14 @@ SET Championship_Record = JSON_SET(
 )
 WHERE Player_ID = 4
   AND JSON_UNQUOTE(JSON_EXTRACT(Championship_Record, '$.records[0].notes')) = 'B : StuBlue def. Charizma 3-1';
+
+-- 2026-11-07: Play order for match lists. Not applied yet.
+-- Match IDs stay put. Higher order_number shows first (same as today's ID order after the backfill).
+-- Nullable so lineup-planner inserts still work; lists use COALESCE(order_number, fsl_match_id).
+ALTER TABLE fsl_matches
+  ADD COLUMN order_number INT NULL AFTER fsl_match_id,
+  ADD INDEX idx_fsl_matches_order_number (order_number);
+
+UPDATE fsl_matches
+SET order_number = fsl_match_id
+WHERE order_number IS NULL;

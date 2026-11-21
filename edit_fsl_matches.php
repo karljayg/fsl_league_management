@@ -67,7 +67,7 @@ $tournamentCodes = [
 $searchQuery = isset($_GET['search']) ? trim($_GET['search']) : '';
 $seasonFilter = isset($_GET['season']) ? trim($_GET['season']) : '';
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$perPage = 10;
+$perPage = 25;
 $offset = ($page - 1) * $perPage;
 
 $searchCondition = '';
@@ -100,10 +100,14 @@ $countStmt->execute();
 $totalMatches = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
 $totalPages = ceil($totalMatches / $perPage);
 
+$hasOrderNumber = (bool) $db->query("SHOW COLUMNS FROM fsl_matches LIKE 'order_number'")->fetch(PDO::FETCH_ASSOC);
+$playOrderExpr = $hasOrderNumber ? 'COALESCE(fm.order_number, fm.fsl_match_id)' : 'fm.fsl_match_id';
+
 // Get FSL matches with player information (paginated)
 $query = "
     SELECT 
         fm.fsl_match_id,
+        $playOrderExpr AS order_number,
         fm.season,
         fm.season_extra_info,
         fm.notes,
@@ -129,6 +133,7 @@ $query = "
         Players p_l ON fm.loser_player_id = p_l.Player_ID
     WHERE 1=1 $searchCondition
     ORDER BY 
+        $playOrderExpr DESC,
         fm.fsl_match_id DESC
     LIMIT $perPage OFFSET $offset
 ";
@@ -194,15 +199,23 @@ include 'includes/header.php';
     </form>
     
     <!-- Add New Match Button -->
-    <div class="mb-3">
+    <div class="mb-3 d-flex flex-wrap align-items-center justify-content-between">
         <button type="button" class="btn btn-success" onclick="showAddMatchForm()">Add New Match</button>
+        <?php if ($hasOrderNumber): ?>
+            <div id="reorder-status" class="reorder-status text-light" aria-live="polite">Drag the handle to change play order. Top = played later.</div>
+        <?php else: ?>
+            <div class="alert alert-warning mb-0">Play order needs the <code>order_number</code> column. Run this, then reload:<br><code>ALTER TABLE fsl_matches ADD COLUMN order_number INT NULL AFTER fsl_match_id, ADD INDEX idx_fsl_matches_order_number (order_number); UPDATE fsl_matches SET order_number = fsl_match_id WHERE order_number IS NULL;</code></div>
+        <?php endif; ?>
     </div>
     
     <!-- Matches List -->
     <div class="table-responsive">
-        <table id="matches-table" class="table table-dark table-striped table-bordered">
+        <table id="matches-table" class="table table-dark table-striped table-bordered<?= $hasOrderNumber ? ' matches-reorderable' : '' ?>">
             <thead class="thead-dark">
                 <tr>
+                    <?php if ($hasOrderNumber): ?>
+                    <th style="width: 72px;">Order</th>
+                    <?php endif; ?>
                     <th style="width: 70px;">ID</th>
                     <th style="width: 280px;">Player A</th>
                     <th style="width: 100px;">A Race</th>
@@ -219,7 +232,22 @@ include 'includes/header.php';
                 <?php foreach ($matches as $match): ?>
                     <!-- Row 1: Main player entry -->
                     <tr class="match-row match-row-1" data-match-id="<?php echo $match['fsl_match_id']; ?>">
-                        <td class="match-id-cell"><?php echo htmlspecialchars($match['fsl_match_id']); ?></td>
+                        <?php if ($hasOrderNumber): ?>
+                        <td class="reorder-cell text-center">
+                            <button type="button" class="match-drag-handle" title="Drag to reorder" aria-label="Drag match <?php echo htmlspecialchars($match['fsl_match_id']); ?> to reorder" draggable="true">
+                                <i class="fas fa-grip-vertical" aria-hidden="true"></i>
+                            </button>
+                            <div class="match-nudge-btns btn-group-vertical btn-group-sm" role="group">
+                                <button type="button" class="btn btn-primary btn-nudge" data-direction="up" title="Move up" aria-label="Move match up">
+                                    <i class="fas fa-chevron-up" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-nudge" data-direction="down" title="Move down" aria-label="Move match down">
+                                    <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <?php endif; ?>
+                        <td class="match-id-cell text-center"><?php echo htmlspecialchars($match['fsl_match_id']); ?></td>
                         <td>
                             <select name="player_a_id" class="form-control editor-select">
                                 <?php foreach ($players as $id => $name): ?>
@@ -284,6 +312,9 @@ include 'includes/header.php';
                     </tr>
                     <!-- Row 2: Details / metadata -->
                     <tr class="match-row match-row-2" data-match-id="<?php echo $match['fsl_match_id']; ?>">
+                        <?php if ($hasOrderNumber): ?>
+                        <td class="reorder-cell-spacer"></td>
+                        <?php endif; ?>
                         <!-- Empty ID cell so it lines up visually -->
                         <td></td>
                         <!-- Season + Extra Info + Teams -->
@@ -563,6 +594,9 @@ include 'includes/header.php';
 <script>
     // Player ID -> Team ID for auto-fill when player selection changes
     var playerToTeam = <?php echo json_encode($playerToTeam); ?>;
+    var canReorderMatches = <?= $hasOrderNumber ? 'true' : 'false' ?>;
+    var reorderBusy = false;
+    var draggedMatchId = null;
 
     // Defaults from latest DB match (non-player fields only)
     var addMatchDefaults = <?php echo json_encode([
@@ -656,7 +690,235 @@ include 'includes/header.php';
         document.querySelectorAll('#matches-table input[name="score_a"], #matches-table input[name="score_b"]').forEach(input => {
             updateWinnerIndicator(input);
         });
+        if (canReorderMatches) {
+            initMatchReorder();
+        }
     });
+
+    function setReorderStatus(message, kind) {
+        var el = document.getElementById('reorder-status');
+        if (!el) return;
+        el.textContent = message;
+        el.classList.remove('is-saving', 'is-success', 'is-error');
+        if (kind) {
+            el.classList.add(kind);
+        }
+    }
+
+    function getMatchRow1Nodes() {
+        return Array.prototype.slice.call(document.querySelectorAll('#matches-table tbody tr.match-row-1'));
+    }
+
+    function getMatchPair(matchId) {
+        return Array.prototype.slice.call(document.querySelectorAll('#matches-table tbody tr[data-match-id="' + matchId + '"]'));
+    }
+
+    function currentMatchOrder() {
+        return getMatchRow1Nodes().map(function(row) {
+            return row.getAttribute('data-match-id');
+        });
+    }
+
+    function clearDropIndicators() {
+        document.querySelectorAll('#matches-table tbody tr.drop-before, #matches-table tbody tr.drop-after, #matches-table tbody tr.is-dragging').forEach(function(row) {
+            row.classList.remove('drop-before', 'drop-after', 'is-dragging');
+        });
+    }
+
+    function refreshNudgeButtons() {
+        var rows = getMatchRow1Nodes();
+        rows.forEach(function(row, index) {
+            var up = row.querySelector('.btn-nudge[data-direction="up"]');
+            var down = row.querySelector('.btn-nudge[data-direction="down"]');
+            if (up) up.disabled = reorderBusy || index === 0;
+            if (down) down.disabled = reorderBusy || index === rows.length - 1;
+        });
+        document.querySelectorAll('#matches-table .match-drag-handle').forEach(function(handle) {
+            handle.draggable = !reorderBusy;
+            handle.classList.toggle('is-disabled', reorderBusy);
+        });
+    }
+
+    function moveMatchRelative(sourceId, targetId, placeAfter) {
+        if (!sourceId || !targetId || sourceId === targetId) {
+            return false;
+        }
+        var sourcePair = getMatchPair(sourceId);
+        var targetPair = getMatchPair(targetId);
+        if (sourcePair.length !== 2 || targetPair.length !== 2) {
+            return false;
+        }
+        var tbody = document.querySelector('#matches-table tbody');
+        if (placeAfter) {
+            var afterNode = targetPair[1].nextSibling;
+            tbody.insertBefore(sourcePair[0], afterNode);
+            tbody.insertBefore(sourcePair[1], afterNode);
+        } else {
+            tbody.insertBefore(sourcePair[0], targetPair[0]);
+            tbody.insertBefore(sourcePair[1], targetPair[0]);
+        }
+        return true;
+    }
+
+    function nudgeMatch(matchId, direction) {
+        var rows = getMatchRow1Nodes();
+        var index = rows.findIndex(function(row) {
+            return row.getAttribute('data-match-id') === String(matchId);
+        });
+        if (index < 0) return;
+
+        if (direction === 'up') {
+            if (index === 0) return;
+            moveMatchRelative(matchId, rows[index - 1].getAttribute('data-match-id'), false);
+            persistMatchOrder();
+            return;
+        }
+
+        if (direction === 'down') {
+            if (index >= rows.length - 1) return;
+            moveMatchRelative(matchId, rows[index + 1].getAttribute('data-match-id'), true);
+            persistMatchOrder();
+        }
+    }
+
+    function dropPlacementForEvent(e, targetId) {
+        var pair = getMatchPair(targetId);
+        if (pair.length !== 2) {
+            return false;
+        }
+        var top = pair[0].getBoundingClientRect().top;
+        var bottom = pair[1].getBoundingClientRect().bottom;
+        return e.clientY > ((top + bottom) / 2);
+    }
+
+    function persistMatchOrder() {
+        if (!canReorderMatches || reorderBusy) {
+            return;
+        }
+
+        var matchIds = currentMatchOrder();
+        if (matchIds.length < 2) {
+            refreshNudgeButtons();
+            return;
+        }
+
+        reorderBusy = true;
+        refreshNudgeButtons();
+        setReorderStatus('Saving play order…', 'is-saving');
+
+        var formData = new FormData();
+        formData.append('action', 'reorder_matches');
+        matchIds.forEach(function(id) {
+            formData.append('match_ids[]', id);
+        });
+
+        fetch('edit_fsl_matches_handler.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            if (data.status === 'success') {
+                setReorderStatus('Play order saved', 'is-success');
+                setTimeout(function() {
+                    setReorderStatus('Drag the handle to change play order. Top = played later.');
+                }, 1800);
+            } else {
+                setReorderStatus(data.message || 'Could not save play order', 'is-error');
+                window.location.reload();
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            setReorderStatus(error.message || 'Could not save play order', 'is-error');
+            window.location.reload();
+        })
+        .finally(function() {
+            reorderBusy = false;
+            refreshNudgeButtons();
+        });
+    }
+
+    function initMatchReorder() {
+        var table = document.getElementById('matches-table');
+        if (!table) return;
+
+        table.addEventListener('click', function(e) {
+            var nudge = e.target.closest('.btn-nudge');
+            if (!nudge || nudge.disabled) return;
+            var row = nudge.closest('tr.match-row-1');
+            if (!row) return;
+            nudgeMatch(row.getAttribute('data-match-id'), nudge.getAttribute('data-direction'));
+        });
+
+        table.addEventListener('dragstart', function(e) {
+            var handle = e.target.closest('.match-drag-handle');
+            if (!handle || reorderBusy) {
+                e.preventDefault();
+                return;
+            }
+            var row = handle.closest('tr.match-row-1');
+            draggedMatchId = row.getAttribute('data-match-id');
+            getMatchPair(draggedMatchId).forEach(function(pairRow) {
+                pairRow.classList.add('is-dragging');
+            });
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedMatchId);
+            try {
+                e.dataTransfer.setDragImage(row, 24, 20);
+            } catch (err) {}
+        });
+
+        table.addEventListener('dragend', function() {
+            draggedMatchId = null;
+            clearDropIndicators();
+        });
+
+        table.addEventListener('dragover', function(e) {
+            if (!draggedMatchId) return;
+            var row = e.target.closest('tr.match-row-1, tr.match-row-2');
+            if (!row) return;
+            var targetId = row.getAttribute('data-match-id');
+            if (!targetId || targetId === draggedMatchId) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            clearDropIndicators();
+            getMatchPair(draggedMatchId).forEach(function(pairRow) {
+                pairRow.classList.add('is-dragging');
+            });
+            var placeAfter = dropPlacementForEvent(e, targetId);
+            var targetPair = getMatchPair(targetId);
+            if (placeAfter) {
+                targetPair[1].classList.add('drop-after');
+            } else {
+                targetPair[0].classList.add('drop-before');
+            }
+        });
+
+        table.addEventListener('dragleave', function(e) {
+            if (!e.target.closest || !e.target.closest('#matches-table')) {
+                clearDropIndicators();
+            }
+        });
+
+        table.addEventListener('drop', function(e) {
+            if (!draggedMatchId) return;
+            var row = e.target.closest('tr.match-row-1, tr.match-row-2');
+            if (!row) return;
+            var targetId = row.getAttribute('data-match-id');
+            e.preventDefault();
+            var sourceId = draggedMatchId;
+            var placeAfter = dropPlacementForEvent(e, targetId);
+            clearDropIndicators();
+            draggedMatchId = null;
+            if (!targetId || targetId === sourceId) return;
+            if (moveMatchRelative(sourceId, targetId, placeAfter)) {
+                persistMatchOrder();
+            }
+        });
+
+        refreshNudgeButtons();
+    }
     
     // Save match
     function saveMatch(button) {
@@ -762,6 +1024,9 @@ include 'includes/header.php';
                 // Remove both rows for this match
                 const allMatchRows = document.querySelectorAll(`tr[data-match-id="${matchId}"]`);
                 allMatchRows.forEach(r => r.remove());
+                if (canReorderMatches) {
+                    refreshNudgeButtons();
+                }
             } else {
                 alert(`Error: ${data.message}`);
             }
@@ -1113,6 +1378,84 @@ include 'includes/header.php';
     /* Ensure rowspan cells align properly */
     .match-id-cell {
         vertical-align: middle;
+    }
+
+    .reorder-status {
+        font-size: 13px;
+        opacity: 0.9;
+    }
+
+    .reorder-status.is-saving {
+        color: #00d4ff;
+    }
+
+    .reorder-status.is-success {
+        color: #28a745;
+    }
+
+    .reorder-status.is-error {
+        color: #dc3545;
+    }
+
+    .reorder-cell {
+        vertical-align: middle;
+        width: 72px;
+        background: rgba(0, 212, 255, 0.06);
+    }
+
+    .reorder-cell-spacer {
+        background: rgba(0, 212, 255, 0.03);
+    }
+
+    .match-drag-handle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 28px;
+        margin-bottom: 4px;
+        border: 1px solid rgba(0, 212, 255, 0.35);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.45);
+        color: #00d4ff;
+        cursor: grab;
+        user-select: none;
+    }
+
+    .match-drag-handle:active {
+        cursor: grabbing;
+    }
+
+    .match-drag-handle.is-disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .match-nudge-btns {
+        display: inline-flex;
+        width: 34px;
+    }
+
+    .match-nudge-btns .btn-nudge {
+        padding: 0;
+        line-height: 1.2;
+        font-size: 10px;
+    }
+
+    .match-nudge-btns .btn-nudge:disabled {
+        opacity: 0.35;
+    }
+
+    #matches-table tbody tr.is-dragging {
+        opacity: 0.45;
+    }
+
+    #matches-table tbody tr.match-row-1.drop-before {
+        box-shadow: inset 0 3px 0 #00d4ff;
+    }
+
+    #matches-table tbody tr.match-row-2.drop-after {
+        box-shadow: inset 0 -3px 0 #00d4ff;
     }
     
     /* Ensure table doesn't break on wide screens */

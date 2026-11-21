@@ -197,13 +197,19 @@ if ($cachedData === null) {
         }
     }
 
-    // Fetch all match details in one query
+    // Fetch all match details in one query (play order: earliest first within a matchup)
     $allMatchDetails = [];
     if (!empty($allMatchIds)) {
         $allMatchIds = array_values(array_unique($allMatchIds));
         $placeholders = str_repeat('?,', count($allMatchIds) - 1) . '?';
+        $hasOrderNumber = (bool) $db->query("SHOW COLUMNS FROM fsl_matches LIKE 'order_number'")->fetch(PDO::FETCH_ASSOC);
+        $orderSelect = $hasOrderNumber ? "COALESCE(fm.order_number, fm.fsl_match_id) AS order_number," : "fm.fsl_match_id AS order_number,";
+        $orderBy = $hasOrderNumber
+            ? "ORDER BY fsm.schedule_id, COALESCE(fm.order_number, fm.fsl_match_id) ASC, fm.fsl_match_id ASC"
+            : "ORDER BY fsm.schedule_id, fm.fsl_match_id ASC";
         $detailsQuery = "SELECT 
             fm.fsl_match_id,
+            $orderSelect
             fm.t_code,
             fm.season_extra_info,
             fm.map_win,
@@ -222,7 +228,8 @@ if ($cachedData === null) {
         JOIN Players p_w ON fm.winner_player_id = p_w.Player_ID
         JOIN Players p_l ON fm.loser_player_id = p_l.Player_ID
         JOIN fsl_schedule_matches fsm ON fm.fsl_match_id = fsm.fsl_match_id
-        WHERE fm.fsl_match_id IN ($placeholders)";
+        WHERE fm.fsl_match_id IN ($placeholders)
+        $orderBy";
         
         $stmt = $db->prepare($detailsQuery);
         $stmt->execute($allMatchIds);
@@ -330,13 +337,23 @@ function getMatchDetails($matchIds) {
     // This now returns from cache - find by matching matchIds
     // We iterate through allMatchDetails to find rows matching the matchIds
     $result = [];
+    $wanted = array_fill_keys(array_map('intval', (array) $matchIds), true);
     foreach ($allMatchDetails as $scheduleId => $matches) {
         foreach ($matches as $match) {
-            if (in_array($match['fsl_match_id'], $matchIds)) {
+            if (isset($wanted[(int) $match['fsl_match_id']])) {
                 $result[] = $match;
             }
         }
     }
+    usort($result, function ($a, $b) {
+        $aOrder = $a['order_number'] ?? $a['fsl_match_id'];
+        $bOrder = $b['order_number'] ?? $b['fsl_match_id'];
+        $cmp = ((int) $aOrder) <=> ((int) $bOrder);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        return ((int) $a['fsl_match_id']) <=> ((int) $b['fsl_match_id']);
+    });
     return $result;
 }
 
