@@ -103,7 +103,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $existing = $checkStmt->fetch();
                         
                         if ($existing) {
-                            // Update existing entry
+                            // Add form starts blank. A season/week match updates that row,
+                            // so an empty 2v2 box must not wipe results already stored.
+                            $team2v2 = $_POST['team_2v2_results'] ?? '';
+                            if (trim($team2v2) === '') {
+                                $keepStmt = $db->prepare("SELECT team_2v2_results FROM fsl_schedule WHERE schedule_id = ?");
+                                $keepStmt->execute([$existing['schedule_id']]);
+                                $kept = $keepStmt->fetchColumn();
+                                if ($kept !== false && $kept !== null) {
+                                    $team2v2 = $kept;
+                                }
+                            }
                             $stmt = $db->prepare("UPDATE fsl_schedule SET match_date=?, team1_id=?, team2_id=?, team1_score=?, team2_score=?, winner_team_id=?, status=?, notes=?, team_2v2_results=? WHERE schedule_id=?");
                             $stmt->execute([
                                 $_POST['match_date'] !== '' ? $_POST['match_date'] : null,
@@ -114,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $_POST['winner_team_id'] !== '' ? $_POST['winner_team_id'] : null,
                                 $_POST['status'],
                                 $_POST['notes'],
-                                $_POST['team_2v2_results'],
+                                $team2v2,
                                 $existing['schedule_id']
                             ]);
                             $message = "Schedule entry updated successfully!";
@@ -431,7 +441,7 @@ include 'includes/header.php';
     <div id="add-tab" class="tab-content">
         <h2>Add New Schedule Entry</h2>
         
-        <form method="post" class="schedule-form">
+        <form method="post" id="schedule-entry-form" class="schedule-form">
             <input type="hidden" name="action" value="add_schedule">
             
             <div class="form-row">
@@ -476,12 +486,12 @@ include 'includes/header.php';
             <div class="form-row">
                 <div class="form-group">
                     <label>Team 1 Score:</label>
-                    <input type="number" name="team1_score" min="0" max="9">
+                    <input type="number" name="team1_score" min="0" max="99">
                 </div>
                 
                 <div class="form-group">
                     <label>Team 2 Score:</label>
-                    <input type="number" name="team2_score" min="0" max="9">
+                    <input type="number" name="team2_score" min="0" max="99">
                 </div>
                 
                 <div class="form-group">
@@ -767,52 +777,52 @@ include 'includes/header.php';
 </style>
 
 <script>
+    function getScheduleForm() {
+        return document.getElementById('schedule-entry-form');
+    }
+
+    function scheduleField(name) {
+        return getScheduleForm().querySelector('[name="' + name + '"]');
+    }
+
     function showTab(tabName, event) {
         // Hide all tabs
         document.querySelectorAll('.tab-content').forEach(tab => {
             tab.classList.remove('active');
         });
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
+            const opensThisTab = (btn.getAttribute('onclick') || '').indexOf("'" + tabName + "'") !== -1;
+            btn.classList.toggle('active', opensThisTab);
         });
         
         // Show selected tab
         document.getElementById(tabName + '-tab').classList.add('active');
         
-        // Only update button if event is provided
-        if (event && event.target) {
-            event.target.classList.add('active');
-        }
-        
-        // Only reset form if switching to add tab AND we're not currently editing
-        if (tabName === 'add' && !document.querySelector('input[name="editing_schedule_id"]')) {
+        // Reset when opening a blank add. editSchedule() calls this without a click,
+        // after the hidden id is set, so an in-progress edit is left intact.
+        // A real click on Add New Schedule leaves edit mode.
+        const editing = scheduleField('editing_schedule_id');
+        const userClickedAdd = tabName === 'add' && event && event.target;
+        if (tabName === 'add' && (!editing || userClickedAdd)) {
             resetAddForm();
         }
     }
     
     function resetAddForm() {
-        console.log('resetAddForm called'); // Debug log
-        
-        // Reset form to add mode
-        document.querySelector('#add-tab form').reset();
-        document.querySelector('input[name="season"]').value = '9';
-        document.querySelector('input[name="action"]').value = 'add_schedule';
+        const form = getScheduleForm();
+        form.reset();
+        scheduleField('season').value = '9';
+        scheduleField('action').value = 'add_schedule';
         document.querySelector('#add-tab .btn-primary').textContent = 'Add Schedule Entry';
         document.querySelector('#add-tab h2').textContent = 'Add New Schedule Entry';
         
-        // Remove editing state
-        let editingField = document.querySelector('input[name="editing_schedule_id"]');
+        const editingField = scheduleField('editing_schedule_id');
         if (editingField) {
             editingField.remove();
         }
-        
-        console.log('Form reset complete'); // Debug log
     }
     
     function editSchedule(scheduleId) {
-        console.log('Editing schedule ID:', scheduleId); // Debug log
-        
-        // Load schedule entry data and populate edit form
         fetch('admin_schedule.php', {
             method: 'POST',
             headers: {
@@ -821,15 +831,12 @@ include 'includes/header.php';
             body: 'action=get_schedule_entry&schedule_id=' + scheduleId
         })
         .then(response => {
-            console.log('Response status:', response.status); // Debug log
             if (!response.ok) {
                 throw new Error('Network response was not ok: ' + response.status);
             }
             return response.json();
         })
         .then(data => {
-            console.log('Raw response data:', data); // Debug log
-            
             if (data.error) {
                 throw new Error(data.error);
             }
@@ -838,59 +845,33 @@ include 'includes/header.php';
                 throw new Error('Invalid data received from server');
             }
             
-            console.log('Loaded data:', data); // Debug log
+            const form = getScheduleForm();
+            scheduleField('season').value = data.season || '';
+            scheduleField('week_number').value = data.week_number || '';
+            scheduleField('match_date').value = data.match_date ? String(data.match_date).substring(0, 10) : '';
+            scheduleField('team1_id').value = data.team1_id || '';
+            scheduleField('team2_id').value = data.team2_id || '';
+            scheduleField('team1_score').value = data.team1_score !== null && data.team1_score !== undefined ? data.team1_score : '';
+            scheduleField('team2_score').value = data.team2_score !== null && data.team2_score !== undefined ? data.team2_score : '';
+            scheduleField('winner_team_id').value = data.winner_team_id || '';
+            scheduleField('status').value = data.status || 'scheduled';
+            scheduleField('notes').value = data.notes || '';
+            scheduleField('team_2v2_results').value = data.team_2v2_results || '';
             
-            // Populate the add form with existing data
-            document.querySelector('input[name="season"]').value = data.season || '';
-            document.querySelector('input[name="week_number"]').value = data.week_number || '';
-            document.querySelector('input[name="match_date"]').value = data.match_date || '';
-            document.querySelector('select[name="team1_id"]').value = data.team1_id || '';
-            document.querySelector('select[name="team2_id"]').value = data.team2_id || '';
-            document.querySelector('input[name="team1_score"]').value = data.team1_score !== null ? data.team1_score : '';
-            document.querySelector('input[name="team2_score"]').value = data.team2_score !== null ? data.team2_score : '';
-            document.querySelector('select[name="winner_team_id"]').value = data.winner_team_id || '';
-            document.querySelector('select[name="status"]').value = data.status || 'scheduled';
-            document.querySelector('textarea[name="notes"]').value = data.notes || '';
-            document.querySelector('textarea[name="team_2v2_results"]').value = data.team_2v2_results || '';
-            
-            console.log('Form populated with values:'); // Debug log
-            console.log('Season:', document.querySelector('input[name="season"]').value);
-            console.log('Week:', document.querySelector('input[name="week_number"]').value);
-            console.log('Team1 Score:', document.querySelector('input[name="team1_score"]').value);
-            console.log('Team2 Score:', document.querySelector('input[name="team2_score"]').value);
-            
-            // Add a hidden field to track which schedule we're editing
-            let hiddenId = document.querySelector('input[name="editing_schedule_id"]');
+            let hiddenId = scheduleField('editing_schedule_id');
             if (!hiddenId) {
                 hiddenId = document.createElement('input');
                 hiddenId.type = 'hidden';
                 hiddenId.name = 'editing_schedule_id';
-                document.querySelector('#add-tab form').appendChild(hiddenId);
+                form.appendChild(hiddenId);
             }
             hiddenId.value = data.schedule_id;
             
-            // Change form action to update
-            document.querySelector('input[name="action"]').value = 'add_schedule'; // This will now handle both add/update
+            scheduleField('action').value = 'add_schedule';
             
-            // Switch to add tab and update button text
             showTab('add');
             document.querySelector('#add-tab .btn-primary').textContent = 'Update Schedule Entry';
             document.querySelector('#add-tab h2').textContent = 'Edit Schedule Entry';
-            
-            console.log('Edit form setup complete'); // Debug log
-            
-            // Double-check form values after tab switch
-            setTimeout(() => {
-                console.log('Form values after tab switch:');
-                console.log('Season:', document.querySelector('input[name="season"]').value);
-                console.log('Week:', document.querySelector('input[name="week_number"]').value);
-                console.log('Team1 Score:', document.querySelector('input[name="team1_score"]').value);
-                console.log('Team2 Score:', document.querySelector('input[name="team2_score"]').value);
-                console.log('Team1 ID:', document.querySelector('select[name="team1_id"]').value);
-                console.log('Team2 ID:', document.querySelector('select[name="team2_id"]').value);
-                console.log('Winner ID:', document.querySelector('select[name="winner_team_id"]').value);
-                console.log('Status:', document.querySelector('select[name="status"]').value);
-            }, 100);
         })
         .catch(error => {
             console.error('Error:', error);
