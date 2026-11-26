@@ -150,6 +150,31 @@ include_once 'includes/header.php';
         color: #ffffff;
         text-decoration: none;
     }
+
+    .admin-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .admin-link {
+        display: inline-block;
+        padding: 8px 15px;
+        background: rgba(0, 212, 255, 0.15);
+        border: 1px solid rgba(0, 212, 255, 0.5);
+        border-radius: 5px;
+        color: #00d4ff;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .admin-link:hover {
+        background: rgba(0, 212, 255, 0.3);
+        border-color: #00d4ff;
+        color: #ffffff;
+        text-decoration: none;
+    }
     
     .coming-soon {
         color: #ff6f61;
@@ -234,20 +259,27 @@ include_once 'includes/header.php';
     </div>
 
     <div class="highlight-box">
-        <h3>Season 10 Draft - January 31st</h3>
-        <p style="font-size: 1.2em; margin: 10px 0;">Don't miss out! The Season 10 draft is scheduled for January 31st. Apply now to be considered for the upcoming season!</p>
+        <h3>Season 12 is underway</h3>
+        <p style="font-size: 1.2em; margin: 10px 0;">Season 12 runs November 2026 through January 2027. Apply now to be considered for FSL. <a href="fsl_schedule.php?season=12">View the Season 12 schedule</a>.</p>
     </div>
 
     <div class="section">
         <h2>How to Apply</h2>
-        <p>Submit your application to join FSL. Additional contact options for questions and discussion are available:</p>
+        <p>Fill out the application form to join FSL. You can also reach out on Discord or Reddit if you have questions.</p>
         
         <div class="application-options">
             <div class="application-option">
-                <h4>Google Form</h4>
-		<a href="https://forms.cloud.microsoft/pages/responsepage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__qmuwg9UMUpaODVSNEdBNzFGN0ZaTUZRRzVISTJQTy4u&route=shorturl" target="_blank" class="reddit-link">
-		Apply here
-		</a>
+                <h4>Application form</h4>
+                <p>This is the current application. Submit it even if you also message us on Discord or Reddit.</p>
+                <a href="https://docs.google.com/forms/d/e/1FAIpQLSeABMEErml8c60UpYMri_KH3elV_5PuS9Ttd_zNlJ3YfQ8JOQ/viewform" target="_blank" rel="noopener noreferrer" class="reddit-link">
+                    Apply here
+                </a>
+                <?php if (function_exists('hasAdminRole') && hasAdminRole()): ?>
+                <div class="admin-links">
+                    <a href="https://docs.google.com/forms/d/1wmIfCylB9QqENjFxiXU5ZSrOJ5Q5ujIIe_qJmPL1sXs/edit" target="_blank" rel="noopener noreferrer" class="admin-link">Edit form</a>
+                    <a href="https://docs.google.com/spreadsheets/d/1ChWMWgeWajoo39h-nSLy5lDv0k-Ey-DM70G_meLnaVk/edit" target="_blank" rel="noopener noreferrer" class="admin-link">View responses</a>
+                </div>
+                <?php endif; ?>
             </div>
             <div class="application-option">
                 <h4>Discord</h4>
@@ -256,7 +288,7 @@ include_once 'includes/header.php';
             
             <div class="application-option">
                 <h4>Reddit</h4>
-                <p>We posted on reddit, you can message <span class="username">CounterfeitDLC</span> on Reddit also.</p>
+                <p>You can also message <span class="username">CounterfeitDLC</span> on Reddit.</p>
                 <a href="https://www.reddit.com/r/starcraft/comments/1qcsg5l/casual_team_league_fsl_is_looking_for_players/" target="_blank" class="reddit-link">
                     View Latest Reddit Post →
                 </a>
@@ -266,12 +298,13 @@ include_once 'includes/header.php';
 
     <div class="section">
         <h2>Get a Feel for FSL</h2>
-        <p>Want to see what FSL is all about? Check out our Season 9 broadcast to experience the excitement, commentary, and community spirit that makes FSL special.</p>
+        <p>Want to see what FSL is all about? Watch the Season 12 draft to see how teams are built and the community behind the league.</p>
         
         <div class="youtube-container">
             <div class="youtube-embed">
                 <iframe 
-                    src="https://www.youtube.com/embed/7pRh7ohhXrk" 
+                    src="https://www.youtube.com/embed/z5an0-1imIU" 
+                    title="FSL Season 12 draft"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowfullscreen>
                 </iframe>
@@ -279,7 +312,7 @@ include_once 'includes/header.php';
         </div>
         
         <p style="text-align: center; margin-top: 15px;">
-            <a href="https://youtu.be/7pRh7ohhXrk" target="_blank">Watch on YouTube</a>
+            <a href="https://youtu.be/z5an0-1imIU" target="_blank" rel="noopener noreferrer">Watch on YouTube</a>
         </p>
     </div>
 
